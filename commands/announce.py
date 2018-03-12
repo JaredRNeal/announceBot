@@ -17,6 +17,7 @@ class EasyAnnouncement(Plugin):
         #make sure it's a valid role name
         if role_Name not in AnnounceBotConfig.role_IDs:
             event.msg.reply('Sorry, I cannot find the role `{}`').format(role_Name)
+            event.msg.delete()
             return
 
         #Variables

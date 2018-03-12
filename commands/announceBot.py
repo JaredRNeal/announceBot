@@ -9,9 +9,13 @@ class AnnounceBotConfig(Config):
 
     #DTesters role IDs
     """
+    admin_Role_IDs = {
+        'admin': 197042322939052032,
+        'employee': 197042389569765376
+    }
     role_IDs = {
-        'admin_Role': 197042389569765376,
         'android': 234838349800538112,
+        'bug': 197042209038663680,
         'canary': 351008402052481025,
         'ios': 234838392464998402,
         'linux': 278229255169638410,
@@ -21,6 +25,7 @@ class AnnounceBotConfig(Config):
 
     channel_IDs = {
         'android': 411645018105970699,
+        'bug': '421790860057903104',
         'canary': 411645098946985984,
         'desktop': 411645098946985984,
         'ios': 411645199866003471,
