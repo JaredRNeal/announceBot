@@ -7,8 +7,10 @@ from announceBot import AnnounceBotConfig
 class EasyAnnouncement(Plugin):
 
     @Plugin.command('evilping')
+    #just wanted a standard ping command
     def check_bot_heartbeat(self, event):
         event.msg.reply('Evil pong!').after(10).delete()
+        event.msg.delete()
 
     @Plugin.command('announce', '<role_to_ping:str> [announcement_message:str...]')
     def Make_an_Announcement(self, event, role_to_ping, announcement_message):
@@ -16,8 +18,7 @@ class EasyAnnouncement(Plugin):
         role_Name = role_to_ping.lower()
         #make sure it's a valid role name
         if role_Name not in AnnounceBotConfig.role_IDs:
-            event.msg.reply('Sorry, I cannot find the role `{}`').format(role_Name)
-            event.msg.delete()
+            event.msg.reply('Sorry, I cannot find the role `'+role_Name+'`')
             return
 
         #Variables
@@ -75,3 +76,78 @@ class EasyAnnouncement(Plugin):
         else:
             print('The user who tried to use this command does not have the appropriate role.')
             return
+
+
+    #Hopefully clear frmo the command name, but this command
+    @Plugin.command('multiping', parser=True)
+    @Plugin.add_argument('-r', '--roles', help="all of the roles you want to ping")
+    @Plugin.add_argument('-a', '--announcement', help="the message you want to send out to everyone.")
+    def ping_multiple_roles(self, event, args):
+
+        admin_only_channel = AnnounceBotConfig.channel_IDs['mod_Channel']
+        message_with_multiple_pings = ""
+        args.roles = args.roles.lower()
+        Channel_to_announce_in = AnnounceBotConfig.channel_IDs['desktop']
+
+        #make sure it's in the right channel
+        if event.channel.id != admin_only_channel:
+            print("The command was not run in the proper channel")
+            return
+
+        #Make sure only an admin can do it
+        if any(AnnounceBotConfig.admin_Role_IDs.values() for role in event.member.roles):
+
+            if "ios" in args.roles or "android" in args.roles:
+                event.msg.reply("This command can only be used for desktop roles. Linux, Windows, Mac and Canary.")
+                return
+
+            for pingable_role in AnnounceBotConfig.role_IDs.keys():
+                if pingable_role in args.roles:
+                    #Variables
+
+                    Role_as_an_int = AnnounceBotConfig.role_IDs[pingable_role]
+                    Role_as_a_string = str(AnnounceBotConfig.role_IDs[pingable_role])
+                    Is_Role_Mentionable = event.guild.roles.get(Role_as_an_int).mentionable
+                    Role_To_Make_Mentionable = event.guild.roles.get(Role_as_an_int)
+                    message_to_announce = "<@&" + Role_as_a_string + "> " + args.announcement
+                    admin_only_channel = AnnounceBotConfig.channel_IDs['mod_Channel']
+
+                    if Is_Role_Mentionable == False:
+                        Role_To_Make_Mentionable.update(mentionable=True)
+                    message_with_multiple_pings = message_with_multiple_pings + "<@&" + Role_as_a_string + "> "
+
+            if message_with_multiple_pings == "":
+                event.msg.reply("Something strange happened. Please let Dabbit know and try again.")
+                return
+            else:
+                message_with_multiple_pings = message_with_multiple_pings + args.announcement
+                self.bot.client.api.channels_messages_create(Channel_to_announce_in, message_with_multiple_pings)
+
+            for pingable_role in AnnounceBotConfig.role_IDs.keys():
+
+                #Variables
+
+                Role_as_an_int = AnnounceBotConfig.role_IDs[pingable_role]
+                Role_as_a_string = str(AnnounceBotConfig.role_IDs[pingable_role])
+                Is_Role_Mentionable = event.guild.roles.get(Role_as_an_int).mentionable
+                Role_To_Make_Mentionable = event.guild.roles.get(Role_as_an_int)
+                message_to_announce = "<@&" + Role_as_a_string + "> " + args.announcement
+                admin_only_channel = AnnounceBotConfig.channel_IDs['mod_Channel']
+
+                if Is_Role_Mentionable == True:
+                    Role_To_Make_Mentionable.update(mentionable=False)
+                    print (pingable_role +" was successfully set to unpingable.")
+
+        else:
+            print("The user that attempted to use the Multiping command does not have the proper permissions so the command was ignored.")
+            return
+
+
+
+
+
+
+
+
+
+        #hello world

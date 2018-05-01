@@ -4,3 +4,4 @@ bot:
   commands_prefix: '!'
   plugins:
     - commands.announce
+    - commands.events

@@ -55,3 +55,27 @@ class AnnounceBotConfig(Config):
         'iOS': 413447018816733195,
         'desktop': 413447049040756739
         }
+
+class eventChannelConfig(Config):
+    """
+    #relevant channel IDs in DTesters:
+    event_channel_IDs = {
+    'ios': 424032686622113794,
+    'android': 424032786664390656,
+    'desktop': 424032874900094989,
+    'linux': 424032956856926219,
+    'prizes': 406167192543952897,
+    'rules': 406151195632336907,
+    'claimed_fixed': 406165473856585739
+    }
+    """
+    #relevant channel IDs in the Test Server:
+    event_channel_IDs = {
+    'ios': 425682219596644353,
+    'android': 425682234540818442,
+    'desktop': 425682251817287700,
+    'linux': 425682269609525255,
+    'prizes': 425682284809814028,
+    'rules': 425682305357578250,
+    'claimed_fixed': 425682330494042117
+    }
