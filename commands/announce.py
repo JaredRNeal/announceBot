@@ -3,6 +3,8 @@ from disco.api.http import APIException
 from disco.api.client import APIClient
 from disco.types.guild import GuildMember
 from announceBot import AnnounceBotConfig
+from announceBot import FAQtopics
+
 
 class EasyAnnouncement(Plugin):
 
@@ -78,7 +80,7 @@ class EasyAnnouncement(Plugin):
             return
 
 
-    #Hopefully clear frmo the command name, but this command
+    #Hopefully clear from the command name, but this command allows you to ping and announce to multiple DESKTOP roles simultaneously.
     @Plugin.command('multiping', parser=True)
     @Plugin.add_argument('-r', '--roles', help="all of the roles you want to ping")
     @Plugin.add_argument('-a', '--announcement', help="the message you want to send out to everyone.")
@@ -126,16 +128,10 @@ class EasyAnnouncement(Plugin):
             for pingable_role in AnnounceBotConfig.role_IDs.keys():
 
                 #Variables
-
-                Role_as_an_int = AnnounceBotConfig.role_IDs[pingable_role]
-                Role_as_a_string = str(AnnounceBotConfig.role_IDs[pingable_role])
-                Is_Role_Mentionable = event.guild.roles.get(Role_as_an_int).mentionable
-                Role_To_Make_Mentionable = event.guild.roles.get(Role_as_an_int)
-                message_to_announce = "<@&" + Role_as_a_string + "> " + args.announcement
-                admin_only_channel = AnnounceBotConfig.channel_IDs['mod_Channel']
+                Role_To_Make_Unmentionable = event.guild.roles.get(AnnounceBotConfig.role_IDs[pingable_role])
 
                 if Is_Role_Mentionable == True:
-                    Role_To_Make_Mentionable.update(mentionable=False)
+                    Role_To_Make_Unmentionable.update(mentionable=False)
                     print (pingable_role +" was successfully set to unpingable.")
 
         else:
@@ -143,7 +139,17 @@ class EasyAnnouncement(Plugin):
             return
 
 
-
+    @Plugin.command('tag', parser=True)
+    @Plugin.add_argument('question_title', help="The title of the topic you want to post about.")
+    def questions_made_easy(self, event, args):
+        #Checks to see if the topic in the list and then replies with the message in annouceBot.py
+        args.question_title = args.question_title.lower()
+        if any(AnnounceBotConfig.admin_Role_IDs.values() for role in event.member.roles):
+            event.msg.delete()
+            if args.question_title in FAQtopics.frequently_asked_questions.keys():
+                event.msg.reply(FAQtopics.frequently_asked_questions[args.question_title])
+        else:
+            return
 
 
 

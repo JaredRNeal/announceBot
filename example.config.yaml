@@ -1,7 +1,7 @@
 bot:
   commands_require_mention: false
   commands_level_getter: commands.command_level_getter
-  commands_prefix: '!'
+  commands_prefix: '+'
   plugins:
     - commands.announce
     - commands.events
