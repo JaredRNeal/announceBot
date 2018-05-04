@@ -90,9 +90,9 @@ class FAQtopics(Config):
         'abuse': "You can contact our Trust and Safety team via https://dis.gd/request. For fastest turn around time, read over this article <https://dis.gd/HowToReport>.",
         'install': "Having some trouble getting Discord to boot? Sorry about that! Usually a quick re-install does the trick. Just follow the instructions here: <https://support.discordapp.com/hc/en-us/articles/209099387--Windows-Installer-Errors>"
             + ". If that doesn't work, your best bet is to contact our support team via https://dis.gd/contact",
-        'bug': "Thanks for wanting to report a bug! All of the info you need to report a bug can be found in #bot-help. The bot syntax can be confusing at first, so make sure to check out the form linked to in that channel.",
+        'bug': "Thanks for wanting to report a bug! All of the info you need to report a bug can be found in <#342060723721207810>. The bot syntax can be confusing at first, so make sure to check out the form linked to in that channel.",
         'badge': "**Oooo... shiny! I want a badge! How do I get this badge?**\n"
-            + "Right now it's only available for Bug Hunters. In the near future we'll be running BH only events where one of the prizes for outstanding participation (read: top placing) will be the Bug Hunter Badge. It also may be a reward for new #bug-bounties as well.\n"
+            + "Right now it's only available for Bug Hunters. In the near future we'll be running BH only events where one of the prizes for outstanding participation (read: top placing) will be the Bug Hunter Badge. It also may be a reward for new <#274590523719811074> as well.\n"
             + "\n**So that means that every Bug Hunter will get one?**\n"
             + "No. You have to be a Bug Hunter before you can participate in the thing that will let you acquire it. It is not automatically given to everyone with the BH role and never will be."
             + "\n\n**So only these 'events'? No other way, like, forever?**\n"
