@@ -2,8 +2,11 @@ from disco.bot import Plugin
 from disco.api.http import APIException
 from disco.api.client import APIClient
 from disco.types.guild import GuildMember
+from disco.types.message import MessageEmbed
+from datetime import datetime
 from announceBot import AnnounceBotConfig
 from announceBot import FAQtopics
+
 
 
 class EasyAnnouncement(Plugin):
@@ -37,7 +40,7 @@ class EasyAnnouncement(Plugin):
             return
 
         #Make sure only an admin can do it
-        if any(AnnounceBotConfig.admin_Role_IDs.values() for role in event.member.roles):
+        if any(role in AnnounceBotConfig.admin_Role_IDs.values() for role in event.member.roles):
 
             if Is_Role_Mentionable == False:
                 role_Name = str(role_Name)
@@ -67,7 +70,7 @@ class EasyAnnouncement(Plugin):
             return
 
         #make sure only an admin can use this command and if so, execute
-        if any(AnnounceBotConfig.admin_Role_IDs.values() for role in event.member.roles):
+        if any(role in AnnounceBotConfig.admin_Role_IDs.values() for role in event.member.roles):
             try:
                 self.client.api.channels_messages_modify(channel=channel_id_to_change, message=message_ID_to_edit, content=edited_announcemented_message)
                 event.msg.reply('I have successfully changed the messaged the message you told me to.')
@@ -97,7 +100,7 @@ class EasyAnnouncement(Plugin):
             return
 
         #Make sure only an admin can do it
-        if any(AnnounceBotConfig.admin_Role_IDs.values() for role in event.member.roles):
+        if any(role in AnnounceBotConfig.admin_Role_IDs.values() for role in event.member.roles):
 
             if "ios" in args.roles or "android" in args.roles:
                 event.msg.reply("This command can only be used for desktop roles. Linux, Windows, Mac and Canary.")
@@ -144,13 +147,13 @@ class EasyAnnouncement(Plugin):
     def questions_made_easy(self, event, args):
         #Checks to see if the topic in the list and then replies with the message in annouceBot.py
         args.question_title = args.question_title.lower()
-        if any(AnnounceBotConfig.admin_Role_IDs.values() for role in event.member.roles):
+        if any(role in AnnounceBotConfig.mod_role.values() for role in event.member.roles):
             event.msg.delete()
             if args.question_title in FAQtopics.frequently_asked_questions.keys():
                 event.msg.reply(FAQtopics.frequently_asked_questions[args.question_title])
         else:
+            print("User does not have the correct permissions to use this command.")
             return
-
 
 
 
