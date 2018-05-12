@@ -115,7 +115,7 @@ class FAQtopics(Config):
             + "\n**I haven\'t heard anything from HypeSquad, but I got a newsletter.... what\'s going on?** \n"
             + "You were most likely accepted into the program, but something in the backend borked. Just simply send an email to `hypesquad@discordapp.com` to explain the situation to them, and they will make sure that it is taken care of. \n"
             + "\n**Is HypeSquad open??** \n"
-            + "At the moment, no it is not open. You can keep an eye on the website, <https://discordapp.com/hypesquad> to see when they will be back open. \n"
+            + "At the moment, it's only open for event coordinator and attendee. You can keep an eye on the website, <https://discordapp.com/hypesquad> to see when they will be back open for online applications. \n"
             + "\nAnymore questions? Feel free to contact HypeSquad at `hypesquad@discordapp.com`",
         'support': 'You can reach support at https://dis.gd/contact for all your questions and help with figuring out problems (even in your native language if you prefer).',
         'lazy': 'Lazy guilds are guilds where you can see the offline members in the list. This does ***not*** have a negative impact on performance or loading times, quite the opposite. You can grab one of the desktop roles listed in <#342060723721207810> section 4 which will give you access to the desktop-announcements channel, where you can read more about it.'
