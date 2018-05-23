@@ -6,7 +6,7 @@ from disco.types.message import MessageEmbed
 from datetime import datetime
 from announceBot import AnnounceBotConfig
 from announceBot import FAQtopics
-
+from announceBot import LockdownChannels
 
 
 class EasyAnnouncement(Plugin):
@@ -155,7 +155,48 @@ class EasyAnnouncement(Plugin):
             print("User does not have the correct permissions to use this command.")
             return
 
+    #Quickly remove the ability for @everyone and Bug Hunters to post in specific channels when some issue is occurring
+    @Plugin.command('lockdown', parser=True)
+    @Plugin.add_argument('-c', '--channel_names', help="All the channels you want to lock down")
+    @Plugin.add_argument('-r', '--reason', help="What's going on thats making you use this command.")
+    def emergency_lockdown(self, event, args):
 
+
+
+        if any(role in AnnounceBotConfig.mod_role.values() for role in event.member.roles):
+            event.msg.delete()
+
+            if args.channel_names == "all":
+                for channel_lockdown in LockdownChannels.channels_to_lockdown.keys():
+                    lockdown_role = LockdownChannels.role_IDs_to_lockdown[0].values()
+                    print(lockdown_role)
+                    channel = LockdownChannels.channels_to_lockdown[channel_lockdown]
+                    target = event.guild.roles[411674095881814017]
+                    channel_to_lockdown = event.guild.channels[channel]
+                    channel_to_lockdown.create_overwrite(target, allow=0, deny=2048)
+                    target = event.guild.roles[411673927698350100]
+                    channel_to_lockdown = event.guild.channels[channel]
+                    channel_to_lockdown.create_overwrite(target, allow=0, deny=2048)
+                    self.bot.client.api.channels_messages_create(channel, args.reason)
+
+
+            else:
+                for channel_lockdown in LockdownChannels.channels_to_lockdown.keys():
+                    if channel_lockdown in args.channel_names:
+                        lockdown_role = LockdownChannels.role_IDs_to_lockdown.values()
+                        channel = LockdownChannels.channels_to_lockdown[channel_lockdown]
+                        target = event.guild.roles[lockdown_role[0]]
+                        channel_to_lockdown = event.guild.channels[channel]
+                        channel_to_lockdown.create_overwrite(target, allow=0, deny=2048)
+                        target = event.guild.roles[lockdown_role[1]]
+                        channel_to_lockdown = event.guild.channels[channel]
+                        channel_to_lockdown.create_overwrite(target, allow=0, deny=2048)
+                        self.bot.client.api.channels_messages_create(channel, args.reason)
+
+        else:
+            print("User does not have sufficient permissions to use this command")
+            return
+        event.msg.reply("Lockdown command has been successfully completed!")
 
 
 
