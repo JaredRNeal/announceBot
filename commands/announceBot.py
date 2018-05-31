@@ -118,6 +118,47 @@ class FAQtopics(Config):
             + "At the moment, it's only open for event coordinator and attendee. You can keep an eye on the website, <https://discordapp.com/hypesquad> to see when they will be back open for online applications. \n"
             + "\nAnymore questions? Feel free to contact HypeSquad at `hypesquad@discordapp.com`",
         'support': 'You can reach support at https://dis.gd/contact for all your questions and help with figuring out problems (even in your native language if you prefer).',
-        'lazy': 'Lazy guilds are guilds where you can see the offline members in the list. This does ***not*** have a negative impact on performance or loading times, quite the opposite. You can grab one of the desktop roles listed in <#342060723721207810> section 4 which will give you access to the desktop-announcements channel, where you can read more about it.'
+        'lazy': 'Lazy guilds are guilds where you can see the offline members in the list. This does ***not*** have a negative impact on performance or loading times, quite the opposite. You can grab one of the desktop roles listed in <#342060723721207810> section 4 which will give you access to the desktop-announcements channel, where you can read more about it.',
+        'hunter': 'You can acquire the Bug Hunter role by submitting a bug with the bot and getting it approved. For more in-depth instructions, please read through <#342043548369158156>'
 
     }
+
+class LockdownChannels(Config):
+
+    channels_to_lockdown = {
+        #test server channel IDs
+        'bug': 448943946534486017,
+        'android': 425682234540818442,
+        'desktop': 425682251817287700,
+        'ios': 425682219596644353,
+        'linux': 425682269609525255
+
+    }
+
+    role_IDs_to_lockdown = {
+
+        'not_employee': 411674095881814017,
+        'everyone': 411673927698350100
+    }
+    """
+    channels_to_lockdown = {
+        #DTesters server channel IDs
+        'bug': 253923313460445184,
+        'android': 232568032394870784,
+        'desktop': 197038744908333066,
+        'linux': 238073742624948225,
+        'ios': 202491590390841344
+
+    }
+
+    role_IDs_to_lockdown = {
+
+        'bug_hunter': 197042209038663680,
+        'everyone': 197038439483310086
+    }
+    """
+
+
+
+
+#hello world
