@@ -171,13 +171,13 @@ class EasyAnnouncement(Plugin):
                     lockdown_role = LockdownChannels.role_IDs_to_lockdown[0].values()
                     print(lockdown_role)
                     channel = LockdownChannels.channels_to_lockdown[channel_lockdown]
+                    self.bot.client.api.channels_messages_create(channel, args.reason)
                     target = event.guild.roles[411674095881814017]
                     channel_to_lockdown = event.guild.channels[channel]
                     channel_to_lockdown.create_overwrite(target, allow=0, deny=2048)
                     target = event.guild.roles[411673927698350100]
                     channel_to_lockdown = event.guild.channels[channel]
                     channel_to_lockdown.create_overwrite(target, allow=0, deny=2048)
-                    self.bot.client.api.channels_messages_create(channel, args.reason)
 
 
             else:
@@ -185,13 +185,14 @@ class EasyAnnouncement(Plugin):
                     if channel_lockdown in args.channel_names:
                         lockdown_role = LockdownChannels.role_IDs_to_lockdown.values()
                         channel = LockdownChannels.channels_to_lockdown[channel_lockdown]
+                        self.bot.client.api.channels_messages_create(channel, args.reason)
                         target = event.guild.roles[lockdown_role[0]]
                         channel_to_lockdown = event.guild.channels[channel]
                         channel_to_lockdown.create_overwrite(target, allow=0, deny=2048)
                         target = event.guild.roles[lockdown_role[1]]
                         channel_to_lockdown = event.guild.channels[channel]
                         channel_to_lockdown.create_overwrite(target, allow=0, deny=2048)
-                        self.bot.client.api.channels_messages_create(channel, args.reason)
+
 
         else:
             print("User does not have sufficient permissions to use this command")
