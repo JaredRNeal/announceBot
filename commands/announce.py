@@ -1,9 +1,6 @@
 from disco.bot import Plugin
 from disco.api.http import APIException
-from disco.api.client import APIClient
-from disco.types.guild import GuildMember
-from disco.types.message import MessageEmbed
-from datetime import datetime
+
 from announceBot import AnnounceBotConfig
 from announceBot import FAQtopics
 from announceBot import LockdownChannels
@@ -14,8 +11,9 @@ class EasyAnnouncement(Plugin):
     @Plugin.command('evilping')
     #just wanted a standard ping command
     def check_bot_heartbeat(self, event):
-        event.msg.reply('Evil pong!').after(10).delete()
-        event.msg.delete()
+        if any(role in AnnounceBotConfig.mod_role.values() for role in event.member.roles):
+            event.msg.reply('Evil pong!').after(10).delete()
+            event.msg.delete()
 
     @Plugin.command('announce', '<role_to_ping:str> [announcement_message:str...]')
     def Make_an_Announcement(self, event, role_to_ping, announcement_message):
@@ -160,44 +158,51 @@ class EasyAnnouncement(Plugin):
     @Plugin.add_argument('-c', '--channel_names', help="All the channels you want to lock down")
     @Plugin.add_argument('-r', '--reason', help="What's going on thats making you use this command.")
     def emergency_lockdown(self, event, args):
-
-
-
         if any(role in AnnounceBotConfig.mod_role.values() for role in event.member.roles):
             event.msg.delete()
-
-            if args.channel_names == "all":
-                for channel_lockdown in LockdownChannels.channels_to_lockdown.keys():
-                    lockdown_role = LockdownChannels.role_IDs_to_lockdown[0].values()
-                    print(lockdown_role)
-                    channel = LockdownChannels.channels_to_lockdown[channel_lockdown]
-                    target = event.guild.roles[411674095881814017]
-                    channel_to_lockdown = event.guild.channels[channel]
-                    channel_to_lockdown.create_overwrite(target, allow=0, deny=2048)
-                    target = event.guild.roles[411673927698350100]
-                    channel_to_lockdown = event.guild.channels[channel]
-                    channel_to_lockdown.create_overwrite(target, allow=0, deny=2048)
-                    self.bot.client.api.channels_messages_create(channel, args.reason)
-
-
-            else:
-                for channel_lockdown in LockdownChannels.channels_to_lockdown.keys():
-                    if channel_lockdown in args.channel_names:
-                        lockdown_role = LockdownChannels.role_IDs_to_lockdown.values()
-                        channel = LockdownChannels.channels_to_lockdown[channel_lockdown]
-                        target = event.guild.roles[lockdown_role[0]]
-                        channel_to_lockdown = event.guild.channels[channel]
-                        channel_to_lockdown.create_overwrite(target, allow=0, deny=2048)
-                        target = event.guild.roles[lockdown_role[1]]
-                        channel_to_lockdown = event.guild.channels[channel]
-                        channel_to_lockdown.create_overwrite(target, allow=0, deny=2048)
-                        self.bot.client.api.channels_messages_create(channel, args.reason)
-
+            for name, channelID in LockdownChannels.channels_to_lockdown.items():
+                # lock the channel if listed or when locking everything
+                if name in args.channel_names or args.channel_names == "all":
+                    print(f"Locking down {name} ({channelID})")
+                    # grab the first (bug hunter or test role) for the queue, grab everyone (or whatever test role is there) for public channels
+                    rolenum = 0 if name is "bug" else 1
+                    role = event.guild.roles[list(LockdownChannels.role_IDs_to_lockdown.values())[rolenum]]
+                    channel = event.guild.channels[channelID]
+                    channel.send_message(args.reason)
+                    # deny reactions and sending perms
+                    channel.create_overwrite(role, allow=0, deny=2112)
         else:
             print("User does not have sufficient permissions to use this command")
             return
-        event.msg.reply("Lockdown command has been successfully completed!")
+        event.msg.reply("Lockdown command has successfully completed!")
 
-
+    # lifting the lockdown
+    @Plugin.command('unlock', parser=True)
+    @Plugin.add_argument('-c', '--channel_names', help="All the channels you want to unlock")
+    def lift_lockdown(self, event, args):
+        if any(role in AnnounceBotConfig.mod_role.values() for role in event.member.roles):
+            event.msg.delete()
+            for name, channelID in LockdownChannels.channels_to_lockdown.items():
+                # unlock the channel if listed or when unlocking everything
+                if name in args.channel_names or args.channel_names == "all":
+                    print(f"unlocking {name} ({channelID})")
+                    # grab the first (bug hunter or test role) for the queue, grab everyone (or whatever test role is there) for public channels
+                    rolenum = 0 if name is "bug" else 1
+                    role = event.guild.roles[list(LockdownChannels.role_IDs_to_lockdown.values())[rolenum]]
+                    channel = event.guild.channels[channelID]
+                    channel.create_overwrite(role, allow=2048 if name is "bug" else 0, deny=64)
+                    # clean up lockdown message, scan last 5 messages just in case
+                    limit = 5
+                    count = 0
+                    for message in channel.messages_iter(chunk_size=limit):
+                        if message.author.id == self.bot.client.api.users_me_get().id:
+                            message.delete()
+                        count = count + 1
+                        if count >= limit:
+                            break
+        else:
+            print("User does not have sufficient permissions to use this command")
+            return
+        event.msg.reply("Unlock command has successfully completed!")
 
         #hello world
