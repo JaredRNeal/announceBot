@@ -1,49 +1,10 @@
-from disco.bot import Plugin, Config
-from disco.bot.command import CommandError
+from disco.bot import Config
 
 class AnnounceBotConfig(Config):
-
-    #DTesters role IDs
-    """
-    admin_Role_IDs = {
-        'admin': 197042322939052032,
-        'employee': 197042389569765376
-    }
-    role_IDs = {
-        'android': 234838349800538112,
-        'bug': 197042209038663680,
-        'canary': 351008402052481025,
-        'ios': 234838392464998402,
-        'linux': 278229255169638410,
-        'mac': 351008099978706944,
-        'windows': 351008373669494794,
-        'test': 441010616388419584
-        }
-
-    mod_role = {
-        'modinator': 440322144593772545,
-        'admin': 197042322939052032,
-        'employee': 197042389569765376
-
-    }
-
-    channel_IDs = {
-        'android': 411645018105970699,
-        'bug': '421790860057903104',
-        'canary': 411645098946985984,
-        'desktop': 411645098946985984,
-        'ios': 411645199866003471,
-        'linux': 411645098946985984,
-        'mac': 411645098946985984,
-        'mod_Channel': 281283303326089216,
-        'windows': 411645098946985984,
-        'test': 281283303326089216
-        }
-    """
     #Test Server IDs
     #role IDs
 
-    admin_Role_IDs = {
+    admin_roles = {
         'employee': 411674069528870912,
         'admin': 416261117845700608
         }
@@ -55,7 +16,7 @@ class AnnounceBotConfig(Config):
         'test': 441011171391176704
         }
 
-    mod_role = {
+    mod_roles = {
         'emplyee': 411674069528870912,
         'admin': 416261117845700608
     }
@@ -65,10 +26,10 @@ class AnnounceBotConfig(Config):
         'android': 413446997253554186,
         'iOS': 413447018816733195,
         'desktop': 413447049040756739,
-        'test': 411674296054710273
+        'test': 411674296054710273,
+        'bot_log': 447425989744525312
         }
 
-class eventChannelConfig(Config):
     """
     #relevant channel IDs in DTesters:
     event_channel_IDs = {
@@ -91,8 +52,6 @@ class eventChannelConfig(Config):
     'rules': 425682305357578250,
     'claimed_fixed': 425682330494042117
     }
-
-class FAQtopics(Config):
 
     frequently_asked_questions = {
 
@@ -123,8 +82,6 @@ class FAQtopics(Config):
 
     }
 
-class LockdownChannels(Config):
-
     channels_to_lockdown = {
         #test server channel IDs
         'bug': 448943946534486017,
@@ -136,29 +93,6 @@ class LockdownChannels(Config):
     }
 
     role_IDs_to_lockdown = {
-
         'not_employee': 411674095881814017,
         'everyone': 411673927698350100
     }
-    """
-    channels_to_lockdown = {
-        #DTesters server channel IDs
-        'bug': 253923313460445184,
-        'android': 232568032394870784,
-        'desktop': 197038744908333066,
-        'linux': 238073742624948225,
-        'ios': 202491590390841344
-
-    }
-
-    role_IDs_to_lockdown = {
-
-        'bug_hunter': 197042209038663680,
-        'everyone': 197038439483310086
-    }
-    """
-
-
-
-
-#hello world
