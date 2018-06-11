@@ -3,7 +3,7 @@ from disco.bot import Config
 class AnnounceBotConfig(Config):
     #Test Server IDs
     #role IDs
-
+    """
     admin_roles = {
         'employee': 411674069528870912,
         'admin': 416261117845700608
@@ -30,18 +30,6 @@ class AnnounceBotConfig(Config):
         'bot_log': 455847829676752916
         }
 
-    """
-    #relevant channel IDs in DTesters:
-    event_channel_IDs = {
-    'ios': 424032686622113794,
-    'android': 424032786664390656,
-    'desktop': 424032874900094989,
-    'linux': 424032956856926219,
-    'prizes': 406167192543952897,
-    'rules': 406151195632336907,
-    'claimed_fixed': 406165473856585739
-    }
-    """
     #relevant channel IDs in the Test Server:
     event_channel_IDs = {
     'ios': 425682219596644353,
@@ -52,6 +40,70 @@ class AnnounceBotConfig(Config):
     'rules': 425682305357578250,
     'claimed_fixed': 425682330494042117
     }
+
+    channels_to_lockdown = {
+        #test server channel IDs
+        'bug': 448943946534486017,
+        'android': 425682234540818442,
+        'desktop': 425682251817287700,
+        'ios': 425682219596644353,
+        'linux': 425682269609525255
+
+    }
+
+    role_IDs_to_lockdown = {
+        'not_employee': 411674095881814017,
+        'everyone': 411673927698350100
+    }
+    """
+    #DTesters IDs:
+    admin_roles = {
+        'admin': 197042322939052032,
+        'employee': 197042389569765376
+    }
+    role_IDs = {
+        'android': 234838349800538112,
+        'bug': 197042209038663680,
+        'canary': 351008402052481025,
+        'ios': 234838392464998402,
+        'linux': 278229255169638410,
+        'mac': 351008099978706944,
+        'windows': 351008373669494794,
+        'test': 441010616388419584
+        }
+
+    mod_roles = {
+        'modinator': 440322144593772545,
+        'admin': 197042322939052032,
+        'employee': 197042389569765376
+
+    }
+
+    channel_IDs = {
+        'android': 411645018105970699,
+        'bug': '421790860057903104',
+        'canary': 411645098946985984,
+        'desktop': 411645098946985984,
+        'ios': 411645199866003471,
+        'linux': 411645098946985984,
+        'mac': 411645098946985984,
+        'mod_Channel': 281283303326089216,
+        'windows': 411645098946985984,
+        'test': 281283303326089216,
+        'bot-log': 455874979146235916
+        }
+
+    #relevant channel IDs in DTesters:
+    event_channel_IDs = {
+    'ios': 424032686622113794,
+    'android': 424032786664390656,
+    'desktop': 424032874900094989,
+    'linux': 424032956856926219,
+    'prizes': 406167192543952897,
+    'rules': 406151195632336907,
+    'claimed_fixed': 406165473856585739
+    }
+
 
     frequently_asked_questions = {
 
@@ -80,19 +132,4 @@ class AnnounceBotConfig(Config):
         'lazy': 'Lazy guilds are guilds where you can see the offline members in the list. This does ***not*** have a negative impact on performance or loading times, quite the opposite. You can grab one of the desktop roles listed in <#342060723721207810> section 4 which will give you access to the desktop-announcements channel, where you can read more about it.',
         'hunter': 'You can acquire the Bug Hunter role by submitting a bug with the bot and getting it approved. For more in-depth instructions, please read through <#342043548369158156>'
 
-    }
-
-    channels_to_lockdown = {
-        #test server channel IDs
-        'bug': 448943946534486017,
-        'android': 425682234540818442,
-        'desktop': 425682251817287700,
-        'ios': 425682219596644353,
-        'linux': 425682269609525255
-
-    }
-
-    role_IDs_to_lockdown = {
-        'not_employee': 411674095881814017,
-        'everyone': 411673927698350100
     }
