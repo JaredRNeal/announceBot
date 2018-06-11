@@ -1,50 +1,48 @@
 from disco.bot import Plugin
 from disco.api.http import APIException
-from disco.api.client import APIClient
-from disco.types.guild import GuildMember
-from disco.types.message import MessageEmbed
-from datetime import datetime
-from announceBot import AnnounceBotConfig
-from announceBot import FAQtopics
-from announceBot import LockdownChannels
 
+from commands.config import AnnounceBotConfig
 
-class EasyAnnouncement(Plugin):
+@Plugin.with_config(AnnounceBotConfig)
+class announce(Plugin):
+    def load(self, ctx):
+        super(announce, self).load(ctx)
 
     @Plugin.command('evilping')
     #just wanted a standard ping command
     def check_bot_heartbeat(self, event):
-        event.msg.reply('Evil pong!').after(10).delete()
-        event.msg.delete()
+        if self.checkPerms(event, "mod"):
+            event.msg.reply('Evil pong!').after(10).delete()
+            event.msg.delete()
+
 
     @Plugin.command('announce', '<role_to_ping:str> [announcement_message:str...]')
     def Make_an_Announcement(self, event, role_to_ping, announcement_message):
 
         role_Name = role_to_ping.lower()
         #make sure it's a valid role name
-        if role_Name not in AnnounceBotConfig.role_IDs:
+        if role_Name not in self.config.role_IDs:
             event.msg.reply('Sorry, I cannot find the role `'+role_Name+'`')
             return
 
         #Variables
-        Role_as_an_int = AnnounceBotConfig.role_IDs[role_Name]
-        Role_as_a_string = str(AnnounceBotConfig.role_IDs[role_Name])
+        Role_as_an_int = self.config.role_IDs[role_Name]
+        Role_as_a_string = str(self.config.role_IDs[role_Name])
         Is_Role_Mentionable = event.guild.roles.get(Role_as_an_int).mentionable
         Role_To_Make_Mentionable = event.guild.roles.get(Role_as_an_int)
         message_to_announce = "<@&" + Role_as_a_string + "> " + announcement_message
-        admin_only_channel = AnnounceBotConfig.channel_IDs['mod_Channel']
-
-        #make sure it's in the right channel
-        if event.channel.id != admin_only_channel:
-            print("The command was not run in the proper channel")
-            return
+        admin_only_channel = self.config.channel_IDs['mod_Channel']
 
         #Make sure only an admin can do it
-        if any(role in AnnounceBotConfig.admin_Role_IDs.values() for role in event.member.roles):
+        if self.checkPerms(event, "admin"):
+            # make sure it's in the right channel
+            if event.channel.id != admin_only_channel:
+                print("The command was not run in the proper channel")
+                return
 
             if Is_Role_Mentionable == False:
                 role_Name = str(role_Name)
-                Channel_to_announce_in = AnnounceBotConfig.channel_IDs[role_Name]
+                Channel_to_announce_in = self.config.channel_IDs[role_Name]
                 Channel_to_announce_in = int(Channel_to_announce_in)
                 Role_To_Make_Mentionable.update(mentionable=True)
                 self.bot.client.api.channels_messages_create(Channel_to_announce_in, message_to_announce)
@@ -55,14 +53,12 @@ class EasyAnnouncement(Plugin):
                 Role_To_Make_Mentionable.update(mentionable=False)
                 event.msg.reply("This role was already mentionable. I made it unmentionable, please try again.")
                 return
-        else:
-            event.msg.reply('Sorry, you\'re not allowed to use this command.')
 
     @Plugin.command('edit', '<channel_id_to_change>:int> <message_ID_to_edit:int> [edited_announcemented_message:str...]')
     def edit_most_recent_announcement(self, event, channel_id_to_change, message_ID_to_edit, edited_announcemented_message):
 
         #Variables
-        admin_only_channel = AnnounceBotConfig.channel_IDs['mod_Channel']
+        admin_only_channel = self.config.channel_IDs['mod_Channel']
 
         #verify it's being done in the admin channel
         if event.channel.id != admin_only_channel:
@@ -70,7 +66,7 @@ class EasyAnnouncement(Plugin):
             return
 
         #make sure only an admin can use this command and if so, execute
-        if any(role in AnnounceBotConfig.admin_Role_IDs.values() for role in event.member.roles):
+        if any(role in self.config.admin_Role_IDs.values() for role in event.member.roles):
             try:
                 self.client.api.channels_messages_modify(channel=channel_id_to_change, message=message_ID_to_edit, content=edited_announcemented_message)
                 event.msg.reply('I have successfully changed the messaged the message you told me to.')
@@ -89,33 +85,33 @@ class EasyAnnouncement(Plugin):
     @Plugin.add_argument('-a', '--announcement', help="the message you want to send out to everyone.")
     def ping_multiple_roles(self, event, args):
 
-        admin_only_channel = AnnounceBotConfig.channel_IDs['mod_Channel']
+        admin_only_channel = self.config.channel_IDs['mod_Channel']
         message_with_multiple_pings = ""
         args.roles = args.roles.lower()
-        Channel_to_announce_in = AnnounceBotConfig.channel_IDs['desktop']
+        Channel_to_announce_in = self.config.channel_IDs['desktop']
 
-        #make sure it's in the right channel
-        if event.channel.id != admin_only_channel:
-            print("The command was not run in the proper channel")
-            return
 
         #Make sure only an admin can do it
-        if any(role in AnnounceBotConfig.admin_Role_IDs.values() for role in event.member.roles):
+        if self.checkPerms(event, "admin"):
+            if event.channel.id != admin_only_channel:
+                # make sure it's in the right channel
+                print("The command was not run in the proper channel")
+                return
 
             if "ios" in args.roles or "android" in args.roles:
                 event.msg.reply("This command can only be used for desktop roles. Linux, Windows, Mac and Canary.")
                 return
 
-            for pingable_role in AnnounceBotConfig.role_IDs.keys():
+            for pingable_role in self.config.role_IDs.keys():
                 if pingable_role in args.roles:
                     #Variables
 
-                    Role_as_an_int = AnnounceBotConfig.role_IDs[pingable_role]
-                    Role_as_a_string = str(AnnounceBotConfig.role_IDs[pingable_role])
+                    Role_as_an_int = self.config.role_IDs[pingable_role]
+                    Role_as_a_string = str(self.config.role_IDs[pingable_role])
                     Is_Role_Mentionable = event.guild.roles.get(Role_as_an_int).mentionable
                     Role_To_Make_Mentionable = event.guild.roles.get(Role_as_an_int)
                     message_to_announce = "<@&" + Role_as_a_string + "> " + args.announcement
-                    admin_only_channel = AnnounceBotConfig.channel_IDs['mod_Channel']
+                    admin_only_channel = self.config.channel_IDs['mod_Channel']
 
                     if Is_Role_Mentionable == False:
                         Role_To_Make_Mentionable.update(mentionable=True)
@@ -128,18 +124,14 @@ class EasyAnnouncement(Plugin):
                 message_with_multiple_pings = message_with_multiple_pings + args.announcement
                 self.bot.client.api.channels_messages_create(Channel_to_announce_in, message_with_multiple_pings)
 
-            for pingable_role in AnnounceBotConfig.role_IDs.keys():
+            for pingable_role in self.config.role_IDs.keys():
 
                 #Variables
-                Role_To_Make_Unmentionable = event.guild.roles.get(AnnounceBotConfig.role_IDs[pingable_role])
+                Role_To_Make_Unmentionable = event.guild.roles.get(self.config.role_IDs[pingable_role])
 
                 if Is_Role_Mentionable == True:
                     Role_To_Make_Unmentionable.update(mentionable=False)
                     print (pingable_role +" was successfully set to unpingable.")
-
-        else:
-            print("The user that attempted to use the Multiping command does not have the proper permissions so the command was ignored.")
-            return
 
 
     @Plugin.command('tag', parser=True)
@@ -147,58 +139,64 @@ class EasyAnnouncement(Plugin):
     def questions_made_easy(self, event, args):
         #Checks to see if the topic in the list and then replies with the message in annouceBot.py
         args.question_title = args.question_title.lower()
-        if any(role in AnnounceBotConfig.mod_role.values() for role in event.member.roles):
+        if self.checkPerms(event, "mod"):
             event.msg.delete()
-            if args.question_title in FAQtopics.frequently_asked_questions.keys():
-                event.msg.reply(FAQtopics.frequently_asked_questions[args.question_title])
-        else:
-            print("User does not have the correct permissions to use this command.")
-            return
+            if args.question_title in self.config.frequently_asked_questions.keys():
+                event.msg.reply(self.config.frequently_asked_questions[args.question_title])
 
     #Quickly remove the ability for @everyone and Bug Hunters to post in specific channels when some issue is occurring
     @Plugin.command('lockdown', parser=True)
     @Plugin.add_argument('-c', '--channel_names', help="All the channels you want to lock down")
     @Plugin.add_argument('-r', '--reason', help="What's going on thats making you use this command.")
     def emergency_lockdown(self, event, args):
-
-
-
-        if any(role in AnnounceBotConfig.mod_role.values() for role in event.member.roles):
+        if self.checkPerms(event, "mod"):
             event.msg.delete()
+            for name, channelID in self.config.channels_to_lockdown.items():
+                # lock the channel if listed or when locking everything
+                if name in args.channel_names or args.channel_names == "all":
+                    self.botlog(event, f":lock: {name} has been locked by {event.msg.author}: {args.reason}")
+                    # grab the first (bug hunter or test role) for the queue, grab everyone (or whatever test role is there) for public channels
+                    rolenum = 0 if name is "bug" else 1
+                    role = event.guild.roles[list(self.config.role_IDs_to_lockdown.values())[rolenum]]
+                    channel = event.guild.channels[channelID]
+                    channel.send_message(args.reason)
+                    # deny reactions and sending perms
+                    channel.create_overwrite(role, allow=0, deny=2112)
+            event.msg.reply("Lockdown command has successfully completed!")
 
-            if args.channel_names == "all":
-                for channel_lockdown in LockdownChannels.channels_to_lockdown.keys():
-                    lockdown_role = LockdownChannels.role_IDs_to_lockdown[0].values()
-                    print(lockdown_role)
-                    channel = LockdownChannels.channels_to_lockdown[channel_lockdown]
-                    self.bot.client.api.channels_messages_create(channel, args.reason)
-                    target = event.guild.roles[411674095881814017]
-                    channel_to_lockdown = event.guild.channels[channel]
-                    channel_to_lockdown.create_overwrite(target, allow=0, deny=2048)
-                    target = event.guild.roles[411673927698350100]
-                    channel_to_lockdown = event.guild.channels[channel]
-                    channel_to_lockdown.create_overwrite(target, allow=0, deny=2048)
+    # lifting the lockdown
+    @Plugin.command('unlock', "<channels:str...>")
+    def lift_lockdown(self, event, channels):
+        if self.checkPerms(event, "mod"):
+            event.msg.delete()
+            for name, channelID in self.config.channels_to_lockdown.items():
+                # unlock the channel if listed or when unlocking everything
+                if name in channels or channels == "all":
+                    self.botlog(event, f":unlock: {name} has been unlocked by {event.msg.author}")
+                    # grab the first (bug hunter or test role) for the queue, grab everyone (or whatever test role is there) for public channels
+                    rolenum = 0 if name is "bug" else 1
+                    role = event.guild.roles[list(self.config.role_IDs_to_lockdown.values())[rolenum]]
+                    channel = event.guild.channels[channelID]
+                    channel.create_overwrite(role, allow=2048 if name is "bug" else 0, deny=64)
+                    # clean up lockdown message, scan last 5 messages just in case
+                    limit = 5
+                    count = 0
+                    for message in channel.messages_iter(chunk_size=limit):
+                        if message.author.id == self.bot.client.api.users_me_get().id:
+                            message.delete()
+                        count = count + 1
+                        if count >= limit:
+                            break
+            event.msg.reply("Unlock command has successfully completed!")
 
+    def checkPerms(self, event, type):
+        #get roles from the config
+        roles = getattr(self.config, f'{type}_roles').values()
+        if any(role in roles for role in event.member.roles):
+            return True
+        event.msg.reply(":lock: You do not have permission to use this command!")
+        return False
 
-            else:
-                for channel_lockdown in LockdownChannels.channels_to_lockdown.keys():
-                    if channel_lockdown in args.channel_names:
-                        lockdown_role = LockdownChannels.role_IDs_to_lockdown.values()
-                        channel = LockdownChannels.channels_to_lockdown[channel_lockdown]
-                        self.bot.client.api.channels_messages_create(channel, args.reason)
-                        target = event.guild.roles[lockdown_role[0]]
-                        channel_to_lockdown = event.guild.channels[channel]
-                        channel_to_lockdown.create_overwrite(target, allow=0, deny=2048)
-                        target = event.guild.roles[lockdown_role[1]]
-                        channel_to_lockdown = event.guild.channels[channel]
-                        channel_to_lockdown.create_overwrite(target, allow=0, deny=2048)
-
-
-        else:
-            print("User does not have sufficient permissions to use this command")
-            return
-        event.msg.reply("Lockdown command has been successfully completed!")
-
-
-
-        #hello world
+    def botlog(self, event, message):
+        channel = event.guild.channels[self.config.channel_IDs['bot_log']]
+        channel.send_message(message)
