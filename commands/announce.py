@@ -1,6 +1,5 @@
 from disco.bot import Plugin
 from disco.api.http import APIException
-
 from commands.config import AnnounceBotConfig
 
 @Plugin.with_config(AnnounceBotConfig)
@@ -12,7 +11,8 @@ class announce(Plugin):
     #just wanted a standard ping command
     def check_bot_heartbeat(self, event):
         if self.checkPerms(event, "mod"):
-            event.msg.reply('Evil pong!').after(10).delete()
+            event.msg.reply('Evil pong!').after(1).delete()
+            self.botlog(event, ":evilDabbit: "+str(event.msg.author)+" used the EvilPing command.")
             event.msg.delete()
 
 
@@ -95,7 +95,8 @@ class announce(Plugin):
         if self.checkPerms(event, "admin"):
             if event.channel.id != admin_only_channel:
                 # make sure it's in the right channel
-                print("The command was not run in the proper channel")
+                event.msg.reply("The command was not run in the proper channel").after(1).delete()
+                self.botlog(event, ":deny: "+str(event.msg.author)+" tried to use the Multiping command in the wrong channel.")
                 return
 
             if "ios" in args.roles or "android" in args.roles:
@@ -131,7 +132,7 @@ class announce(Plugin):
 
                 if Is_Role_Mentionable == True:
                     Role_To_Make_Unmentionable.update(mentionable=False)
-                    print (pingable_role +" was successfully set to unpingable.")
+                    self.botlog(event, ":exclamation: "+pingable_role +" was successfully set to unpingable.")
 
 
     @Plugin.command('tag', parser=True)
@@ -143,6 +144,7 @@ class announce(Plugin):
             event.msg.delete()
             if args.question_title in self.config.frequently_asked_questions.keys():
                 event.msg.reply(self.config.frequently_asked_questions[args.question_title])
+                self.botlog(event, ":notebook: "+str(event.msg.author)+" used the tag command for `"+args.question_title+"`.")
 
     #Quickly remove the ability for @everyone and Bug Hunters to post in specific channels when some issue is occurring
     @Plugin.command('lockdown', parser=True)
@@ -154,7 +156,7 @@ class announce(Plugin):
             for name, channelID in self.config.channels_to_lockdown.items():
                 # lock the channel if listed or when locking everything
                 if name in args.channel_names or args.channel_names == "all":
-                    self.botlog(event, f":lock: {name} has been locked by {event.msg.author}: {args.reason}")
+                    self.botlog(event, ":lock: The "+name+" channel has been locked by "+str(event.msg.author)+" for the reason: "+args.reason+".")
                     # grab the first (bug hunter or test role) for the queue, grab everyone (or whatever test role is there) for public channels
                     rolenum = 0 if name is "bug" else 1
                     role = event.guild.roles[list(self.config.role_IDs_to_lockdown.values())[rolenum]]
@@ -172,7 +174,7 @@ class announce(Plugin):
             for name, channelID in self.config.channels_to_lockdown.items():
                 # unlock the channel if listed or when unlocking everything
                 if name in channels or channels == "all":
-                    self.botlog(event, f":unlock: {name} has been unlocked by {event.msg.author}")
+                    self.botlog(event, ":unlock: The "+name+" channel has been unlocked by "+str(event.msg.author)+".")
                     # grab the first (bug hunter or test role) for the queue, grab everyone (or whatever test role is there) for public channels
                     rolenum = 0 if name is "bug" else 1
                     role = event.guild.roles[list(self.config.role_IDs_to_lockdown.values())[rolenum]]
@@ -191,10 +193,11 @@ class announce(Plugin):
 
     def checkPerms(self, event, type):
         #get roles from the config
-        roles = getattr(self.config, f'{type}_roles').values()
+        roles = getattr(self.config, str(type)+'_roles').values()
         if any(role in roles for role in event.member.roles):
             return True
         event.msg.reply(":lock: You do not have permission to use this command!")
+        self.botlog(":warning: "+str(event.msg.author)+" tried to use a command they do not have permission to use.")
         return False
 
     def botlog(self, event, message):
