@@ -133,3 +133,5 @@ class AnnounceBotConfig(Config):
         'hunter': 'You can acquire the Bug Hunter role by submitting a bug with the bot and getting it approved. For more in-depth instructions, please read through <#342043548369158156>'
 
     }
+
+    event_stats_filename = "eventstats.json" # event stats are saved to this location.

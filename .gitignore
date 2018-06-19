@@ -2,3 +2,5 @@
 *.pyc
 events.py
 config/
+.vscode/
+eventstats.json
