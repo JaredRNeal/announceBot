@@ -140,3 +140,75 @@ class AnnounceBotConfig(Config):
         "red_tick": "312314733816709120",
         "green_tick": "312314752711786497"
     }
+
+class EventsPluginConfig(Config):
+    
+    admin_roles = {
+        'admin': 197042322939052032,
+        'employee': 197042389569765376
+    }
+
+    role_IDs = {
+        'android': 234838349800538112,
+        'bug': 197042209038663680,
+        'canary': 351008402052481025,
+        'ios': 234838392464998402,
+        'linux': 278229255169638410,
+        'mac': 351008099978706944,
+        'windows': 351008373669494794,
+        'test': 441010616388419584
+        }
+
+    mod_roles = {
+        'modinator': 440322144593772545,
+        'admin': 197042322939052032,
+        'employee': 197042389569765376
+    }
+
+
+    channel_IDs = {
+        'android': 411645018105970699,
+        'bug': '421790860057903104',
+        'canary': 411645098946985984,
+        'desktop': 411645098946985984,
+        'ios': 411645199866003471,
+        'linux': 411645098946985984,
+        'mac': 411645098946985984,
+        'mod_Channel': 281283303326089216,
+        'windows': 411645098946985984,
+        'test': 281283303326089216,
+        'bot_log': 455874979146235916
+        }
+
+    #relevant channel IDs in DTesters:
+    event_channel_IDs = {
+    'ios': 424032686622113794,
+    'android': 424032786664390656,
+    'desktop': 424032874900094989,
+    'linux': 424032956856926219,
+    'prizes': 406167192543952897,
+    'rules': 406151195632336907,
+    'claimed_fixed': 406165473856585739
+    }
+
+    event_stats_filename = "eventstats.json" # event stats are saved to this location.
+
+    emojis = {
+        "red_tick": "312314733816709120",
+        "green_tick": "312314752711786497"
+    }
+
+    trello_boards = {
+        "desktop-verified-bugs": "57716787a06d09cf7e0dd1ca",
+        "desktop-cannot-reproduce": "5771678de6092759049c939f",
+        "desktop-reopened": "5a8af8346373f3bcbc184db6",
+        "ios-verified-bugs": "57fe7f909aa7fe383d56406b",
+        "ios-cannot-reproduce": "580e8083de3bfbcd4de2ecb9",
+        "ios-reopened": "5a9b65585ec5c0515e974e49",
+        "android-verified-bugs": "57fe7f78ddde6b37323bd670",
+        "android-cannot-reproduce": "58064b37e4c51a85d6d0b68e",
+        "android-reopened": "5a9b6544f30fa1c5bab3d011",
+        "linux-verified-bugs": "5846f9fdcab93bbf78e80e04",
+        "linux-cannot-reproduce": "5a038024570d1bb7bcb88470",
+        "linux-reopened": "5abec63e9822b4cc00593526"
+    }
