@@ -198,17 +198,4 @@ class EventsPluginConfig(Config):
         "green_tick": "312314752711786497"
     }
 
-    trello_boards = {
-        "desktop-verified-bugs": "57716787a06d09cf7e0dd1ca",
-        "desktop-cannot-reproduce": "5771678de6092759049c939f",
-        "desktop-reopened": "5a8af8346373f3bcbc184db6",
-        "ios-verified-bugs": "57fe7f909aa7fe383d56406b",
-        "ios-cannot-reproduce": "580e8083de3bfbcd4de2ecb9",
-        "ios-reopened": "5a9b65585ec5c0515e974e49",
-        "android-verified-bugs": "57fe7f78ddde6b37323bd670",
-        "android-cannot-reproduce": "58064b37e4c51a85d6d0b68e",
-        "android-reopened": "5a9b6544f30fa1c5bab3d011",
-        "linux-verified-bugs": "5846f9fdcab93bbf78e80e04",
-        "linux-cannot-reproduce": "5a038024570d1bb7bcb88470",
-        "linux-reopened": "5abec63e9822b4cc00593526"
-    }
+    boards = {}

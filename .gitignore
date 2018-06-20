@@ -2,5 +2,6 @@
 *.pyc
 config/
 .vscode/
+*.json
+.idea
 eventstats.json
-.idea/

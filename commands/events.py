@@ -4,6 +4,11 @@ from commands.config import EventsPluginConfig
 import os.path
 import json
 import shutil
+from util import TrelloUtils
+
+
+
+
 
 @Plugin.with_config(EventsPluginConfig)
 class Events(Plugin):
@@ -15,11 +20,55 @@ class Events(Plugin):
         self.event_approved_reports = []
         self.event_denied_reports = []
         self.load_event_stats(self.config.event_stats_filename)
-    
+
     def unload(self, ctx):
         self.save_event_stats(self.config.event_stats_filename)
         super(Events, self).unload(ctx)
-    
+
+    @Plugin.command("info", '<link:str>')
+    def trello_info(self, event, link):
+        info = TrelloUtils.getCardInfo(event, link)
+        if info is None:
+            event.msg.reply("Unable to fetch info about that card, please make sure you have a valid link")
+        elif info["idBoard"] not in self.config.boards.keys():
+            event.msg.reply(
+                "This card is not from one of the discord bug boards, what do you expect me to do with this?")
+        elif info["idList"] not in self.config.boards[info["idBoard"]]:
+            event.msg.reply("This card is in the " + TrelloUtils.getListInfo(info["idList"])[
+                "name"] + " list instead of an event list, thanks submission but no thanks")
+        elif info["closed"] is True:
+            event.msg.reply(
+                "_cough cough_ that card has been archived and collected way to much dust for me to do anything with it")
+        else:
+            event.msg.reply("All checks passed, card is good for processing")
+
+    @Plugin.command("template", "<link:str>, <destination:str>, <info:str...>")
+    def template(self, event, link, destination, info):
+        trello_info = TrelloUtils.getCardInfo(event, link)
+        if trello_info is None:
+            event.msg.reply("Unable to fetch info about that card, please make sure you have a valid link")
+            return
+        if trello_info["idBoard"] not in self.config.boards.keys():
+            event.msg.reply("This card is not from one of the discord bug boards, what do you expect me to do with this?")
+        board = self.config.boards[trello_info["idBoard"]]
+        listname = TrelloUtils.getListInfo(trello_info["idList"])["name"]
+        if trello_info["idList"] not in board["lists"]:
+            event.msg.reply("This card is in the {} list instead of an event list, thanks submission but no thanks".format(listname))
+            return
+        if trello_info["closed"] is True:
+            event.msg.reply("_cough cough_ that card has been archived and collected way to much dust for me to do anything with it")
+            return
+
+        message = """
+**Board**: {} {}
+**Source list**:  {}
+**Destination**: {}
+**Submitted by**: {}
+**Additional info**: {}
+**Trello link**: {}""".format(board["name"], board["emoji"], listname, destination, str(event.author), info, trello_info["shortUrl"])
+
+        event.msg.reply(message)
+
     @Plugin.command('start', group="event")
     def start_command(self, event):
         """Start the event (author/person to blame when it doesn't work: brxxn)"""
@@ -39,12 +88,13 @@ class Events(Plugin):
                 channel = event.guild.roles[self.config.event_channel_IDs.get(name)]
                 if channel is None:
                     continue
-                channel.create_overwrite(bh_role, allow=0, deny=2112) # deny: send messages, add reactions
-                channel.create_overwrite(bh_role, allow=66560, deny=0) # allow: read messages, read message history
+                channel.create_overwrite(bh_role, allow=0, deny=2112)  # deny: send messages, add reactions
+                channel.create_overwrite(bh_role, allow=66560, deny=0)  # allow: read messages, read message history
 
             event.channel.send(":ok_hand: unlocked event channels to bug hunters.")
-            self.botlog(event, ":unlock: {name} (id: {id}) started an event.".format(name=str(event.msg.author), id=event.msg.author.id))
-    
+            self.botlog(event, ":unlock: {name} (id: {id}) started an event.".format(name=str(event.msg.author),
+                                                                                     id=event.msg.author.id))
+
     @Plugin.command('submit', '<bug_type:str> <link:str> <message:str...>', group="event")
     def submit_command(self, event, bug_type, link, message):
         """Event submission command (author/person to blame when it doesn't work: brxxn)"""
@@ -66,34 +116,33 @@ class Events(Plugin):
         bug_type = bug_type.lower()
         vaild_types = ["ios", "android", "desktop", "linux"]
         if bug_type not in vaild_types:
-            event.channel.send_message("invalid bug type. valid types include: `ios, android, desktop, linux`").after(3).delete()
+            event.channel.send_message("invalid bug type. valid types include: `ios, android, desktop, linux`").after(
+                3).delete()
             return
 
-        # verify link
-        if not link.lower().startswith("https://trello.com/c/"):
-            event.channel.send_message("please make sure your message starts with `https://trello.com/c/`").after(3).delete()
-            return
-        if len(link) <= 21:
-            event.channel.send_message("please include a valid trello url").after(3).delete()
+        card_id = TrelloUtils.extractID(event, link)
+
+        if link is None:
             return
 
-        # check to see if it's already reported
-        card_id = link.split("https://trello.com/c/")[1].split("/")[0]
         if card_id in self.event_reported_cards:
-            event.channel.send_message("already reported. next time, please use search to find if a bug has already been reported.").after(6).delete()
+            event.channel.send_message(
+                "already reported. next time, please use search to find if a bug has already been reported.").after(
+                6).delete()
             return
 
         # submit the bug
         # report_channel = self.config.event_channel_IDs[bug_type]
         report_channel = event.channel
-        report_message = event.guild.channels[report_channel].send_message("{name} (`{id}`) reported {a_or_an} {bug_type} bug: `{message}`, {link}".format(
-            name=str(event.msg.author),
-            id=str(event.msg.author.id),
-            a_or_an="an" if bug_type == "ios" or bug_type == "android" else "a",
-            bug_type=bug_type,
-            message=message,
-            link=link
-        ))
+        report_message = event.guild.channels[report_channel].send_message(
+            "{name} (`{id}`) reported {a_or_an} {bug_type} bug: `{message}`, {link}".format(
+                name=str(event.msg.author),
+                id=str(event.msg.author.id),
+                a_or_an="an" if bug_type == "ios" or bug_type == "android" else "a",
+                bug_type=bug_type,
+                message=message,
+                link=link
+            ))
 
         report_message.react(event.guild.emojis[self.config.emojis.green_tick])
         report_message.react(event.guild.emojis[self.config.emojis.red_tick])
@@ -126,7 +175,7 @@ class Events(Plugin):
         # save reports
         if self.get_total_reports() % 100 == 0 and self.get_total_reports() != 0:
             self.save_event_stats(self.config.event_stats_filename)
-    
+
     @Plugin.command('winners', group="event")
     def event_winners(self, event):
         """Find 1st-10th winners in bug reporting (author/person to blame when it doesn't work: brxxn)"""
@@ -137,7 +186,8 @@ class Events(Plugin):
         if not self.checkPerms(event, "admin"):
             return
 
-        message = "Total amount of approved reports: {total_amount}\nWinners are:\n\n".format(total_amount=str(self.get_approved_reports()))
+        message = "Total amount of approved reports: {total_amount}\nWinners are:\n\n".format(
+            total_amount=str(self.get_approved_reports()))
 
         # sort from largest to smallest reports
         count = 0
@@ -150,12 +200,7 @@ class Events(Plugin):
 
         for winner_id, reports in sorted(user_approved_report_counts.items(), key=lambda x: x[1], reverse=True):
             count = count + 1
-            line = "{count}: <@{id}> ({reports} reports)\n".format(
-                count=str(count),
-                name=str(event.guild.members[winner_id]),
-                reports=str(reports),
-                id=str(winner_id)
-            )
+            line = "{count}: <@{id}> ({reports} reports)\n".format(count=str(count), name=str(event.guild.members[winner_id]), reports=str(reports), id=str(winner_id))
             message = message + line
             # stop at 10
             if count == 10:
@@ -165,14 +210,14 @@ class Events(Plugin):
                             "to be shipped, send a message to Dabbit Prime with a mailing address."
         event.msg.delete()
         event.channel.send_message(message)
-    
+
     @Plugin.command('end', group="event")
     def end_event(self, event):
         """End the event (author/person to blame when it doesn't work: brxxn)"""
         # check guild
         if event.guild is None:
             return
-        
+
         if self.checkPerms(event, "admin"):
             bh_role = event.guild.roles[self.config.role_IDs["bug"]]
             lock_channels = ["ios", "android", "desktop", "linux", "claimed_fixed"]
@@ -192,7 +237,7 @@ class Events(Plugin):
         # check guild
         if event.guild is None:
             return
-        
+
         # check perms
         if self.checkPerms(event, "admin"):
             self.save_event_stats(self.config.event_stats_filename)
@@ -212,7 +257,7 @@ class Events(Plugin):
         # check guild
         if event.guild is None:
             return
-        
+
         # check perms
         if self.checkPerms(event, "mod"):
             event.msg.delete()
@@ -229,7 +274,7 @@ class Events(Plugin):
         # check guild
         if event.guild is None:
             return
-        
+
         # check perms
         if self.checkPerms(event, "mod"):
             event.msg.delete()
@@ -400,7 +445,7 @@ class Events(Plugin):
         reports = []
         for search_list in lists_to_search:
             for report in search_list:
-                valid = True # all reports are valid unless they fail to meet criteria defined by kwargs, which can be none.
+                valid = True  # all reports are valid unless they fail to meet criteria defined by kwargs, which can be none.
                 for k, v in kwargs.items():
                     if report[k] != v:
                         valid = False
@@ -426,16 +471,16 @@ class Events(Plugin):
         lists_to_search = [self.event_pending_reports, self.event_approved_reports, self.event_denied_reports]
         for search_list in lists_to_search:
             for report in search_list:
-                valid = True # all reports are valid unless they fail to meet criteria defined by kwargs, which can be none.
+                valid = True  # all reports are valid unless they fail to meet criteria defined by kwargs, which can be none.
                 for k, v in kwargs.items():
                     if report[k] != v:
                         valid = False
                 if valid:
                     search_list.remove(report)
-    
+
     def get_total_reports(self):
         return len(self.event_pending_reports) + len(self.event_denied_reports) + len(self.event_approved_reports)
-    
+
     def get_approved_reports(self):
         return len(self.event_approved_reports)
 
@@ -452,7 +497,7 @@ class Events(Plugin):
             f.close()
         except IOError as ex:
             print("failed to open file: {file}\nstrerror: {strerror}".format(file=filename, strerror=ex.strerror))
-    
+
     def load_event_stats(self, filename):
         if not os.path.isfile(filename):
             return
@@ -466,14 +511,15 @@ class Events(Plugin):
             self.event_pending_reports = event_stats_parsed.get("event_pending_reports", [])
         except IOError as ex:
             print("failed to open file: {file}\nstrerror: {strerror}".format(file=filename, strerror=ex.strerror))
-    
+
     def checkPerms(self, event, type):
         # get roles from the config
-        roles = getattr(self.config, str(type)+'_roles').values()
+        roles = getattr(self.config, str(type) + '_roles').values()
         if any(role in roles for role in event.member.roles):
             return True
         event.msg.reply(":lock: You do not have permission to use this command!")
-        self.botlog(event, ":warning: "+str(event.msg.author)+" tried to use a command they do not have permission to use.")
+        self.botlog(event, ":warning: " + str(
+            event.msg.author) + " tried to use a command they do not have permission to use.")
         return False
 
     def botlog(self, event, message):

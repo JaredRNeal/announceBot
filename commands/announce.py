@@ -1,9 +1,7 @@
 from disco.bot import Plugin
 from disco.api.http import APIException
 from commands.config import AnnounceBotConfig
-import os.path
-import json
-import shutil
+
 
 @Plugin.with_config(AnnounceBotConfig)
 class announce(Plugin):
