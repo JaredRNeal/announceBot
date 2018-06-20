@@ -1,6 +1,5 @@
 .DS_Store
 *.pyc
-events.py
 config/
 .vscode/
 eventstats.json
