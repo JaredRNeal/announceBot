@@ -135,3 +135,8 @@ class AnnounceBotConfig(Config):
     }
 
     event_stats_filename = "eventstats.json" # event stats are saved to this location.
+
+    emojis = {
+        "red_tick": "312314733816709120",
+        "green_tick": "312314752711786497"
+    }

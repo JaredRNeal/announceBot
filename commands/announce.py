@@ -3,14 +3,16 @@ from disco.api.http import APIException
 from commands.config import AnnounceBotConfig
 import os.path
 import json
+import shutil
 
 @Plugin.with_config(AnnounceBotConfig)
 class announce(Plugin):
     def load(self, ctx):
         super(announce, self).load(ctx)
         self.event_reported_cards = []
-        self.event_total_reports = 0
-        self.event_user_reports = dict()
+        self.event_pending_reports = []
+        self.event_approved_reports = []
+        self.event_denied_reports = []
         self.load_event_stats(self.config.event_stats_filename)
     
     def unload(self, ctx):
@@ -266,7 +268,7 @@ class announce(Plugin):
 
         # submit the bug
         report_channel = self.config.event_channel_IDs[bug_type]
-        event.guild.channels[report_channel].send_message("{name} (`{id}`) reported {a_or_an} {bug_type} bug: `{message}`, {link}".format(
+        report_message = event.guild.channels[report_channel].send_message("{name} (`{id}`) reported {a_or_an} {bug_type} bug: `{message}`, {link}".format(
             name=str(event.msg.author),
             id=str(event.msg.author.id),
             a_or_an="an" if bug_type == "ios" or bug_type == "android" else "a",
@@ -275,24 +277,33 @@ class announce(Plugin):
             link=link
         ))
 
+        report_message.react(event.guild.emojis[self.config.emojis.green_tick])
+        report_message.react(event.guild.emojis[self.config.emojis.red_tick])
+
         # alert the user
         event.channel.send_message(":ok_hand: successfully reported bug.").after(2).delete()
 
         # add to statistics
-        current_user_reports = self.event_user_reports.setdefault(event.msg.author.id, 0)
 
         self.event_reported_cards.append(card_id)
-        self.event_total_reports = self.event_total_reports + 1
-        self.event_user_reports[event.msg.author.id] = current_user_reports + 1
+        self.event_pending_reports[event.msg.author.id] = self.event_pending_reports.append({
+            "name": str(event.msg.author),
+            "author_id": str(event.msg.author.id),
+            "category": bug_type,
+            "message": message,
+            "card_id": card_id,
+            "message_id": report_message.id,
+            "approved": False
+        })
 
         # report announcement to botlog: 50, 100, 200, 300, 400...
-        announce_report_to_botlog = self.event_total_reports % 100 == 0 or self.event_total_reports == 50
-        if announce_report_to_botlog and self.event_total_reports != 0:
-            self.botlog(event, ":crown: reached {report} total reports in current trello cleaning event".format(report=str(self.event_total_reports)))
+        announce_report_to_botlog = self.get_total_reports() % 100 == 0 or self.get_total_reports() == 50
+        if announce_report_to_botlog and self.get_total_reports() != 0:
+            self.botlog(event, ":crown: reached {report} total reports in current trello cleaning event".format(report=str(self.get_total_reports())))
             return
 
         # save reports
-        if self.event_total_reports % 50 == 0 and self.event_total_reports != 0:
+        if self.get_total_reports() % 100 == 0 and self.get_total_reports() != 0:
             self.save_event_stats(self.config.event_stats_filename)
     
     @Plugin.command('winners', group="event")
@@ -302,15 +313,21 @@ class announce(Plugin):
         if event.guild == None:
             return
 
-        if not self.checkPerms(event, "mod"):
+        if not self.checkPerms(event, "admin"):
             return
 
-        message = "Estimated winners are:\n\n"
+        message = "Total amount of approved reports: {total_amount}\nWinners are:\n\n".format(total_amount=str(self.get_approved_reports()))
 
         # sort from largest to smallest reports
         count = 0
+        # build list of user ids => number of approved reports
+        user_approved_report_counts = dict()
 
-        for winner_id, reports in sorted(self.event_user_reports.items(), key=lambda x: x[1], reverse=True):
+        for i in self.event_approved_reports:
+            current = user_approved_report_counts.get(i.author_id, 0)
+            user_approved_report_counts[i.author_id] = current + 1
+
+        for winner_id, reports in sorted(user_approved_report_counts.items(), key=lambda x: x[1], reverse=True):
             count = count + 1
             line = "{count}: <@{id}> ({reports} reports)\n".format(count=str(count), name=str(event.guild.members[winner_id]), reports=str(reports), id=str(winner_id))
             message = message + line
@@ -318,7 +335,7 @@ class announce(Plugin):
             if count == 10:
                 break
 
-        message = message + "\nThanks for participating in the Trello Cleaning Event! Note that these scores are not final, as not all reports have been approved yet."
+        message = message + "\nThanks for participating in the Trello Cleaning Event! If you won a prize that needs to be shipped, send a message to Dabbit Prime with a mailing address."
         event.msg.delete()
         event.channel.send_message(message)
     
@@ -349,13 +366,14 @@ class announce(Plugin):
         
         # check perms
         if self.checkPerms(event, "admin"):
+            self.save_event_stats(self.config.event_stats_filename)
+            shutil.copyfile(self.config.event_stats_filename, "eventstats-archive.json")
             # clear
             self.event_reported_cards = []
-            self.event_total_reports = 0
-            self.event_user_reports.clear()
+            self.delete_reports()
 
             event.msg.delete()
-            event.channel.send_message(":ok_hand: all statistics cleared.").after(5).delete()
+            event.channel.send_message(":ok_hand: all statistics cleared. archive saved.").after(5).delete()
             self.botlog(event, ":wastebasket: {user} cleared all statistics for the event".format(user=str(event.msg.author)))
     
     @Plugin.command('clearuser', "<user:snowflake> <reason:str...>", group="event")
@@ -368,59 +386,92 @@ class announce(Plugin):
         # check perms
         if self.checkPerms(event, "mod"):
             event.msg.delete()
-            # check user
-            if self.event_user_reports.get(user, None) == None:
-                event.channel.send_message("failed to clear stats: user doesn't have any statistics.").after(5).delete()
-                return
             # clear report stats from user
-            user_reports = self.event_user_reports[user]
-            self.event_user_reports[user] = 0
-            # clear report stats from global
-            if self.event_total_reports - user_reports < 0:
-                event.channel.send_message("failed to clear stats: user stats cleared, but global couldn't be cleared. tell dabbit if this happens.").after(6).delete()
-                self.botlog(event, ":wastebasket: {mod} cleared stats for user {user} with reason {reason} (but it failed to update globally)".format(mod=str(event.msg.author), user=str(user), reason=reason))
-                return
-            self.event_total_reports = self.event_total_reports - user_reports
+            self.delete_reports(author_id=user)
             # inform user and bot log
             event.channel.send_message(":ok_hand: cleared reports from user.").after(4).delete()
             self.botlog(event, ":wastebasket: {mod} cleared stats for user {user} with reason {reason}".format(mod=str(event.msg.author), user=str(user), reason=reason))
     
-    @Plugin.command('addreports', '<user:snowflake> <amount:int>', group="event")
-    def add_reports(self, event, user, amount):
-        """Add reports to user if the bot went offline. (author/person to blame when it doesn't work: brxxn)"""
+    @Plugin.command('deletereport', "<message_id:snowflake> <reason:str...>", group="event")
+    def delete_report(self, event, message_id, reason):
+        """Delete a report (author/person to blame when it doesn't work: brxxn)"""
         # check guild
         if event.guild == None:
             return
         
         # check perms
         if self.checkPerms(event, "mod"):
-            # delete message
             event.msg.delete()
+            # delete report
+            self.delete_reports(message_id=message_id)
+            # inform user and bot log
+            event.channel.send_message(":ok_hand: report deleted.").after(4).delete()
+            self.botlog(event, ":wastebasket: {mod} deleted report {message_id} with reason {reason}".format(mod=str(event.msg.author), message_id=str(message_id), reason=reason))
+    
+    @Plugin.listen("MessageReactionAdd")
+    def on_reaction(self, event):
+        if event.guild == None:
+            return
+        if event.emoji.name != "greenTick" and event.emoji.name != "redTick":
+            return
+        valid_ids = [self.config.event_channel_IDs["ios"], self.config.event_channel_IDs["desktop"], self.config.event_channel_IDs["android"], self.config.event_channel_IDs["linux"]]
+        if event.channel.id not in valid_ids:
+            return
+        member = event.guild.members[event.user_id]
+        roles = getattr(self.config, 'mod_roles').values()
+        if not any(role in roles for role in member.roles):
+            return
+        reports = self.search_reports(message_id=event.message_id)
+        if len(reports) == 0:
+            return
+        report = reports[0]
+        self.event_pending_reports.remove(report)
+        if event.emoji.name == "greenTick":
+            report["approved"] = True
+            self.event_approved_reports.append(report)
+        if event.emoji.name == "redTick":
+            self.event_denied_reports.append(report)
+        self.botlog(event, ":newspaper: {user} {action} report {message}".format(user=str(member), action="approved" if event.emoji.name == "greenTick" else "denied", message=str(event.message_id)))
+        
 
-            # check amount
-            if amount <= 0:
-                event.channel.send_message("amount must be more than 0.").after(5).delete()
-                return
-
-            # add to user
-            current_reports = self.event_user_reports.setdefault(user, 0)
-            updated_reports = current_reports + amount
-            self.event_user_reports[user] = updated_reports
-
-            # add to global
-            self.event_total_reports = self.event_total_reports + amount
-
-            # notify author and bot log
-            event.channel.send_message(":ok_hand: updated report count for user.").after(5).delete()
-            self.botlog(event, ":newspaper: {user} given {amount} reports by {author}".format(user=str(user), amount=str(amount), author=str(event.msg.author.id)))
+    def search_reports(self, **kwargs):
+        lists_to_search = [self.event_pending_reports, self.event_approved_reports, self.event_denied_reports]
+        reports = []
+        for search_list in lists_to_search:
+            for report in search_list:
+                valid = True # all reports are valid unless they fail to meet criteria defined by kwargs, which can be none.
+                for k, v in kwargs.items():
+                    if report[k] != v:
+                        valid = False
+                if valid:
+                    reports.append(report)
+        return reports
+    
+    def delete_reports(self, **kwargs):
+        lists_to_search = [self.event_pending_reports, self.event_approved_reports, self.event_denied_reports]
+        for search_list in lists_to_search:
+            for report in search_list:
+                valid = True # all reports are valid unless they fail to meet criteria defined by kwargs, which can be none.
+                for k, v in kwargs.items():
+                    if report[k] != v:
+                        valid = False
+                if valid:
+                    search_list.remove(report)
+    
+    def get_total_reports(self):
+        return len(self.event_pending_reports) + len(self.event_denied_reports) + len(self.event_approved_reports)
+    
+    def get_approved_reports(self):
+        return len(self.event_approved_reports)
 
     def save_event_stats(self, filename):
         try:
             f = open(filename, "w")
             save_dict = {
                 "event_reported_cards": self.event_reported_cards,
-                "event_total_reports": self.event_total_reports,
-                "event_user_reports": self.event_user_reports
+                "event_pending_reports": self.event_pending_reports,
+                "event_approved_reports": self.event_approved_reports,
+                "event_denied_reports": self.event_denied_reports
             }
             f.write(json.dumps(save_dict))
             f.close()
@@ -435,8 +486,9 @@ class announce(Plugin):
             event_stats = f.read()
             event_stats_parsed = json.loads(event_stats)
             self.event_reported_cards = event_stats_parsed.get("event_reported_cards", [])
-            self.event_total_reports = event_stats_parsed.get("event_total_reports", 0)
-            self.event_user_reports = event_stats_parsed.get("event_user_reports", dict())
+            self.event_approved_reports = event_stats_parsed.get("event_approved_reports", [])
+            self.event_denied_reports = event_stats_parsed.get("event_denied_reports", [])
+            self.event_pending_reports = event_stats_parsed.get("event_pending_reports", [])
         except IOError as ex:
             print("failed to open file: {file}\nstrerror: {strerror}".format(file=filename, strerror=ex.strerror))
 
