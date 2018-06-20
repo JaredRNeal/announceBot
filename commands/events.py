@@ -24,7 +24,7 @@ class Events(Plugin):
     def start_command(self, event):
         """Start the event (author/person to blame when it doesn't work: brxxn)"""
 
-        if event.guild == None:
+        if event.guild is None:
             return
 
         # check permissions
@@ -37,7 +37,7 @@ class Events(Plugin):
 
             for name in view_channels:
                 channel = event.guild.roles[self.config.event_channel_IDs.get(name)]
-                if channel == None:
+                if channel is None:
                     continue
                 channel.create_overwrite(bh_role, allow=0, deny=2112) # deny: send messages, add reactions
                 channel.create_overwrite(bh_role, allow=66560, deny=0) # allow: read messages, read message history
@@ -50,7 +50,7 @@ class Events(Plugin):
         """Event submission command (author/person to blame when it doesn't work: brxxn)"""
 
         # make sure there is a guild
-        if event.guild == None:
+        if event.guild is None:
             return
 
         # delete the message
@@ -84,7 +84,8 @@ class Events(Plugin):
             return
 
         # submit the bug
-        report_channel = self.config.event_channel_IDs[bug_type]
+        # report_channel = self.config.event_channel_IDs[bug_type]
+        report_channel = event.channel
         report_message = event.guild.channels[report_channel].send_message("{name} (`{id}`) reported {a_or_an} {bug_type} bug: `{message}`, {link}".format(
             name=str(event.msg.author),
             id=str(event.msg.author.id),
@@ -109,6 +110,7 @@ class Events(Plugin):
             "category": bug_type,
             "message": message,
             "card_id": card_id,
+            "link": link,
             "message_id": report_message.id,
             "approved": False,
             "denied": False
@@ -117,7 +119,8 @@ class Events(Plugin):
         # report announcement to botlog: 50, 100, 200, 300, 400...
         announce_report_to_botlog = self.get_total_reports() % 100 == 0 or self.get_total_reports() == 50
         if announce_report_to_botlog and self.get_total_reports() != 0:
-            self.botlog(event, ":crown: reached {report} total reports in current trello cleaning event".format(report=str(self.get_total_reports())))
+            self.botlog(event, ":crown: reached {report} total reports in current trello cleaning event".format(
+                report=str(self.get_total_reports())))
             return
 
         # save reports
@@ -128,7 +131,7 @@ class Events(Plugin):
     def event_winners(self, event):
         """Find 1st-10th winners in bug reporting (author/person to blame when it doesn't work: brxxn)"""
         # check guild
-        if event.guild == None:
+        if event.guild is None:
             return
 
         if not self.checkPerms(event, "admin"):
@@ -147,13 +150,19 @@ class Events(Plugin):
 
         for winner_id, reports in sorted(user_approved_report_counts.items(), key=lambda x: x[1], reverse=True):
             count = count + 1
-            line = "{count}: <@{id}> ({reports} reports)\n".format(count=str(count), name=str(event.guild.members[winner_id]), reports=str(reports), id=str(winner_id))
+            line = "{count}: <@{id}> ({reports} reports)\n".format(
+                count=str(count),
+                name=str(event.guild.members[winner_id]),
+                reports=str(reports),
+                id=str(winner_id)
+            )
             message = message + line
             # stop at 10
             if count == 10:
                 break
 
-        message = message + "\nThanks for participating in the Trello Cleaning Event! If you won a prize that needs to be shipped, send a message to Dabbit Prime with a mailing address."
+        message = message + "\nThanks for participating in the Trello Cleaning Event! If you won a prize that needs " \
+                            "to be shipped, send a message to Dabbit Prime with a mailing address."
         event.msg.delete()
         event.channel.send_message(message)
     
@@ -161,7 +170,7 @@ class Events(Plugin):
     def end_event(self, event):
         """End the event (author/person to blame when it doesn't work: brxxn)"""
         # check guild
-        if event.guild == None:
+        if event.guild is None:
             return
         
         if self.checkPerms(event, "admin"):
@@ -172,14 +181,16 @@ class Events(Plugin):
                 # allow: none; deny: view channel, send message, add reactions
                 channel.create_overwrite(bh_role, allow=0, deny=2112)
             event.msg.delete()
-            event.channel.send_message(":ok_hand: event ended - channels locked. note that statistics have **not** been reset.").after(5).delete()
-            self.botlog(event, ":lock: {user} ended event (locked all event channels)".format(user=str(event.msg.author)))
+            event.channel.send_message(":ok_hand: event ended - channels locked. "
+                                       "note that statistics have **not** been reset.").after(5).delete()
+            self.botlog(event, ":lock: {user} ended event (locked all event channels)".format(
+                user=str(event.msg.author)))
     
     @Plugin.command('clearall', group="event")
     def clear_stats(self, event):
         """Clear all statistics (author/person to blame when it doesn't work: brxxn)"""
         # check guild
-        if event.guild == None:
+        if event.guild is None:
             return
         
         # check perms
@@ -192,13 +203,14 @@ class Events(Plugin):
 
             event.msg.delete()
             event.channel.send_message(":ok_hand: all statistics cleared. archive saved.").after(5).delete()
-            self.botlog(event, ":wastebasket: {user} cleared all statistics for the event".format(user=str(event.msg.author)))
+            self.botlog(event, ":wastebasket: {user} cleared all statistics for the event".format(
+                user=str(event.msg.author)))
     
     @Plugin.command('clearuser', "<user:snowflake> <reason:str...>", group="event")
     def clear_user(self, event, user, reason):
         """Clear user statistics (author/person to blame when it doesn't work: brxxn)"""
         # check guild
-        if event.guild == None:
+        if event.guild is None:
             return
         
         # check perms
@@ -208,13 +220,14 @@ class Events(Plugin):
             self.delete_reports(author_id=user)
             # inform user and bot log
             event.channel.send_message(":ok_hand: cleared reports from user.").after(4).delete()
-            self.botlog(event, ":wastebasket: {mod} cleared stats for user {user} with reason {reason}".format(mod=str(event.msg.author), user=str(user), reason=reason))
+            self.botlog(event, ":wastebasket: {mod} cleared stats for user {user} with reason {reason}".format(
+                mod=str(event.msg.author), user=str(user), reason=reason))
     
     @Plugin.command('deletereport', "<message_id:snowflake> <reason:str...>", group="event")
     def delete_report(self, event, message_id, reason):
         """Delete a report (author/person to blame when it doesn't work: brxxn)"""
         # check guild
-        if event.guild == None:
+        if event.guild is None:
             return
         
         # check perms
@@ -224,7 +237,8 @@ class Events(Plugin):
             self.delete_reports(message_id=message_id)
             # inform user and bot log
             event.channel.send_message(":ok_hand: report deleted.").after(4).delete()
-            self.botlog(event, ":wastebasket: {mod} deleted report {message_id} with reason {reason}".format(mod=str(event.msg.author), message_id=str(message_id), reason=reason))
+            self.botlog(event, ":wastebasket: {mod} deleted report {message_id} with reason {reason}".format(
+                mod=str(event.msg.author), message_id=str(message_id), reason=reason))
     
     @Plugin.command("points")
     def points(self, event):
@@ -232,7 +246,8 @@ class Events(Plugin):
         unverified_reports = len(self.search_reports(author_id=event.msg.author.id, approved=False, denied=False))
         verified_reports = len(self.search_reports(author_id=event.msg.author.id, approved=True))
 
-        message = "Unverified Reports: {unverified}\nVerified (Approved) Reports: {verified}\nTotal Reports: {total}\n\nThanks for participating in the Trello Event!"
+        message = "Unverified Reports: {unverified}\nVerified (Approved) Reports: {verified}\nTotal Reports: {total}" \
+                  "\n\nThanks for participating in the Trello Event!"
 
         event.msg.delete()
         try:
@@ -245,13 +260,120 @@ class Events(Plugin):
         except APIException:
             event.channel.send_message("Please enable Direct Messages so I can send you your points.").after(5).delete()
 
+    @Plugin.command("revoke", "<message_id:snowflake>", group="event")
+    def revoke(self, event, message_id):
+        if event.guild is None:
+            return
+
+        event.msg.delete()
+
+        reports = self.search_reports(author_id=str(event.msg.author.id), message_id=str(message_id))
+        if len(reports) == 0:
+            event.channel.send_message("Couldn't find any reports made by you with message ID `{id}`".format(
+                id=str(message_id)
+            )).after(10).delete()
+            return
+
+        # TODO change from event.channel.id to proper channel
+        try:
+            message = event.guild.channels[event.channel.id].get_message(reports[0].message_id)
+            message.delete()
+        except APIException:
+            event.channel.send_message("This is not the report you are looking for.")\
+                .after(10).delete()
+            return
+
+        self.delete_reports(author_id=str(event.msg.author.id), message_id=str(message_id))
+        event.channel.send_message(":ok_hand: revoked your submission.")
+
+    @Plugin.command("edit", "<message_id:snowflake> <edit_key:str> <edit_value:str...>")
+    def edit(self, event, message_id, edit_key, edit_value):
+        if event.guild is None:
+            return
+
+        event.msg.delete()
+        valid_keys = ["name", "message"]
+        if edit_key.lower() not in valid_keys:
+            event.channel.send_message("invalid key. valid keys are `name, message`")
+            return
+
+        reports = self.search_reports(author_id=str(event.msg.author.id), message_id=str(message_id))
+        if len(reports) == 0:
+            event.channel.send_message("Couldn't find any reports made by you with message ID `{id}`".format(
+                id=str(message_id)
+            )).after(10).delete()
+            return
+
+        edited_reports = self.edit_reports(edit_key.lower(), edit_value, author_id=str(event.msg.author.id), message_id=str(message_id))
+
+        modified_message = "{name} (`{id}`) reported {a_or_an} {bug_type} bug: `{message}`, {link}".format(
+            name=str(event.msg.author),
+            id=str(event.msg.author.id),
+            a_or_an="an" if edited_reports[0].category == "ios" or edited_reports[0].category == "android" else "a",
+            bug_type=edited_reports[0].category,
+            message=edited_reports[0].message,
+            link=edited_reports[0].link
+        )
+
+        # TODO change from event.channel.id to proper channel
+        try:
+            message = event.guild.channels[event.channel.id].get_message(edited_reports[0].message_id)
+            message.edit(modified_message)
+        except APIException:
+            event.channel.send_message("This is not the report you are looking for.") \
+                .after(10).delete()
+            return
+
+        event.channel.send_message(":ok_hand: edited report!")
+
+
+    @Plugin.command("next", "[category:str]", group="event")
+    def next(self, event, category):
+        if event.guild is None:
+            return
+
+        event.msg.delete()
+
+        if not self.checkPerms(event, "admin"):
+            return
+
+        message = "Here are some reports that are still pending:\n\n"
+
+        parsed_category = ""
+        if category is not None:
+            valid_categories = ["desktop", "ios", "android", "linux"]
+            if category.lower() not in valid_categories:
+                event.msg.send_message("invalid category. valid categories: `desktop, ios, android, linux`").after(10).delete()
+                return
+            parsed_category = category.lower()
+
+        reports = self.search_reports(approved=False, denied=False, category=parsed_category) if parsed_category != "" \
+            else self.search_reports(approved=False, denied=False)
+
+        if len(reports) == 0:
+            message = "It seems that there are no more pending bugs in the queue! :)"
+
+        count = 0
+        for report in reports:
+            count = count + 1
+            link = "https://discordapp.com/channels/{guild}/{channel}/{message}".format(
+                guild=event.guild,
+                channel=event.channel,
+                message=event.message)
+            message = message + "{count}: {link}\n".format(count=count, link=link)
+            if count == 5:
+                break
+
+        event.channel.send_message(message)
+
     @Plugin.listen("MessageReactionAdd")
     def on_reaction(self, event):
-        if event.guild == None:
+        if event.guild is None:
             return
         if event.emoji.name != "greenTick" and event.emoji.name != "redTick":
             return
-        valid_ids = [self.config.event_channel_IDs["ios"], self.config.event_channel_IDs["desktop"], self.config.event_channel_IDs["android"], self.config.event_channel_IDs["linux"]]
+        valid_ids = [self.config.event_channel_IDs["ios"], self.config.event_channel_IDs["desktop"],
+                     self.config.event_channel_IDs["android"], self.config.event_channel_IDs["linux"]]
         if event.channel.id not in valid_ids:
             return
         member = event.guild.members[event.user_id]
@@ -268,7 +390,10 @@ class Events(Plugin):
             self.event_approved_reports.append(report)
         if event.emoji.name == "redTick":
             self.event_denied_reports.append(report)
-        self.botlog(event, ":newspaper: {user} {action} report {message}".format(user=str(member), action="approved" if event.emoji.name == "greenTick" else "denied", message=str(event.message_id)))
+        self.botlog(event, ":newspaper: {user} {action} report {message}".format(
+            user=str(member),
+            action="approved" if event.emoji.name == "greenTick" else "denied",
+            message=str(event.message_id)))
 
     def search_reports(self, **kwargs):
         lists_to_search = [self.event_pending_reports, self.event_approved_reports, self.event_denied_reports]
@@ -282,7 +407,21 @@ class Events(Plugin):
                 if valid:
                     reports.append(report)
         return reports
-    
+
+    def edit_reports(self, key, value, **kwargs):
+        lists_to_search = [self.event_pending_reports, self.event_approved_reports, self.event_denied_reports]
+        reports = []
+        for search_list in lists_to_search:
+            for report in search_list:
+                valid = True  # all reports are valid unless they fail to meet criteria defined by kwargs, which can be none.
+                for k, v in kwargs.items():
+                    if report[k] != v:
+                        valid = False
+                if valid:
+                    report[key] = value
+                    reports.append(report)
+        return reports
+
     def delete_reports(self, **kwargs):
         lists_to_search = [self.event_pending_reports, self.event_approved_reports, self.event_denied_reports]
         for search_list in lists_to_search:

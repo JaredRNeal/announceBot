@@ -3,3 +3,4 @@
 config/
 .vscode/
 eventstats.json
+.idea/
