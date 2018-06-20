@@ -1,4 +1,5 @@
 from disco.bot import Plugin
+from disco.api.http import APIException
 from commands.config import EventsPluginConfig
 import os.path
 import json
@@ -109,7 +110,8 @@ class Events(Plugin):
             "message": message,
             "card_id": card_id,
             "message_id": report_message.id,
-            "approved": False
+            "approved": False,
+            "denied": False
         })
 
         # report announcement to botlog: 50, 100, 200, 300, 400...
@@ -224,6 +226,25 @@ class Events(Plugin):
             event.channel.send_message(":ok_hand: report deleted.").after(4).delete()
             self.botlog(event, ":wastebasket: {mod} deleted report {message_id} with reason {reason}".format(mod=str(event.msg.author), message_id=str(message_id), reason=reason))
     
+    @Plugin.command("points")
+    def points(self, event):
+        total_reports = len(self.search_reports(author_id=event.msg.author.id))
+        unverified_reports = len(self.search_reports(author_id=event.msg.author.id, approved=False, denied=False))
+        verified_reports = len(self.search_reports(author_id=event.msg.author.id, approved=True))
+
+        message = "Unverified Reports: {unverified}\nVerified (Approved) Reports: {verified}\nTotal Reports: {total}\n\nThanks for participating in the Trello Event!"
+
+        event.msg.delete()
+        try:
+            dm_channel = event.msg.author.open_dms()
+            dm_channel.send_message(message.format(
+                unverified=str(unverified_reports),
+                verified=str(verified_reports),
+                total=str(total_reports)
+            ))
+        except APIException:
+            event.channel.send_message("Please enable Direct Messages so I can send you your points.").after(5).delete()
+
     @Plugin.listen("MessageReactionAdd")
     def on_reaction(self, event):
         if event.guild == None:
@@ -248,7 +269,6 @@ class Events(Plugin):
         if event.emoji.name == "redTick":
             self.event_denied_reports.append(report)
         self.botlog(event, ":newspaper: {user} {action} report {message}".format(user=str(member), action="approved" if event.emoji.name == "greenTick" else "denied", message=str(event.message_id)))
-        
 
     def search_reports(self, **kwargs):
         lists_to_search = [self.event_pending_reports, self.event_approved_reports, self.event_denied_reports]
