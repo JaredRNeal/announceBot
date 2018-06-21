@@ -1,3 +1,6 @@
+import time
+from datetime import datetime
+
 from disco.bot import Plugin
 from disco.api.http import APIException
 from commands.config import EventsPluginConfig
@@ -7,174 +10,147 @@ import shutil
 from util import TrelloUtils
 
 
-
-
-
 @Plugin.with_config(EventsPluginConfig)
 class Events(Plugin):
 
     def load(self, ctx):
         super(Events, self).load(ctx)
-        self.event_reported_cards = []
-        self.event_pending_reports = []
-        self.event_approved_reports = []
-        self.event_denied_reports = []
-        self.load_event_stats(self.config.event_stats_filename)
+        self.reported_cards = dict()
+        self.partipants = dict()
+        self.status = "Scheduled"
+        self.saving = False
+        self.queued = False
+        self.load_event_stats()
 
     def unload(self, ctx):
-        self.save_event_stats(self.config.event_stats_filename)
+        self.save_event_stats()
         super(Events, self).unload(ctx)
 
     @Plugin.command("info", '<link:str>')
     def trello_info(self, event, link):
         info = TrelloUtils.getCardInfo(event, link)
+        print(info)
         if info is None:
             event.msg.reply("Unable to fetch info about that card, please make sure you have a valid link")
-        elif info["idBoard"] not in self.config.boards.keys():
-            event.msg.reply(
-                "This card is not from one of the discord bug boards, what do you expect me to do with this?")
-        elif info["idList"] not in self.config.boards[info["idBoard"]]:
-            event.msg.reply("This card is in the " + TrelloUtils.getListInfo(info["idList"])[
-                "name"] + " list instead of an event list, thanks submission but no thanks")
-        elif info["closed"] is True:
-            event.msg.reply(
-                "_cough cough_ that card has been archived and collected way to much dust for me to do anything with it")
-        else:
-            event.msg.reply("All checks passed, card is good for processing")
+        ok = "<:greentickgear:458907588986273812>"
+        rejected = "<:redtickgear:458907619864739841>"
+        board = self.config.boards[info["idBoard"]]
+        listname = TrelloUtils.getListInfo(info["idList"])["name"]
+        archived = info["closed"]
 
-    @Plugin.command("template", "<link:str>, <destination:str>, <info:str...>")
+        boardok = info["idBoard"] in self.config.boards.keys()
+        listok = info["idList"] in board["lists"]
+
+        message="""
+**Board**: {} ({}) {}
+**List**: {} ({}) {}
+**Archived**: {} {}
+""".format(board["name"], info["idBoard"], ok if boardok else rejected, listname, info["idList"], ok if listok else rejected, archived, rejected if archived else ok)
+        event.msg.reply(message)
+
+    @Plugin.command("submit", "<link:str>, <destination:str>, <info:str...>")
     def template(self, event, link, destination, info):
+        if self.status != "Started":
+            return #no event going on, pretend nothing happened #noleeks
+        if event.guild is None or event.channel.id != self.config.event_channel: #ignore users running this in the wrong channel, also prevents non hunters from submitting
+            return
         trello_info = TrelloUtils.getCardInfo(event, link)
+        print(trello_info)
+        error = None
         if trello_info is None:
-            event.msg.reply("Unable to fetch info about that card, please make sure you have a valid link")
-            return
+            error = "Unable to fetch info about that card, are you sure it exists? Cause i don't feel like playing hide and seek"
         if trello_info["idBoard"] not in self.config.boards.keys():
-            event.msg.reply("This card is not from one of the discord bug boards, what do you expect me to do with this?")
-        board = self.config.boards[trello_info["idBoard"]]
-        listname = TrelloUtils.getListInfo(trello_info["idList"])["name"]
-        if trello_info["idList"] not in board["lists"]:
-            event.msg.reply("This card is in the {} list instead of an event list, thanks submission but no thanks".format(listname))
-            return
-        if trello_info["closed"] is True:
-            event.msg.reply("_cough cough_ that card has been archived and collected way to much dust for me to do anything with it")
-            return
+            error = "This card is not from one of the discord bug boards, what do you expect me to do with this?"
+        if trello_info['id'] in self.reported_cards.keys():
+            report = self.reported_cards[trello_info['id']]
+            #hit by sniper?
+            timediv = datetime.utcnow() - datetime.utcfromtimestamp(report["report_time"])
+            hours, remainder = divmod(int(timediv.total_seconds()), 3600)
+            minutes, seconds = divmod(remainder, 60)
+            print(self.partipants)
+            error = "{} Looks like {} beat you to the punch. Better luck next time!".format("SNIPED!" if minutes < 2 else "<:dupebutton:341981924010491904>", self.partipants[str(report["author_id"])])
+        if error is None:
+            board = self.config.boards[trello_info["idBoard"]]
+            listname = TrelloUtils.getListInfo(trello_info["idList"])["name"]
+            if trello_info["idList"] not in board["lists"]:
+                error = "This card is in the {} list instead of an event list, thanks for the submission but no thanks".format(listname)
+            elif trello_info["closed"] is True:
+                error = "_cough cough_ that card has been archived and collected way to much dust for me to do anything with it"
 
-        message = """
+        if error is not None:
+            event.msg.reply(error).after(15).delete()
+            event.msg.delete()
+            return
+        else:
+            # valid submission, processing...
+            event.msg.delete()
+
+            message = """
 **Board**: {} {}
 **Source list**:  {}
 **Destination**: {}
 **Submitted by**: {}
 **Additional info**: {}
-**Trello link**: {}""".format(board["name"], board["emoji"], listname, destination, str(event.author), info, trello_info["shortUrl"])
+**Trello link**: {}""".format(board["name"], board["emoji"], listname, destination, str(event.author), info,
+                                          trello_info["shortUrl"])
+            dmessage = event.msg.reply(message)
 
-        event.msg.reply(message)
+        # add to tracking
+            self.reported_cards[trello_info['id']] = dict(
+                author_id= str(event.author.id),
+                board= trello_info["idBoard"],
+                list= trello_info["idList"],
+                message_id= dmessage.id,
+                status= "Submitted",
+                report_time = datetime.utcnow().timestamp()
+        )
+
+        to_clean = None
+        if not event.author.id in self.partipants.keys():
+            self.partipants[str(event.author.id)] = str(event.author)
+            to_clean = event.msg.reply("Achievement get! Successfully submitted your first event entry :tada:")
+            print(self.partipants)
+        else:
+            #updating name in case it changed
+            self.partipants[str(event.author.id)] = str(event.author)
+
+        self.save_event_stats()
+        if to_clean is not None:
+            to_clean.after(15).delete()
+
+
 
     @Plugin.command('start', group="event")
     def start_command(self, event):
-        """Start the event (author/person to blame when it doesn't work: brxxn)"""
+        """Start the event"""
 
         if event.guild is None:
             return
 
         # check permissions
         if self.checkPerms(event, "admin"):
-            # give bug hunters access to "claimed_fixed" to submit bugs
-            bh_role = event.guild.roles[self.config.role_IDs["bug"]]
-            submit_channel = event.guild.channels[self.config.event_channel_IDs.get("claimed_fixed")]
-            submit_channel.create_overwrite(bh_role, allow=2048, deny=64)
-            view_channels = ["ios", "android", "desktop", "linux"]
+            # give bug hunters access to submission channel
+            participants_role = event.guild.roles[int(self.config.participants_role)]
+            event_channel = event.guild.channels[int(self.config.event_channel)]
 
-            for name in view_channels:
-                channel = event.guild.roles[self.config.event_channel_IDs.get(name)]
-                if channel is None:
-                    continue
-                channel.create_overwrite(bh_role, allow=0, deny=2112)  # deny: send messages, add reactions
-                channel.create_overwrite(bh_role, allow=66560, deny=0)  # allow: read messages, read message history
+            #determine current overrides and if one exists just flip the read channel bit around
+            perms = event_channel.overwrites
+            view_channel = 1024
 
-            event.channel.send(":ok_hand: unlocked event channels to bug hunters.")
-            self.botlog(event, ":unlock: {name} (id: {id}) started an event.".format(name=str(event.msg.author),
+            if participants_role.id in perms.keys():
+                print(perms[participants_role.id].deny.to_dict())
+                print(perms[participants_role.id].deny.sub(view_channel).to_dict())
+                allow = perms[participants_role.id].allow.add(view_channel)
+                deny = perms[participants_role.id].deny.sub(view_channel)
+                event_channel.create_overwrite(participants_role, allow = allow, deny=deny)
+            else:
+                event_channel.create_overwrite(participants_role, allow=view_channel, deny=0)
+
+            self.status = "Started"
+            event.channel.send_message("<:greentickgear:458907588986273812> Submissions channel unlocked and commands unlocked, here we go")
+            self.botlog(event, ":unlock: {name} (`{id}`) started the event.".format(name=str(event.msg.author),
                                                                                      id=event.msg.author.id))
-
-    @Plugin.command('submit', '<bug_type:str> <link:str> <message:str...>', group="event")
-    def submit_command(self, event, bug_type, link, message):
-        """Event submission command (author/person to blame when it doesn't work: brxxn)"""
-
-        # make sure there is a guild
-        if event.guild is None:
-            return
-
-        # delete the message
-        event.msg.delete()
-
-        # make sure user posted in submit channel
-        submit_channel = self.config.event_channel_IDs["claimed_fixed"]
-        if event.channel.id != submit_channel:
-            event.channel.send_message("command cannot be run in this channel.").after(3).delete()
-            return
-
-        # make sure vaild type
-        bug_type = bug_type.lower()
-        vaild_types = ["ios", "android", "desktop", "linux"]
-        if bug_type not in vaild_types:
-            event.channel.send_message("invalid bug type. valid types include: `ios, android, desktop, linux`").after(
-                3).delete()
-            return
-
-        card_id = TrelloUtils.extractID(event, link)
-
-        if link is None:
-            return
-
-        if card_id in self.event_reported_cards:
-            event.channel.send_message(
-                "already reported. next time, please use search to find if a bug has already been reported.").after(
-                6).delete()
-            return
-
-        # submit the bug
-        # report_channel = self.config.event_channel_IDs[bug_type]
-        report_channel = event.channel
-        report_message = event.guild.channels[report_channel].send_message(
-            "{name} (`{id}`) reported {a_or_an} {bug_type} bug: `{message}`, {link}".format(
-                name=str(event.msg.author),
-                id=str(event.msg.author.id),
-                a_or_an="an" if bug_type == "ios" or bug_type == "android" else "a",
-                bug_type=bug_type,
-                message=message,
-                link=link
-            ))
-
-        report_message.react(event.guild.emojis[self.config.emojis.green_tick])
-        report_message.react(event.guild.emojis[self.config.emojis.red_tick])
-
-        # alert the user
-        event.channel.send_message(":ok_hand: successfully reported bug.").after(2).delete()
-
-        # add to statistics
-
-        self.event_reported_cards.append(card_id)
-        self.event_pending_reports[event.msg.author.id] = self.event_pending_reports.append({
-            "name": str(event.msg.author),
-            "author_id": str(event.msg.author.id),
-            "category": bug_type,
-            "message": message,
-            "card_id": card_id,
-            "link": link,
-            "message_id": report_message.id,
-            "approved": False,
-            "denied": False
-        })
-
-        # report announcement to botlog: 50, 100, 200, 300, 400...
-        announce_report_to_botlog = self.get_total_reports() % 100 == 0 or self.get_total_reports() == 50
-        if announce_report_to_botlog and self.get_total_reports() != 0:
-            self.botlog(event, ":crown: reached {report} total reports in current trello cleaning event".format(
-                report=str(self.get_total_reports())))
-            return
-
-        # save reports
-        if self.get_total_reports() % 100 == 0 and self.get_total_reports() != 0:
-            self.save_event_stats(self.config.event_stats_filename)
+            self.save_event_stats()
 
     @Plugin.command('winners', group="event")
     def event_winners(self, event):
@@ -230,7 +206,7 @@ class Events(Plugin):
                                        "note that statistics have **not** been reset.").after(5).delete()
             self.botlog(event, ":lock: {user} ended event (locked all event channels)".format(
                 user=str(event.msg.author)))
-    
+
     @Plugin.command('clearall', group="event")
     def clear_stats(self, event):
         """Clear all statistics (author/person to blame when it doesn't work: brxxn)"""
@@ -243,14 +219,14 @@ class Events(Plugin):
             self.save_event_stats(self.config.event_stats_filename)
             shutil.copyfile(self.config.event_stats_filename, "eventstats-archive.json")
             # clear
-            self.event_reported_cards = []
+            self.reported_cards = []
             self.delete_reports()
 
             event.msg.delete()
             event.channel.send_message(":ok_hand: all statistics cleared. archive saved.").after(5).delete()
             self.botlog(event, ":wastebasket: {user} cleared all statistics for the event".format(
                 user=str(event.msg.author)))
-    
+
     @Plugin.command('clearuser', "<user:snowflake> <reason:str...>", group="event")
     def clear_user(self, event, user, reason):
         """Clear user statistics (author/person to blame when it doesn't work: brxxn)"""
@@ -267,7 +243,7 @@ class Events(Plugin):
             event.channel.send_message(":ok_hand: cleared reports from user.").after(4).delete()
             self.botlog(event, ":wastebasket: {mod} cleared stats for user {user} with reason {reason}".format(
                 mod=str(event.msg.author), user=str(user), reason=reason))
-    
+
     @Plugin.command('deletereport', "<message_id:snowflake> <reason:str...>", group="event")
     def delete_report(self, event, message_id, reason):
         """Delete a report (author/person to blame when it doesn't work: brxxn)"""
@@ -284,7 +260,7 @@ class Events(Plugin):
             event.channel.send_message(":ok_hand: report deleted.").after(4).delete()
             self.botlog(event, ":wastebasket: {mod} deleted report {message_id} with reason {reason}".format(
                 mod=str(event.msg.author), message_id=str(message_id), reason=reason))
-    
+
     @Plugin.command("points")
     def points(self, event):
         total_reports = len(self.search_reports(author_id=event.msg.author.id))
@@ -484,33 +460,45 @@ class Events(Plugin):
     def get_approved_reports(self):
         return len(self.event_approved_reports)
 
-    def save_event_stats(self, filename):
-        try:
-            f = open(filename, "w")
-            save_dict = {
-                "event_reported_cards": self.event_reported_cards,
-                "event_pending_reports": self.event_pending_reports,
-                "event_approved_reports": self.event_approved_reports,
-                "event_denied_reports": self.event_denied_reports
-            }
-            f.write(json.dumps(save_dict))
-            f.close()
-        except IOError as ex:
-            print("failed to open file: {file}\nstrerror: {strerror}".format(file=filename, strerror=ex.strerror))
+    def save_event_stats(self):
+        if self.saving:
+            if not self.queued:
+                self.queued = True
+                print("save in progress, took the queue slot")
+                while self.saving:
+                    time.sleep(1)
+                self.queued = False
+                print("save finished, freed up the queue slot")
+            else:
+                return
+        self.saving = True
+        print("starting save")
+        with open("eventstats.json", "w") as f:
+            try:
+                save_dict = dict(
+                    reported_cards= self.reported_cards,
+                    status= self.status,
+                    participants= self.partipants
+                )
+                print(save_dict)
+                f.write(json.dumps(save_dict))
+            except IOError as ex:
+                print("failed to open file: {file}\nstrerror: {strerror}".format(file='eventstats.json', strerror=ex.strerror))
+        self.saving = False
+        print("Save complete")
 
-    def load_event_stats(self, filename):
-        if not os.path.isfile(filename):
+    def load_event_stats(self):
+        if not os.path.isfile("eventstats.json"):
             return
-        try:
-            f = open(filename, "r")
-            event_stats = f.read()
-            event_stats_parsed = json.loads(event_stats)
-            self.event_reported_cards = event_stats_parsed.get("event_reported_cards", [])
-            self.event_approved_reports = event_stats_parsed.get("event_approved_reports", [])
-            self.event_denied_reports = event_stats_parsed.get("event_denied_reports", [])
-            self.event_pending_reports = event_stats_parsed.get("event_pending_reports", [])
-        except IOError as ex:
-            print("failed to open file: {file}\nstrerror: {strerror}".format(file=filename, strerror=ex.strerror))
+        with open('eventstats.json', "r") as f:
+            try:
+                event_stats = f.read()
+                event_stats_parsed = json.loads(event_stats)
+                self.reported_cards = event_stats_parsed.get("reported_cards",dict())
+                self.status = event_stats_parsed.get("Status", "Scheduled")
+                self.partipants = event_stats_parsed.get("participants", dict())
+            except IOError as ex:
+                print("failed to open file: {file}\nstrerror: {strerror}".format(file='eventstats.json', strerror=ex.strerror))
 
     def checkPerms(self, event, type):
         # get roles from the config
@@ -523,5 +511,5 @@ class Events(Plugin):
         return False
 
     def botlog(self, event, message):
-        channel = event.guild.channels[self.config.channel_IDs['bot_log']]
+        channel = event.guild.channels[self.config.bot_log]
         channel.send_message(message)

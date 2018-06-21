@@ -190,12 +190,11 @@ class EventsPluginConfig(Config):
     'rules': 406151195632336907,
     'claimed_fixed': 406165473856585739
     }
-
-    event_stats_filename = "eventstats.json" # event stats are saved to this location.
-
     emojis = {
         "red_tick": "312314733816709120",
         "green_tick": "312314752711786497"
     }
 
     boards = {}
+
+    bot_log: 0
