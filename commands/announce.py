@@ -15,6 +15,31 @@ class announce(Plugin):
             self.botlog(event, ":evilDabbit: "+str(event.msg.author)+" used the EvilPing command.")
             event.msg.delete()
 
+    @Plugin.command('employee', "<new_employee:str>")
+    def make_employee(self, event, new_employee:str):
+        if any(role == 197042389569765376  for role in event.member.roles):
+            if new_employee.startswith("<@"):
+                id = new_employee[2:-1]
+            elif new_employee.startswith("<@!"):
+                id = new_employee[3:-1]
+            else:
+                id = new_employee
+            try:
+                id = int(id)
+            except Exception:
+                event.msg.reply("Unable to parse that as mention or ID")
+            else:
+                if id in event.guild.members.keys():
+                    self.bot.client.api.guilds_members_roles_add(event.guild.id, id, 197042389569765376 )
+                    event.msg.reply("Role added")
+                else:
+                    event.msg.reply("Unable to find that person")
+        else:
+            event.msg.reply(":lock: You do not have permission to use this command!")
+            self.botlog(event, ":warning: {} tried to use a command they do not have permission to use.".format(str(event.msg.author)))
+
+
+
 
     @Plugin.command('announce', '<role_to_ping:str> [announcement_message:str...]')
     def Make_an_Announcement(self, event, role_to_ping, announcement_message):
@@ -197,7 +222,7 @@ class announce(Plugin):
         if any(role in roles for role in event.member.roles):
             return True
         event.msg.reply(":lock: You do not have permission to use this command!")
-        self.botlog(":warning: "+str(event.msg.author)+" tried to use a command they do not have permission to use.")
+        self.botlog(event, ":warning: "+str(event.msg.author)+" tried to use a command they do not have permission to use.")
         return False
 
     def botlog(self, event, message):
