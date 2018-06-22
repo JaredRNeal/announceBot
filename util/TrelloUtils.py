@@ -1,6 +1,8 @@
-import requests
 import json
 
+import requests
+
+card_cache = dict()
 board_cache = dict()
 list_cache = dict()
 
@@ -9,11 +11,13 @@ def getCardInfo(event, id):
         id = extractID(event, id)
     if id is None:
         return None
-    response = requests.request("GET", "https://api.trello.com/1/cards/{}".format(id))
-    try:
-        return json.loads(response.text)
-    except json.JSONDecodeError as ex:
-        return None
+    if not id in list_cache.keys():
+        response = requests.request("GET", "https://api.trello.com/1/cards/{}".format(id))
+        try:
+            card_cache[id] = json.loads(response.text)
+        except json.JSONDecodeError as ex:
+            return None
+    return card_cache[id]
 
 def getBoardInfo(id):
     if id not in board_cache.keys():

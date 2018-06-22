@@ -1,25 +1,29 @@
+import json
+import os.path
+import shutil
 import time
 from datetime import datetime
 
-from disco.bot import Plugin
 from disco.api.http import APIException
+from disco.bot import Plugin
+
 from commands.config import EventsPluginConfig
-import os.path
-import json
-import shutil
 from util import TrelloUtils
 
 
 @Plugin.with_config(EventsPluginConfig)
 class Events(Plugin):
 
+    def __init__(self, bot, config):
+        super().__init__(bot, config)
+        self.queued = False
+        self.saving = False
+        self.status = "Scheduled"
+        self.participants = dict()
+        self.reported_cards = dict()
+
     def load(self, ctx):
         super(Events, self).load(ctx)
-        self.reported_cards = dict()
-        self.partipants = dict()
-        self.status = "Scheduled"
-        self.saving = False
-        self.queued = False
         self.load_event_stats()
 
     def unload(self, ctx):
@@ -50,25 +54,28 @@ class Events(Plugin):
 
     @Plugin.command("submit", "<link:str>, <destination:str>, <info:str...>")
     def template(self, event, link, destination, info):
+        print("start submit")
+        print(self.status)
         if self.status != "Started":
             return #no event going on, pretend nothing happened #noleeks
         if event.guild is None or event.channel.id != self.config.event_channel: #ignore users running this in the wrong channel, also prevents non hunters from submitting
             return
+        print("post checks")
         trello_info = TrelloUtils.getCardInfo(event, link)
         print(trello_info)
         error = None
         if trello_info is None:
             error = "Unable to fetch info about that card, are you sure it exists? Cause i don't feel like playing hide and seek"
-        if trello_info["idBoard"] not in self.config.boards.keys():
+        elif trello_info["idBoard"] not in self.config.boards.keys():
             error = "This card is not from one of the discord bug boards, what do you expect me to do with this?"
-        if trello_info['id'] in self.reported_cards.keys():
+        elif trello_info['id'] in self.reported_cards.keys():
             report = self.reported_cards[trello_info['id']]
             #hit by sniper?
             timediv = datetime.utcnow() - datetime.utcfromtimestamp(report["report_time"])
             hours, remainder = divmod(int(timediv.total_seconds()), 3600)
             minutes, seconds = divmod(remainder, 60)
-            print(self.partipants)
-            error = "{} Looks like {} beat you to the punch. Better luck next time!".format("SNIPED!" if minutes < 2 else "<:dupebutton:341981924010491904>", self.partipants[str(report["author_id"])])
+            print(self.participants)
+            error = "{} Looks like {} beat you to the punch. Better luck next time!".format("SNIPED!" if minutes < 2 else "<:dupebutton:341981924010491904>", self.participants[str(report["author_id"])])
         if error is None:
             board = self.config.boards[trello_info["idBoard"]]
             listname = TrelloUtils.getListInfo(trello_info["idList"])["name"]
@@ -78,7 +85,7 @@ class Events(Plugin):
                 error = "_cough cough_ that card has been archived and collected way to much dust for me to do anything with it"
 
         if error is not None:
-            event.msg.reply(error).after(15).delete()
+            event.msg.reply(error)
             event.msg.delete()
             return
         else:
@@ -106,23 +113,24 @@ class Events(Plugin):
         )
 
         to_clean = None
-        if not event.author.id in self.partipants.keys():
-            self.partipants[str(event.author.id)] = str(event.author)
-            to_clean = event.msg.reply("Achievement get! Successfully submitted your first event entry :tada:")
-            print(self.partipants)
+        if not event.author.id in self.participants.keys():
+            self.participants[str(event.author.id)] = str(event.author)
+            event.msg.reply("Achievement get! Successfully submitted your first event entry :tada:")
+            print(self.participants)
         else:
             #updating name in case it changed
-            self.partipants[str(event.author.id)] = str(event.author)
+            self.participants[str(event.author.id)] = str(event.author)
 
         self.save_event_stats()
-        if to_clean is not None:
-            to_clean.after(15).delete()
 
 
 
     @Plugin.command('start', group="event")
     def start_command(self, event):
         """Start the event"""
+        if self.status != "Scheduled":
+            event.msg.reply("Event has already started")
+            return
 
         if event.guild is None:
             return
@@ -203,7 +211,7 @@ class Events(Plugin):
                 channel.create_overwrite(bh_role, allow=0, deny=2112)
             event.msg.delete()
             event.channel.send_message(":ok_hand: event ended - channels locked. "
-                                       "note that statistics have **not** been reset.").after(5).delete()
+                                       "note that statistics have **not** been reset.")
             self.botlog(event, ":lock: {user} ended event (locked all event channels)".format(
                 user=str(event.msg.author)))
 
@@ -223,7 +231,7 @@ class Events(Plugin):
             self.delete_reports()
 
             event.msg.delete()
-            event.channel.send_message(":ok_hand: all statistics cleared. archive saved.").after(5).delete()
+            event.channel.send_message(":ok_hand: all statistics cleared. archive saved.")
             self.botlog(event, ":wastebasket: {user} cleared all statistics for the event".format(
                 user=str(event.msg.author)))
 
@@ -240,26 +248,9 @@ class Events(Plugin):
             # clear report stats from user
             self.delete_reports(author_id=user)
             # inform user and bot log
-            event.channel.send_message(":ok_hand: cleared reports from user.").after(4).delete()
+            event.channel.send_message(":ok_hand: cleared reports from user.")
             self.botlog(event, ":wastebasket: {mod} cleared stats for user {user} with reason {reason}".format(
                 mod=str(event.msg.author), user=str(user), reason=reason))
-
-    @Plugin.command('deletereport', "<message_id:snowflake> <reason:str...>", group="event")
-    def delete_report(self, event, message_id, reason):
-        """Delete a report (author/person to blame when it doesn't work: brxxn)"""
-        # check guild
-        if event.guild is None:
-            return
-
-        # check perms
-        if self.checkPerms(event, "mod"):
-            event.msg.delete()
-            # delete report
-            self.delete_reports(message_id=message_id)
-            # inform user and bot log
-            event.channel.send_message(":ok_hand: report deleted.").after(4).delete()
-            self.botlog(event, ":wastebasket: {mod} deleted report {message_id} with reason {reason}".format(
-                mod=str(event.msg.author), message_id=str(message_id), reason=reason))
 
     @Plugin.command("points")
     def points(self, event):
@@ -279,33 +270,29 @@ class Events(Plugin):
                 total=str(total_reports)
             ))
         except APIException:
-            event.channel.send_message("Please enable Direct Messages so I can send you your points.").after(5).delete()
+            event.channel.send_message("Please enable Direct Messages so I can send you your points.")
 
-    @Plugin.command("revoke", "<message_id:snowflake>", group="event")
-    def revoke(self, event, message_id):
-        if event.guild is None:
+    @Plugin.command("revoke", "<report:str>")
+    def revoke(self, event, report):
+        if event.msg.channel.id != self.config.event_channel:
             return
 
+        trello_info = TrelloUtils.getCardInfo(event, report)
+        if trello_info is None:
+            event.msg.reply("I can't even fetch info for that, you sure you reported that one?")
+            return
+        if not trello_info["id"] in self.reported_cards.keys():
+            event.msg.reply("I don't have a report for that card, how do you expect me to edit a non existing thing?")
+            return
+        report_info = self.reported_cards[trello_info["id"]]
+        if report_info["author_id"] != str(event.author.id):
+            event.msg.reply("I think there's been a case of mistaken identity here, this report was made by {} and it looks like you are {}".format(self.participants[str(report_info["author_id"]), str(event.author)]))
+            return
+
+        event.msg.channel.get_message(report_info["message_id"]).delete()
+        del self.reported_cards[trello_info["id"]]
         event.msg.delete()
-
-        reports = self.search_reports(author_id=str(event.msg.author.id), message_id=str(message_id))
-        if len(reports) == 0:
-            event.channel.send_message("Couldn't find any reports made by you with message ID `{id}`".format(
-                id=str(message_id)
-            )).after(10).delete()
-            return
-
-        # TODO change from event.channel.id to proper channel
-        try:
-            message = event.guild.channels[event.channel.id].get_message(reports[0].message_id)
-            message.delete()
-        except APIException:
-            event.channel.send_message("This is not the report you are looking for.")\
-                .after(10).delete()
-            return
-
-        self.delete_reports(author_id=str(event.msg.author.id), message_id=str(message_id))
-        event.channel.send_message(":ok_hand: revoked your submission.")
+        event.msg.reply(":warning: Your submission has been nuked <@{}>!".format(event.author.id))
 
     @Plugin.command("edit", "<message_id:snowflake> <edit_key:str> <edit_value:str...>")
     def edit(self, event, message_id, edit_key, edit_value):
@@ -322,7 +309,7 @@ class Events(Plugin):
         if len(reports) == 0:
             event.channel.send_message("Couldn't find any reports made by you with message ID `{id}`".format(
                 id=str(message_id)
-            )).after(10).delete()
+            ))
             return
 
         edited_reports = self.edit_reports(edit_key.lower(), edit_value, author_id=str(event.msg.author.id), message_id=str(message_id))
@@ -341,8 +328,7 @@ class Events(Plugin):
             message = event.guild.channels[event.channel.id].get_message(edited_reports[0].message_id)
             message.edit(modified_message)
         except APIException:
-            event.channel.send_message("This is not the report you are looking for.") \
-                .after(10).delete()
+            event.channel.send_message("This is not the report you are looking for.")
             return
 
         event.channel.send_message(":ok_hand: edited report!")
@@ -364,7 +350,7 @@ class Events(Plugin):
         if category is not None:
             valid_categories = ["desktop", "ios", "android", "linux"]
             if category.lower() not in valid_categories:
-                event.msg.send_message("invalid category. valid categories: `desktop, ios, android, linux`").after(10).delete()
+                event.msg.send_message("invalid category. valid categories: `desktop, ios, android, linux`")
                 return
             parsed_category = category.lower()
 
@@ -454,13 +440,11 @@ class Events(Plugin):
                 if valid:
                     search_list.remove(report)
 
-    def get_total_reports(self):
-        return len(self.event_pending_reports) + len(self.event_denied_reports) + len(self.event_approved_reports)
-
     def get_approved_reports(self):
         return len(self.event_approved_reports)
 
     def save_event_stats(self):
+        #TODO: figure out what's going on but for now this prevents data corruption
         if self.saving:
             if not self.queued:
                 self.queued = True
@@ -478,7 +462,7 @@ class Events(Plugin):
                 save_dict = dict(
                     reported_cards= self.reported_cards,
                     status= self.status,
-                    participants= self.partipants
+                    participants= self.participants
                 )
                 print(save_dict)
                 f.write(json.dumps(save_dict))
@@ -495,8 +479,8 @@ class Events(Plugin):
                 event_stats = f.read()
                 event_stats_parsed = json.loads(event_stats)
                 self.reported_cards = event_stats_parsed.get("reported_cards",dict())
-                self.status = event_stats_parsed.get("Status", "Scheduled")
-                self.partipants = event_stats_parsed.get("participants", dict())
+                self.status = event_stats_parsed.get("status", "Scheduled")
+                self.participants = event_stats_parsed.get("participants", dict())
             except IOError as ex:
                 print("failed to open file: {file}\nstrerror: {strerror}".format(file='eventstats.json', strerror=ex.strerror))
 
@@ -509,6 +493,27 @@ class Events(Plugin):
         self.botlog(event, ":warning: " + str(
             event.msg.author) + " tried to use a command they do not have permission to use.")
         return False
+
+    @Plugin.listen('MessageCreate')
+    def no_chat_allowed(self, event):
+        if event.channel.id != self.config.event_channel and self.status == "Started":
+            return
+        if event.author.id != self.bot.client.api.users_me_get().id:
+            if not (event.message.content.startswith("+submit") or event.message.content.startswith("+revoke") or  event.message.content.startswith("+edit")):
+                event.message.delete()
+                event.message.reply("<@{}> This channel is only event related commands (submit/revoke/edit) command, please go to <#420995378582913030> to discuss submissions".format(event.author.id))
+            else:
+                # make sure incomplete commands get cleaned
+                try:
+                    event.message.after(11).delete()
+                except APIException:
+                    pass  # already gone, no need to clean
+        elif not event.message.content.startswith("**Board**"):
+                try:
+                    event.message.after(11).delete()
+                except APIException:
+                    pass  # already gone, no need to clean
+
 
     def botlog(self, event, message):
         channel = event.guild.channels[self.config.bot_log]
