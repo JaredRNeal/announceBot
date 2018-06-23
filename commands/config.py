@@ -164,37 +164,12 @@ class EventsPluginConfig(Config):
         'admin': 197042322939052032,
         'employee': 197042389569765376
     }
-
-
-    channel_IDs = {
-        'android': 411645018105970699,
-        'bug': '421790860057903104',
-        'canary': 411645098946985984,
-        'desktop': 411645098946985984,
-        'ios': 411645199866003471,
-        'linux': 411645098946985984,
-        'mac': 411645098946985984,
-        'mod_Channel': 281283303326089216,
-        'windows': 411645098946985984,
-        'test': 281283303326089216,
-        'bot_log': 455874979146235916
-        }
-
-    #relevant channel IDs in DTesters:
-    event_channel_IDs = {
-    'ios': 424032686622113794,
-    'android': 424032786664390656,
-    'desktop': 424032874900094989,
-    'linux': 424032956856926219,
-    'prizes': 406167192543952897,
-    'rules': 406151195632336907,
-    'claimed_fixed': 406165473856585739
-    }
     emojis = {
-        "red_tick": "312314733816709120",
-        "green_tick": "312314752711786497"
+        "yes": ":gearYes:459697272326848520",
+        "no": ":gearNo:459697272314265600"
     }
 
     boards = {}
 
-    bot_log: 0
+    bot_log= 0
+    event_channel = 0

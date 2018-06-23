@@ -36,8 +36,8 @@ class Events(Plugin):
         print(info)
         if info is None:
             event.msg.reply("Unable to fetch info about that card, please make sure you have a valid link")
-        ok = "<:greentickgear:458907588986273812>"
-        rejected = "<:redtickgear:458907619864739841>"
+        ok = "<:gearYes:459697272326848520>"
+        rejected = "<:gearNo:459697272314265600>"
         board = self.config.boards[info["idBoard"]]
         listname = TrelloUtils.getListInfo(info["idList"])["name"]
         archived = info["closed"]
@@ -112,7 +112,6 @@ class Events(Plugin):
                 report_time = datetime.utcnow().timestamp()
         )
 
-        to_clean = None
         if not event.author.id in self.participants.keys():
             self.participants[str(event.author.id)] = str(event.author)
             event.msg.reply("Achievement get! Successfully submitted your first event entry :tada:")
@@ -155,65 +154,59 @@ class Events(Plugin):
                 event_channel.create_overwrite(participants_role, allow=view_channel, deny=0)
 
             self.status = "Started"
-            event.channel.send_message("<:greentickgear:458907588986273812> Submissions channel unlocked and commands unlocked, here we go")
+            event.channel.send_message("<:gearYes:459697272326848520> Submissions channel unlocked and commands unlocked, here we go")
             self.botlog(event, ":unlock: {name} (`{id}`) started the event.".format(name=str(event.msg.author),
                                                                                      id=event.msg.author.id))
             self.save_event_stats()
 
     @Plugin.command('winners', group="event")
     def event_winners(self, event):
-        """Find 1st-10th winners in bug reporting (author/person to blame when it doesn't work: brxxn)"""
-        # check guild
-        if event.guild is None:
-            return
-
         if not self.checkPerms(event, "admin"):
             return
+        # build list of user ids => number of points
+        point_count = dict()
 
-        message = "Total amount of approved reports: {total_amount}\nWinners are:\n\n".format(
-            total_amount=str(self.get_approved_reports()))
+        for rid, report in self.reported_cards.items():
+            user = str(report["author_id"])
+            if not user in point_count.keys():
+                point_count[user] = 0
+            point_count[user] += self.config.boards[report["board"]]["points"]
+        to_sort = []
+        for uid, number in point_count.items():
+            to_sort.append([number, uid])
 
-        # sort from largest to smallest reports
         count = 0
-        # build list of user ids => number of approved reports
-        user_approved_report_counts = dict()
-
-        for i in self.event_approved_reports:
-            current = user_approved_report_counts.get(i.author_id, 0)
-            user_approved_report_counts[i.author_id] = current + 1
-
-        for winner_id, reports in sorted(user_approved_report_counts.items(), key=lambda x: x[1], reverse=True):
+        message= ""
+        for points, uid in sorted(to_sort, key=lambda x: x[0], reverse=True)[:10]:
             count = count + 1
-            line = "{count}: <@{id}> ({reports} reports)\n".format(count=str(count), name=str(event.guild.members[winner_id]), reports=str(reports), id=str(winner_id))
-            message = message + line
-            # stop at 10
-            if count == 10:
-                break
-
-        message = message + "\nThanks for participating in the Trello Cleaning Event! If you won a prize that needs " \
-                            "to be shipped, send a message to Dabbit Prime with a mailing address."
-        event.msg.delete()
-        event.channel.send_message(message)
+            message += "{}: <@{}> ({} points)\n".format(count, uid, points)
+        event.msg.reply(message)
 
     @Plugin.command('end', group="event")
     def end_event(self, event):
-        """End the event (author/person to blame when it doesn't work: brxxn)"""
-        # check guild
-        if event.guild is None:
-            return
+        """End the event, hide channel and prep for approval/denial"""
 
         if self.checkPerms(event, "admin"):
-            bh_role = event.guild.roles[self.config.role_IDs["bug"]]
-            lock_channels = ["ios", "android", "desktop", "linux", "claimed_fixed"]
-            for i in lock_channels:
-                channel = event.guild.channels[self.config.event_channel_IDs[i]]
-                # allow: none; deny: view channel, send message, add reactions
-                channel.create_overwrite(bh_role, allow=0, deny=2112)
+            participants_role = event.guild.roles[int(self.config.participants_role)]
+            event_channel = event.guild.channels[int(self.config.event_channel)]
+            perms = event_channel.overwrites
+            view_channel = 1024
+
+            if participants_role.id in perms.keys():
+                event_channel.create_overwrite(participants_role, allow=0, deny=1024)
+            else:
+                event_channel.create_overwrite(participants_role, allow=0, deny=1024)
             event.msg.delete()
-            event.channel.send_message(":ok_hand: event ended - channels locked. "
-                                       "note that statistics have **not** been reset.")
-            self.botlog(event, ":lock: {user} ended event (locked all event channels)".format(
-                user=str(event.msg.author)))
+            event.channel.send_message(":ok_hand: Event ended, preparing reports...")
+            self.botlog(event, ":lock: {user} ended event (locked all event channels)".format(user=str(event.msg.author)))
+            self.status = "Ended"
+            self.save_event_stats()
+
+            for reporter, report in self.reported_cards.items():
+                message = event_channel.get_message(report["message_id"])
+                self.bot.client.api.channels_messages_reactions_create(event_channel.id, message.id, self.config.emojis["yes"])
+                self.bot.client.api.channels_messages_reactions_create(event_channel.id, message.id, self.config.emojis["no"])
+            event.msg.reply("<@{}> all {} reports have been prepped for approval/denial".format(event.author.id, len(self.reported_cards)))
 
     @Plugin.command('clearall', group="event")
     def clear_stats(self, event):
@@ -252,25 +245,39 @@ class Events(Plugin):
             self.botlog(event, ":wastebasket: {mod} cleared stats for user {user} with reason {reason}".format(
                 mod=str(event.msg.author), user=str(user), reason=reason))
 
+    @Plugin.command("stats", group="event")
+    def event_stats(self, event):
+        if not self.checkPerms(event, "admin"):
+            return
+        approved = 0
+        denied = 0
+        for report_id, report in self.reported_cards.items():
+            if report["status"] == "Approved":
+                approved += 1
+            elif report["status"] == "Denied":
+                denied += 1
+        message = """
+Total reports: {}
+Number of participants: {}
+Approved reports: {}
+Denied reports: {}
+""".format(len(self.reported_cards), len(self.participants), approved, denied)
+        event.msg.reply(message)
+
     @Plugin.command("points")
     def points(self, event):
-        total_reports = len(self.search_reports(author_id=event.msg.author.id))
-        unverified_reports = len(self.search_reports(author_id=event.msg.author.id, approved=False, denied=False))
-        verified_reports = len(self.search_reports(author_id=event.msg.author.id, approved=True))
 
-        message = "Unverified Reports: {unverified}\nVerified (Approved) Reports: {verified}\nTotal Reports: {total}" \
-                  "\n\nThanks for participating in the Trello Event!"
+        message = "Your points so far: {}\nThanks for participating in the Trello Event!"
 
         event.msg.delete()
+        points = 0
+        for rid, report in self.reported_cards.items():
+            if str(event.author.id) == report["author_id"]:
+                points += self.config.boards[report["board"]]["points"]
         try:
-            dm_channel = event.msg.author.open_dms()
-            dm_channel.send_message(message.format(
-                unverified=str(unverified_reports),
-                verified=str(verified_reports),
-                total=str(total_reports)
-            ))
+            event.author.open_dm().send_message(message.format(points))
         except APIException:
-            event.channel.send_message("Please enable Direct Messages so I can send you your points.")
+            event.channel.send_message("Please enable Direct Messages so I can send you your points.").after(10).delete()
 
     @Plugin.command("revoke", "<report:str>")
     def revoke(self, event, report):
@@ -334,114 +341,54 @@ class Events(Plugin):
         event.channel.send_message(":ok_hand: edited report!")
 
 
-    @Plugin.command("next", "[category:str]", group="event")
-    def next(self, event, category):
-        if event.guild is None:
-            return
-
-        event.msg.delete()
-
+    @Plugin.command("next")
+    def next(self, event):
         if not self.checkPerms(event, "admin"):
             return
+        event.msg.delete()
 
-        message = "Here are some reports that are still pending:\n\n"
-
-        parsed_category = ""
-        if category is not None:
-            valid_categories = ["desktop", "ios", "android", "linux"]
-            if category.lower() not in valid_categories:
-                event.msg.send_message("invalid category. valid categories: `desktop, ios, android, linux`")
-                return
-            parsed_category = category.lower()
-
-        reports = self.search_reports(approved=False, denied=False, category=parsed_category) if parsed_category != "" \
-            else self.search_reports(approved=False, denied=False)
-
-        if len(reports) == 0:
-            message = "It seems that there are no more pending bugs in the queue! :)"
-
+        message = "Yes i do have more reports for you!\n\n"
+        limit = 10
         count = 0
-        for report in reports:
-            count = count + 1
-            link = "https://discordapp.com/channels/{guild}/{channel}/{message}".format(
-                guild=event.guild,
-                channel=event.channel,
-                message=event.message)
-            message = message + "{count}: {link}\n".format(count=count, link=link)
-            if count == 5:
+        for reportid, report in self.reported_cards.items():
+            if report["status"] == "Submitted":
+                message += "<https://canary.discordapp.com/channels/{}/{}/{}>\n".format(event.guild.id, self.config.event_channel, report["message_id"])
+                count += 1
+            if count >= limit:
                 break
-
+        if count == 0:
+            message = ":tada: ALL SUBMISSIONS HAVE BEEN PROCESSED :tada:"
         event.channel.send_message(message)
 
     @Plugin.listen("MessageReactionAdd")
     def on_reaction(self, event):
-        if event.guild is None:
+        if event.channel_id!= self.config.event_channel or event.user_id == self.bot.client.api.users_me_get().id:
             return
-        if event.emoji.name != "greenTick" and event.emoji.name != "redTick":
-            return
-        valid_ids = [self.config.event_channel_IDs["ios"], self.config.event_channel_IDs["desktop"],
-                     self.config.event_channel_IDs["android"], self.config.event_channel_IDs["linux"]]
-        if event.channel.id not in valid_ids:
-            return
-        member = event.guild.members[event.user_id]
-        roles = getattr(self.config, 'mod_roles').values()
-        if not any(role in roles for role in member.roles):
-            return
-        reports = self.search_reports(message_id=event.message_id)
-        if len(reports) == 0:
-            return
-        report = reports[0]
-        self.event_pending_reports.remove(report)
-        if event.emoji.name == "greenTick":
-            report["approved"] = True
-            self.event_approved_reports.append(report)
-        if event.emoji.name == "redTick":
-            self.event_denied_reports.append(report)
-        self.botlog(event, ":newspaper: {user} {action} report {message}".format(
-            user=str(member),
-            action="approved" if event.emoji.name == "greenTick" else "denied",
-            message=str(event.message_id)))
+        print(":{}:{}".format(event.emoji.name, event.emoji.id))
+        if ":{}:{}".format(event.emoji.name, event.emoji.id) == self.config.emojis["yes"]:
+            print("approved!")
+            self.setReportStatus(event, event.message_id, "Approved")
+        elif ":{}:{}".format(event.emoji.name, event.emoji.id) == self.config.emojis["no"]:
+            print("denied!")
+            self.setReportStatus(event, event.message_id, "Denied")
 
-    def search_reports(self, **kwargs):
-        lists_to_search = [self.event_pending_reports, self.event_approved_reports, self.event_denied_reports]
-        reports = []
-        for search_list in lists_to_search:
-            for report in search_list:
-                valid = True  # all reports are valid unless they fail to meet criteria defined by kwargs, which can be none.
-                for k, v in kwargs.items():
-                    if report[k] != v:
-                        valid = False
-                if valid:
-                    reports.append(report)
-        return reports
+    def setReportStatus(self, event, message_id, status):
+        report = self.findReport(message_id)
+        if report is not None:
+            report["status"]  = status
+            botlog = self.bot.client.api.channels_get(self.config.bot_log)
+            botlog.send_message(":newspaper: {} set the status of {} to {} {}"
+                                .format(
+                str(self.bot.client.api.guilds_members_get(botlog.guild.id, event.user_id)),
+                report["message_id"],
+                status, "<:{}:{}>".format(event.emoji.name, event.emoji.id)))
+            self.save_event_stats()
 
-    def edit_reports(self, key, value, **kwargs):
-        lists_to_search = [self.event_pending_reports, self.event_approved_reports, self.event_denied_reports]
-        reports = []
-        for search_list in lists_to_search:
-            for report in search_list:
-                valid = True  # all reports are valid unless they fail to meet criteria defined by kwargs, which can be none.
-                for k, v in kwargs.items():
-                    if report[k] != v:
-                        valid = False
-                if valid:
-                    report[key] = value
-                    reports.append(report)
-        return reports
-
-    def delete_reports(self, **kwargs):
-        lists_to_search = [self.event_pending_reports, self.event_approved_reports, self.event_denied_reports]
-        for search_list in lists_to_search:
-            for report in search_list:
-                valid = True  # all reports are valid unless they fail to meet criteria defined by kwargs, which can be none.
-                for k, v in kwargs.items():
-                    if report[k] != v:
-                        valid = False
-                if valid:
-                    search_list.remove(report)
-
-    def get_approved_reports(self):
-        return len(self.event_approved_reports)
+    def findReport(self, message_id):
+        for id, report in self.reported_cards.items():
+            if report["message_id"] == message_id:
+                return report
+        return None
 
     def save_event_stats(self):
         #TODO: figure out what's going on but for now this prevents data corruption
@@ -496,7 +443,9 @@ class Events(Plugin):
 
     @Plugin.listen('MessageCreate')
     def no_chat_allowed(self, event):
-        if event.channel.id != self.config.event_channel and self.status == "Started":
+        if not self.status == "Started":
+            return
+        if event.channel.id != self.config.event_channel:
             return
         if event.author.id != self.bot.client.api.users_me_get().id:
             if not (event.message.content.startswith("+submit") or event.message.content.startswith("+revoke") or  event.message.content.startswith("+edit")):
