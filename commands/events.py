@@ -106,7 +106,7 @@ class Events(Plugin):
 **Source list**:  {}
 **Destination**: {}
 **Submitted by**: {}
-**Additional info**: {}
+**Detailed info**: {}
 **Trello link**: {}""".format(board["name"], board["emoji"], listname, destination, str(event.author), info,
                                           trello_info["shortUrl"])
             message = sanitize.S(message, escape_codeblocks=True)
@@ -219,22 +219,32 @@ class Events(Plugin):
                 self.bot.client.api.channels_messages_reactions_create(event_channel.id, message.id, self.config.emojis["no"])
             event.msg.reply("{} all {} reports have been prepped for approval/denial".format(event.author.mention, len(self.reported_cards)))
 
-    @Plugin.command('clearuser', "<user:snowflake> <reason:str...>", group="event")
+    @Plugin.command('cleanuser', "<user:snowflake> <reason:str...>", group="event")
     def clear_user(self, event, user, reason):
-        """Clear user statistics (author/person to blame when it doesn't work: brxxn)"""
-        # check guild
         if event.guild is None:
             return
-
-        # check perms
         if self.checkPerms(event, "mod"):
-            event.msg.delete()
-            # clear report stats from user
-            self.delete_reports(author_id=user)
-            # inform user and bot log
-            event.channel.send_message(":ok_hand: cleared reports from user.")
-            self.botlog(event, ":wastebasket: {mod} cleared stats for user {user} with reason {reason}".format(
-                mod=str(event.msg.author), user=str(user), reason=reason))
+            if not str(user) in self.participants:
+                event.msg.reply("This user has not participated in the event")
+                return
+            else:
+                to_remove = []
+                for rid, report in self.reported_cards.items():
+                    if str(user) == str(report["author_id"]):
+                        try:
+                            channel = event.guild.channels[self.config.event_channel]
+                            channel.get_message(report["message_id"]).delete()
+                        except APIException:
+                            pass #mod already removed it?
+                        to_remove.append(rid)
+                for r in to_remove:
+                    del self.reported_cards[r]
+                event.channel.send_message(":ok_hand: cleared reports from {}.".format(self.participants[str(user)]))
+                self.botlog(event, ":wastebasket: {mod} cleared all submissions for {user} with reason {reason}".format(
+                    mod=str(event.msg.author), user=self.participants[str(user)], reason=reason))
+                del self.participants[str(user)]
+                self.save_event_stats()
+
 
     @Plugin.command("stats", group="event")
     def event_stats(self, event):
@@ -284,12 +294,11 @@ Denied reports: {}
             return
         report_info = self.reported_cards[trello_info["id"]]
         if report_info["author_id"] != str(event.author.id):
-            event.msg.reply("I think there's been a case of mistaken identity here, this report was made by {} and it looks like you are {}".format(self.participants[str(report_info["author_id"]), str(event.author)]))
+            event.msg.reply("I think there's been a case of mistaken identity here, this report was made by {} and it looks like you are {}".format(self.participants[str(report_info["author_id"])], str(event.author)))
             return
 
         event.msg.channel.get_message(report_info["message_id"]).delete()
         del self.reported_cards[trello_info["id"]]
-        event.msg.delete()
         event.msg.reply(":warning: Your submission has been nuked {}!".format(event.author.mention))
 
     @Plugin.command("edit", "<message_id:snowflake> <edit_key:str> <edit_value:str...>")
@@ -431,7 +440,7 @@ Denied reports: {}
         if event.channel.id != self.config.event_channel:
             return
         if event.author.id != self.bot.client.api.users_me_get().id:
-            if not (event.message.content.startswith("+submit") or event.message.content.startswith("+revoke") or  event.message.content.startswith("+edit")):
+            if not (event.message.content.startswith("+submit") or event.message.content.startswith("+revoke") or  event.message.content.startswith("+edit") or  event.message.content.startswith("+event")):
                 event.message.delete()
                 event.message.reply("{} This channel is only event related commands (submit/revoke/edit) command, please go to <#420995378582913030> to discuss submissions".format(event.author.mention))
             else:
