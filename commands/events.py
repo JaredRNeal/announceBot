@@ -1,11 +1,11 @@
 import json
 import os.path
-import shutil
 import time
 from datetime import datetime
 
 from disco.api.http import APIException
 from disco.bot import Plugin
+from disco.util import sanitize
 
 from commands.config import EventsPluginConfig
 from util import TrelloUtils
@@ -52,17 +52,27 @@ class Events(Plugin):
 """.format(board["name"], info["idBoard"], ok if boardok else rejected, listname, info["idList"], ok if listok else rejected, archived, rejected if archived else ok)
         event.msg.reply(message)
 
-    @Plugin.command("submit", "<link:str>, <destination:str>, <info:str...>")
-    def template(self, event, link, destination, info):
-        print("start submit")
-        print(self.status)
+    @Plugin.command("submit", "[submission:str...]")
+    def template(self, event, submission:str=None):
         if self.status != "Started":
             return #no event going on, pretend nothing happened #noleeks
         if event.guild is None or event.channel.id != self.config.event_channel: #ignore users running this in the wrong channel, also prevents non hunters from submitting
             return
-        print("post checks")
+        if submission is None:
+            event.msg.reply("{} It seems you're missing parts, the syntax for this command is `+submit <trello link> | <where this ticket should be moved to> | <why it should be moved there and/or new steps>`".format(event.author.mention))
+            return
+
+        parts = submission.split("|")
+        if len(parts) < 3:
+            event.msg.reply("{} It seems you're missing parts, the syntax for this command is `+submit <trello link> | <where this ticket should be moved to> | <why it should be moved there and/or new steps>`".format(event.author.mention))
+            return
+        if len(parts) > 3:
+            parts[2] = "|".join(parts[2:])
+        link = parts[0]
+        destination = parts[1]
+        info = parts[2]
+
         trello_info = TrelloUtils.getCardInfo(event, link)
-        print(trello_info)
         error = None
         if trello_info is None:
             error = "Unable to fetch info about that card, are you sure it exists? Cause i don't feel like playing hide and seek"
@@ -74,7 +84,6 @@ class Events(Plugin):
             timediv = datetime.utcnow() - datetime.utcfromtimestamp(report["report_time"])
             hours, remainder = divmod(int(timediv.total_seconds()), 3600)
             minutes, seconds = divmod(remainder, 60)
-            print(self.participants)
             error = "{} Looks like {} beat you to the punch. Better luck next time!".format("SNIPED!" if minutes < 2 else "<:dupebutton:341981924010491904>", self.participants[str(report["author_id"])])
         if error is None:
             board = self.config.boards[trello_info["idBoard"]]
@@ -100,6 +109,10 @@ class Events(Plugin):
 **Additional info**: {}
 **Trello link**: {}""".format(board["name"], board["emoji"], listname, destination, str(event.author), info,
                                           trello_info["shortUrl"])
+            message = sanitize.S(message, escape_codeblocks=True)
+            if len(message) > 2000:
+                event.msg.reply("Sorry, but that report is too long for me to process, would mind removing {} characters? Then everything should be fine again.".format(len(message) - 2000))
+                return 
             dmessage = event.msg.reply(message)
 
         # add to tracking
@@ -112,10 +125,9 @@ class Events(Plugin):
                 report_time = datetime.utcnow().timestamp()
         )
 
-        if not event.author.id in self.participants.keys():
+        if not str(event.author.id) in self.participants.keys():
             self.participants[str(event.author.id)] = str(event.author)
             event.msg.reply("Achievement get! Successfully submitted your first event entry :tada:")
-            print(self.participants)
         else:
             #updating name in case it changed
             self.participants[str(event.author.id)] = str(event.author)
@@ -145,8 +157,7 @@ class Events(Plugin):
             view_channel = 1024
 
             if participants_role.id in perms.keys():
-                print(perms[participants_role.id].deny.to_dict())
-                print(perms[participants_role.id].deny.sub(view_channel).to_dict())
+
                 allow = perms[participants_role.id].allow.add(view_channel)
                 deny = perms[participants_role.id].deny.sub(view_channel)
                 event_channel.create_overwrite(participants_role, allow = allow, deny=deny)
@@ -206,27 +217,7 @@ class Events(Plugin):
                 message = event_channel.get_message(report["message_id"])
                 self.bot.client.api.channels_messages_reactions_create(event_channel.id, message.id, self.config.emojis["yes"])
                 self.bot.client.api.channels_messages_reactions_create(event_channel.id, message.id, self.config.emojis["no"])
-            event.msg.reply("<@{}> all {} reports have been prepped for approval/denial".format(event.author.id, len(self.reported_cards)))
-
-    @Plugin.command('clearall', group="event")
-    def clear_stats(self, event):
-        """Clear all statistics (author/person to blame when it doesn't work: brxxn)"""
-        # check guild
-        if event.guild is None:
-            return
-
-        # check perms
-        if self.checkPerms(event, "admin"):
-            self.save_event_stats(self.config.event_stats_filename)
-            shutil.copyfile(self.config.event_stats_filename, "eventstats-archive.json")
-            # clear
-            self.reported_cards = []
-            self.delete_reports()
-
-            event.msg.delete()
-            event.channel.send_message(":ok_hand: all statistics cleared. archive saved.")
-            self.botlog(event, ":wastebasket: {user} cleared all statistics for the event".format(
-                user=str(event.msg.author)))
+            event.msg.reply("{} all {} reports have been prepped for approval/denial".format(event.author.mention, len(self.reported_cards)))
 
     @Plugin.command('clearuser', "<user:snowflake> <reason:str...>", group="event")
     def clear_user(self, event, user, reason):
@@ -299,7 +290,7 @@ Denied reports: {}
         event.msg.channel.get_message(report_info["message_id"]).delete()
         del self.reported_cards[trello_info["id"]]
         event.msg.delete()
-        event.msg.reply(":warning: Your submission has been nuked <@{}>!".format(event.author.id))
+        event.msg.reply(":warning: Your submission has been nuked {}!".format(event.author.mention))
 
     @Plugin.command("edit", "<message_id:snowflake> <edit_key:str> <edit_value:str...>")
     def edit(self, event, message_id, edit_key, edit_value):
@@ -364,12 +355,9 @@ Denied reports: {}
     def on_reaction(self, event):
         if event.channel_id!= self.config.event_channel or event.user_id == self.bot.client.api.users_me_get().id:
             return
-        print(":{}:{}".format(event.emoji.name, event.emoji.id))
         if ":{}:{}".format(event.emoji.name, event.emoji.id) == self.config.emojis["yes"]:
-            print("approved!")
             self.setReportStatus(event, event.message_id, "Approved")
         elif ":{}:{}".format(event.emoji.name, event.emoji.id) == self.config.emojis["no"]:
-            print("denied!")
             self.setReportStatus(event, event.message_id, "Denied")
 
     def setReportStatus(self, event, message_id, status):
@@ -395,33 +383,28 @@ Denied reports: {}
         if self.saving:
             if not self.queued:
                 self.queued = True
-                print("save in progress, took the queue slot")
                 while self.saving:
                     time.sleep(1)
                 self.queued = False
-                print("save finished, freed up the queue slot")
             else:
                 return
         self.saving = True
-        print("starting save")
-        with open("eventstats.json", "w") as f:
+        with open("eventstats.json", "w", encoding='utf8') as f:
             try:
                 save_dict = dict(
                     reported_cards= self.reported_cards,
                     status= self.status,
                     participants= self.participants
                 )
-                print(save_dict)
-                f.write(json.dumps(save_dict))
+                f.write(json.dumps(save_dict, indent=4, skipkeys=True, sort_keys=True, ensure_ascii=False))
             except IOError as ex:
                 print("failed to open file: {file}\nstrerror: {strerror}".format(file='eventstats.json', strerror=ex.strerror))
         self.saving = False
-        print("Save complete")
 
     def load_event_stats(self):
         if not os.path.isfile("eventstats.json"):
             return
-        with open('eventstats.json', "r") as f:
+        with open('eventstats.json', "r", encoding='utf8') as f:
             try:
                 event_stats = f.read()
                 event_stats_parsed = json.loads(event_stats)
@@ -450,7 +433,7 @@ Denied reports: {}
         if event.author.id != self.bot.client.api.users_me_get().id:
             if not (event.message.content.startswith("+submit") or event.message.content.startswith("+revoke") or  event.message.content.startswith("+edit")):
                 event.message.delete()
-                event.message.reply("<@{}> This channel is only event related commands (submit/revoke/edit) command, please go to <#420995378582913030> to discuss submissions".format(event.author.id))
+                event.message.reply("{} This channel is only event related commands (submit/revoke/edit) command, please go to <#420995378582913030> to discuss submissions".format(event.author.mention))
             else:
                 # make sure incomplete commands get cleaned
                 try:

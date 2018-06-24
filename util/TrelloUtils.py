@@ -39,6 +39,7 @@ def extractID(event, link):
     if len(link) <= 21:
         event.channel.send_message("please include a valid trello url").after(10).delete()
         return None
-
-    # check to see if it's already reported
-    return link.split("https://trello.com/c/")[1].split("/")[0]
+    trello_id =  link.split("https://trello.com/c/")[1].split("/")[0]
+    if trello_id.endswith(" "):
+        trello_id = trello_id[:-1]
+    return trello_id
