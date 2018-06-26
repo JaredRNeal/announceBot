@@ -272,22 +272,27 @@ Denied reports: {}
 """.format(len(self.reported_cards), len(self.participants), approved, denied)
         event.msg.reply(message)
 
-    @Plugin.command("points")
-    def points(self, event):
+    @Plugin.command("points", "<user:snowflake>")
+    def points(self, event, user):
         """Points acquired by someone"""
-        message = "Your points so far: {}\nPlease note this is not final! This calculation assumes are your reports are approved, as such your final points might be lower.\nThanks for participating in the Trello Event!"
-
+        if not self.checkPerms(event, "mod"):
+            return
         event.msg.delete()
-        points = 0
-        for rid, report in self.reported_cards.items():
-            if str(event.author.id) == report["author_id"] and report["status"] != "Denied":
-                points += self.config.boards[report["board"]]["points"]
+        if not str(user) in self.participants.keys():
+            message = "This user has not participated in the event yet."
+        else:
+            message = "Points so far for {}: {}\n"
+
+            points = 0
+            for rid, report in self.reported_cards.items():
+                if str(user) == report["author_id"] and report["status"] != "Denied":
+                    points += self.config.boards[report["board"]]["points"]
         try:
             #try to send the message
-            event.author.open_dm().send_message(message.format(points))
+            event.author.open_dm().send_message(message.format(self.participants[str(user)], points))
         except APIException:
             #we failed, person has DMs closed
-            event.channel.send_message("Please enable Direct Messages so I can send you your points.").after(10).delete()
+            event.channel.send_message("Please enable Direct Messages so I can send you the information.").after(10).delete()
 
     @Plugin.command("revoke", "<report:str>")
     def revoke(self, event, report):
