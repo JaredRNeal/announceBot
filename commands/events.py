@@ -183,7 +183,8 @@ class Events(Plugin):
             user = str(report["author_id"])
             if not user in point_count.keys():
                 point_count[user] = 0
-            point_count[user] += self.config.boards[report["board"]]["points"]
+            if report["status"] == "Approved":
+                point_count[user] += self.config.boards[report["board"]]["points"]
         to_sort = []
         for uid, number in point_count.items():
             to_sort.append([number, uid])
@@ -274,12 +275,12 @@ Denied reports: {}
     @Plugin.command("points")
     def points(self, event):
         """Points acquired by someone"""
-        message = "Your points so far: {}\nPlease note this is not final! This calculation assumes are your reports are approved, as such your final points might be lower\nThanks for participating in the Trello Event!"
+        message = "Your points so far: {}\nPlease note this is not final! This calculation assumes are your reports are approved, as such your final points might be lower.\nThanks for participating in the Trello Event!"
 
         event.msg.delete()
         points = 0
         for rid, report in self.reported_cards.items():
-            if str(event.author.id) == report["author_id"]:
+            if str(event.author.id) == report["author_id"] and report["status"] != "Denied":
                 points += self.config.boards[report["board"]]["points"]
         try:
             #try to send the message
