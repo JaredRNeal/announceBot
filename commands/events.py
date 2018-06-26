@@ -16,6 +16,7 @@ class Events(Plugin):
 
     def __init__(self, bot, config):
         super().__init__(bot, config)
+        #initialize
         self.queued = False
         self.saving = False
         self.status = "Scheduled"
@@ -30,77 +31,66 @@ class Events(Plugin):
         self.save_event_stats()
         super(Events, self).unload(ctx)
 
-    @Plugin.command("info", '<link:str>')
-    def trello_info(self, event, link):
-        info = TrelloUtils.getCardInfo(event, link)
-        print(info)
-        if info is None:
-            event.msg.reply("Unable to fetch info about that card, please make sure you have a valid link")
-        if info is None or info is False:
-            return
-        ok = "<:gearYes:459697272326848520>"
-        rejected = "<:gearNo:459697272314265600>"
-        board = self.config.boards[info["idBoard"]]
-        listname = TrelloUtils.getListInfo(info["idList"])["name"]
-        archived = info["closed"]
-
-        boardok = info["idBoard"] in self.config.boards.keys()
-        listok = info["idList"] in board["lists"]
-
-        message="""
-**Board**: {} ({}) {}
-**List**: {} ({}) {}
-**Archived**: {} {}
-""".format(board["name"], info["idBoard"], ok if boardok else rejected, listname, info["idList"], ok if listok else rejected, archived, rejected if archived else ok)
-        event.msg.reply(message)
-
     @Plugin.command("submit", "[submission:str...]")
     def template(self, event, submission:str=None):
+        """Make a new submission"""
         if self.status != "Started":
             return #no event going on, pretend nothing happened #noleeks
         if event.guild is None or event.channel.id != self.config.event_channel: #ignore users running this in the wrong channel, also prevents non hunters from submitting
             return
-        if not any(role == self.config.participants_role for role in event.member.roles):
-            return
 
+        help_message = "<@{}> It seems you're missing parts, the syntax for this command is `+submit <trello link> | <where this ticket should be moved to> | <why it should be moved there and/or new steps>`".format(event.author.id)
         if submission is None:
-            event.msg.reply("{} It seems you're missing parts, the syntax for this command is `+submit <trello link> | <where this ticket should be moved to> | <why it should be moved there and/or new steps>`".format(event.author.mention))
+            #no params given, print help info
+            event.msg.reply(help_message)
             return
 
         parts = submission.split("|")
         if len(parts) < 3:
-            event.msg.reply("{} It seems you're missing parts, the syntax for this command is `+submit <trello link> | <where this ticket should be moved to> | <why it should be moved there and/or new steps>`".format(event.author.mention))
+            #missing things we need
+            event.msg.reply(help_message)
             return
         if len(parts) > 3:
+            #for some reason they used a | in their report, re-assemble it so we don't void things
             parts[2] = "|".join(parts[2:])
+
         link = parts[0]
         destination = parts[1]
         info = parts[2]
 
+        #fetch the trello info and validate
         trello_info = TrelloUtils.getCardInfo(event, link)
         error = None
         if trello_info is False:
+            #wrong type of link, user already informed, we're done here
             return
         if trello_info is None:
-            error = "{} Unable to fetch info about that card, are you sure it exists? Cause i don't feel like playing hide and seek".format(event.author.mention)
+            #no info, non existant card or from a private board
+            error = "<@{}> Unable to fetch info about that card, are you sure it exists? Cause i don't feel like playing hide and seek".format(event.author.id)
         elif trello_info["idBoard"] not in self.config.boards.keys():
+            #not a discord board
             error = "This card is not from one of the discord bug boards, what do you expect me to do with this?"
         elif trello_info['id'] in self.reported_cards.keys():
+            #already reported
             report = self.reported_cards[trello_info['id']]
             #hit by sniper?
             timediv = datetime.utcnow() - datetime.utcfromtimestamp(report["report_time"])
             hours, remainder = divmod(int(timediv.total_seconds()), 3600)
             minutes, seconds = divmod(remainder, 60)
-            error = "{} Looks like {} beat you to the punch. Better luck next time {}".format("SNIPED!" if minutes < 2 else "<:dupebutton:341981924010491904>", self.participants[str(report["author_id"])], event.author.mention)
+            error = "<@{}> Looks like {} beat you to the punch. Better luck next time {}".format("SNIPED!" if minutes < 2 else "<:dupebutton:341981924010491904>", self.participants[str(report["author_id"])], event.author.id)
         if error is None:
+            #all good so far
             board = self.config.boards[trello_info["idBoard"]]
             listname = TrelloUtils.getListInfo(trello_info["idList"])["name"]
             if trello_info["idList"] not in board["lists"]:
-                error = "{} This card is in the {} list instead of an event list, thanks for the submission but no thanks".format(event.author.mention, listname)
+                #this list is not valid for this event
+                error = "<@{}> This card is in the {} list instead of an event list, thanks for the submission but no thanks".format(event.author.id, listname)
             elif trello_info["closed"] is True:
-                error = "{} _cough cough_ that card has been archived and collected way to much dust for me to do anything with it".format(event.author.mention)
+                #archived card
+                error = "<@{}> _cough cough_ that card has been archived and collected way to much dust for me to do anything with it".format(event.author.id)
 
         if error is not None:
+            #card failed one of the checks, inform user and terminate processing
             event.msg.reply(error)
             return
         else:
@@ -114,14 +104,17 @@ class Events(Plugin):
 **Detailed info**: {}
 **Trello link**: {}""".format(board["name"], board["emoji"], listname, destination, str(event.author), info,
                                           trello_info["shortUrl"])
+            #sanitze the entire thing, no pinging or breaking codeblocks
             message = sanitize.S(message, escape_codeblocks=True)
             if len(message) > 2000:
-                event.msg.reply("{} Sorry, but that report is too long for me to process, would mind removing {} characters? Then everything should be fine again.".format(event.author.mention, len(message) - 2000))
-                return 
+                #discord only accepts essays up to 2000 characters
+                event.msg.reply("<@{}> Sorry, but that report is too long for me to process, would mind removing {} characters? Then everything should be fine again.".format(event.author.id, len(message) - 2000))
+                return
+            #send the submission and clean input
             dmessage = event.msg.reply(message)
             event.msg.delete()
 
-        # add to tracking
+            # add to tracking
             self.reported_cards[trello_info['id']] = dict(
                 author_id= str(event.author.id),
                 board= trello_info["idBoard"],
@@ -132,14 +125,15 @@ class Events(Plugin):
         )
 
         if not str(event.author.id) in self.participants.keys():
+            #this person has not submitted anything yet, special message
             self.participants[str(event.author.id)] = str(event.author)
-            event.msg.reply("{} Achievement get! Successfully submitted your first event entry :tada:".format(event.author.mention))
+            event.msg.reply("<@{}> Achievement get! Successfully submitted your first event entry :tada:".format(event.author.id))
         else:
             #updating name in case it changed
             self.participants[str(event.author.id)] = str(event.author)
-            event.msg.reply("{} Thanks for your submission!".format(event.author.mention))
+            event.msg.reply("<@{}> Thanks for your submission!".format(event.author.id))
 
-        self.botlog(event, ":inbox_tray: {} has submitted <https://trello.com/c/{}>".format(str(event.author), trello_info['id']))
+        self.botlog(event, ":inbox_tray: {} has submitted <https://trello.com/c/{}>".format(str(event.author), trello_info['shortLink']))
         self.save_event_stats()
 
 
@@ -147,15 +141,14 @@ class Events(Plugin):
     @Plugin.command('start', group="event")
     def start_command(self, event):
         """Start the event"""
-        if self.status != "Scheduled":
-            event.msg.reply("Event has already started")
-            return
-
-        if event.guild is None:
-            return
-
-        # check permissions
         if self.checkPerms(event, "admin"):
+            # check permissions
+            if self.status != "Scheduled":
+                event.msg.reply("Event has already started")
+                return
+
+            if event.guild is None:
+                return
             # give bug hunters access to submission channel
             participants_role = event.guild.roles[int(self.config.participants_role)]
             event_channel = event.guild.channels[int(self.config.event_channel)]
@@ -165,15 +158,16 @@ class Events(Plugin):
             view_channel = 1024
 
             if participants_role.id in perms.keys():
-
+                #update existing override
                 allow = perms[participants_role.id].allow.add(view_channel)
                 deny = perms[participants_role.id].deny.sub(view_channel)
                 event_channel.create_overwrite(participants_role, allow = allow, deny=deny)
             else:
+                #no override present, make a new one
                 event_channel.create_overwrite(participants_role, allow=view_channel, deny=0)
 
             self.status = "Started"
-            event.channel.send_message("<:gearYes:459697272326848520> Submissions channel unlocked and commands unlocked, here we go")
+            event.channel.send_message("<:approve:302137375092375553> Submissions channel unlocked and commands unlocked, here we go")
             self.botlog(event, ":unlock: {name} (`{id}`) started the event.".format(name=str(event.msg.author),
                                                                                      id=event.msg.author.id))
             self.save_event_stats()
@@ -204,7 +198,6 @@ class Events(Plugin):
     @Plugin.command('end', group="event")
     def end_event(self, event):
         """End the event, hide channel and prep for approval/denial"""
-
         if self.checkPerms(event, "admin"):
             participants_role = event.guild.roles[int(self.config.participants_role)]
             event_channel = event.guild.channels[int(self.config.event_channel)]
@@ -216,26 +209,30 @@ class Events(Plugin):
             else:
                 event_channel.create_overwrite(participants_role, allow=0, deny=1024)
             event.msg.delete()
-            event.channel.send_message(":ok_hand: Event ended, preparing reports...")
-            self.botlog(event, ":lock: {user} ended event (locked all event channels)".format(user=str(event.msg.author)))
+            event.channel.send_message("<{}> Event ended, preparing submissions...".format(self.config.emojis["yes"]))
+            self.botlog(event, ":lock: {user} ended event, prepping the submissions".format(user=str(event.msg.author)))
             self.status = "Ended"
             self.save_event_stats()
 
+            #loop through all submissions and add reactions to it
             for reporter, report in self.reported_cards.items():
                 message = event_channel.get_message(report["message_id"])
                 self.bot.client.api.channels_messages_reactions_create(event_channel.id, message.id, self.config.emojis["yes"])
                 self.bot.client.api.channels_messages_reactions_create(event_channel.id, message.id, self.config.emojis["no"])
-            event.msg.reply("{} all {} reports have been prepped for approval/denial".format(event.author.mention, len(self.reported_cards)))
+            event.msg.reply("<@{}> all {} submissions have been prepped for approval/denial!".format(event.author.id, len(self.reported_cards)))
 
     @Plugin.command('cleanuser', "<user:snowflake> <reason:str...>", group="event")
     def clear_user(self, event, user, reason):
+        """Someone's been so bad we need to remove all their submissions :("""
         if event.guild is None:
             return
         if self.checkPerms(event, "mod"):
             if not str(user) in self.participants:
+                #that definitely was the wrong user
                 event.msg.reply("This user has not participated in the event")
                 return
             else:
+                #seperate list to remove as we can't alter the list we are iterating over
                 to_remove = []
                 for rid, report in self.reported_cards.items():
                     if str(user) == str(report["author_id"]):
@@ -247,7 +244,7 @@ class Events(Plugin):
                         to_remove.append(rid)
                 for r in to_remove:
                     del self.reported_cards[r]
-                event.channel.send_message(":ok_hand: cleared reports from {}.".format(self.participants[str(user)]))
+                event.channel.send_message("<{}> cleared reports from {}.".format(self.config.emojis["yes"], self.participants[str(user)]))
                 self.botlog(event, ":wastebasket: {mod} cleared all submissions for {user} with reason {reason}".format(
                     mod=str(event.msg.author), user=self.participants[str(user)], reason=reason))
                 del self.participants[str(user)]
@@ -256,7 +253,8 @@ class Events(Plugin):
 
     @Plugin.command("stats", group="event")
     def event_stats(self, event):
-        if not self.checkPerms(event, "admin"):
+        """Current event stats"""
+        if not self.checkPerms(event, "mod"):
             return
         approved = 0
         denied = 0
@@ -275,8 +273,8 @@ Denied reports: {}
 
     @Plugin.command("points")
     def points(self, event):
-
-        message = "Your points so far: {}\nThanks for participating in the Trello Event!"
+        """Points acquired by someone"""
+        message = "Your points so far: {}\nPlease note this is not final! This calculation assumes are your reports are approved, as such your final points might be lower\nThanks for participating in the Trello Event!"
 
         event.msg.delete()
         points = 0
@@ -284,41 +282,47 @@ Denied reports: {}
             if str(event.author.id) == report["author_id"]:
                 points += self.config.boards[report["board"]]["points"]
         try:
+            #try to send the message
             event.author.open_dm().send_message(message.format(points))
         except APIException:
+            #we failed, person has DMs closed
             event.channel.send_message("Please enable Direct Messages so I can send you your points.").after(10).delete()
 
     @Plugin.command("revoke", "<report:str>")
     def revoke(self, event, report):
+        """Revoke a submission"""
         if event.msg.channel.id != self.config.event_channel:
             return
 
         trello_info = TrelloUtils.getCardInfo(event, report)
         if trello_info is None:
+            #invalid card
             event.msg.reply("I can't even fetch info for that, you sure you reported that one?")
             return
         if not trello_info["id"] in self.reported_cards.keys():
+            #not reported yet
             event.msg.reply("I don't have a report for that card, how do you expect me to edit a non existing thing?")
             return
         report_info = self.reported_cards[trello_info["id"]]
         if report_info["author_id"] != str(event.author.id):
+            #someone else reported
             event.msg.reply("I think there's been a case of mistaken identity here, this report was made by {} and it looks like you are {}".format(self.participants[str(report_info["author_id"])], str(event.author)))
             return
 
+        #delete message and entry
         event.msg.channel.get_message(report_info["message_id"]).delete()
         del self.reported_cards[trello_info["id"]]
-        event.msg.reply(":warning: Your submission has been nuked {}!".format(event.author.mention))
-        self.botlog(event, ":outbox_tray:  {} has revoked <https://trello.com/c/{}>".format(str(event.author), trello_info['id']))
+        event.msg.reply(":warning: Your submission has been nuked <@{}>!".format(event.author.id))
+        self.botlog(event, ":outbox_tray:  {} has revoked <https://trello.com/c/{}>".format(str(event.author), trello_info['shortLink']))
         self.save_event_stats()
 
     @Plugin.command("edit", "<details:str...>")
     def edit(self, event, details):
         if event.msg.channel.id != self.config.event_channel:
             return
-        print(details)
         parts = details.split("|")
         if len(parts) < 3:
-            event.msg.reply("{} It seems you're missing parts, the syntax for this command is `+edit <trello link> | <section (destination or info)> | <new info>`".format(event.author.mention))
+            event.msg.reply("<@{}> It seems you're missing parts, the syntax for this command is `+edit <trello link> | <section (destination or info)> | <new info>`".format(event.author.id))
             return
         if len(parts) > 3:
             parts[2] = "|".join(parts[2:])
@@ -360,14 +364,14 @@ Denied reports: {}
             return
         if len(new_message) > 2000:
             event.msg.reply(
-                "{} Sorry, but would make the report too long for me to process, would mind removing {} characters? Then everything should be fine again.".format(
-                    event.author.mention, len(new_message) - 2000))
+                "<@{}> Sorry, but would make the report too long for me to process, would mind removing {} characters? Then everything should be fine again.".format(
+                    event.author.id, len(new_message) - 2000))
             return
         print(new_message)
         dmessage.edit(new_message)
 
-        event.channel.send_message("{}, your report has been updated!".format(event.author.mention))
-        self.botlog(event, ":pencil: {} has updated the {} of his submission for <https://trello.com/c/{}>".format(str(event.author), section.lower(), trello_info["id"]))
+        event.channel.send_message("<@{}>, your report has been updated!".format(event.author.id))
+        self.botlog(event, ":pencil: {} has updated the {} of his submission for <https://trello.com/c/{}>".format(str(event.author), section.lower(), trello_info["shortLink"]))
 
     @Plugin.command("remove", "<report:str>", group="event")
     def remove_report(self, event, report):
@@ -384,8 +388,8 @@ Denied reports: {}
         report_info = self.reported_cards[trello_info["id"]]
         event.guild.channels[self.config.event_channel].get_message(report_info["message_id"]).delete()
         del self.reported_cards[trello_info["id"]]
-        event.msg.reply(":warning: Submission has been nuked {}!".format(event.author.mention))
-        self.botlog(event, ":wastebasket: {} has removed <https://trello.com/c/{}>".format(str(event.author), trello_info['id']))
+        event.msg.reply(":warning: Submission has been nuked <@{}>!".format(event.author.id))
+        self.botlog(event, ":wastebasket: {} has removed <https://trello.com/c/{}>".format(str(event.author), trello_info['shortLink']))
 
 
     @Plugin.command("next")
@@ -489,7 +493,7 @@ Denied reports: {}
         if event.author.id != self.bot.client.api.users_me_get().id:
             if not (event.message.content.startswith("+submit") or event.message.content.startswith("+revoke") or  event.message.content.startswith("+edit") or  event.message.content.startswith("+event")):
                 event.message.delete()
-                event.message.reply("{} This channel is only event related commands (submit/revoke/edit) command, please go to <#420995378582913030> to discuss submissions".format(event.author.mention))
+                event.message.reply("<@{}> This channel is only event related commands (submit/revoke/edit) command, please go to <#420995378582913030> to discuss submissions".format(event.author.id))
             else:
                 # make sure incomplete commands get cleaned
                 try:
