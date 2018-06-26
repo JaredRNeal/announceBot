@@ -1,5 +1,6 @@
-from disco.bot import Plugin
 from disco.api.http import APIException
+from disco.bot import Plugin
+
 from commands.config import AnnounceBotConfig
 
 
@@ -83,7 +84,7 @@ class announce(Plugin):
                 event.msg.reply("This role was already mentionable. I made it unmentionable, please try again.")
                 return
 
-    @Plugin.command('edit', '<channel_id_to_change>:int> <message_ID_to_edit:int> [edited_announcemented_message:str...]')
+    @Plugin.command('update', '<channel_id_to_change>:int> <message_ID_to_edit:int> [edited_announcemented_message:str...]')
     def edit_most_recent_announcement(self, event, channel_id_to_change, message_ID_to_edit, edited_announcemented_message):
 
         #Variables

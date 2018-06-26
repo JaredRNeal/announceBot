@@ -311,7 +311,7 @@ Denied reports: {}
         self.botlog(event, ":outbox_tray:  {} has revoked <https://trello.com/c/{}>".format(str(event.author), trello_info['id']))
         self.save_event_stats()
 
-    @Plugin.command("update", "<details:str...>")
+    @Plugin.command("edit", "<details:str...>")
     def edit(self, event, details):
         if event.msg.channel.id != self.config.event_channel:
             return
@@ -487,9 +487,9 @@ Denied reports: {}
         if event.channel.id != self.config.event_channel:
             return
         if event.author.id != self.bot.client.api.users_me_get().id:
-            if not (event.message.content.startswith("+submit") or event.message.content.startswith("+revoke") or  event.message.content.startswith("+update") or  event.message.content.startswith("+event")):
+            if not (event.message.content.startswith("+submit") or event.message.content.startswith("+revoke") or  event.message.content.startswith("+edit") or  event.message.content.startswith("+event")):
                 event.message.delete()
-                event.message.reply("{} This channel is only event related commands (submit/revoke/update) command, please go to <#420995378582913030> to discuss submissions".format(event.author.mention))
+                event.message.reply("{} This channel is only event related commands (submit/revoke/edit) command, please go to <#420995378582913030> to discuss submissions".format(event.author.mention))
             else:
                 # make sure incomplete commands get cleaned
                 try:
