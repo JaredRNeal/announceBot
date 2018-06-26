@@ -10,7 +10,7 @@ def getCardInfo(event, id):
     if id.startswith("https"):
         id = extractID(event, id)
     if id is None:
-        return None
+        return False
     if not id in list_cache.keys():
         response = requests.request("GET", "https://api.trello.com/1/cards/{}".format(id))
         try:
@@ -34,7 +34,7 @@ def getListInfo(id):
 def extractID(event, link):
     # verify link
     if not link.lower().startswith("https://trello.com/c/"):
-        event.channel.send_message("This is not the type of link i was looking for 😐").after(10).delete()
+        event.channel.send_message("This is not the type of link I was looking for 😐").after(10).delete()
         return None
     if len(link) <= 21:
         event.channel.send_message("please include a valid trello url").after(10).delete()
