@@ -66,7 +66,7 @@ class Events(Plugin):
             return
         if trello_info is None:
             #no info, non existant card or from a private board
-            error = "<@{}> Unable to fetch info about that card, are you sure it exists? Cause i don't feel like playing hide and seek".format(event.author.id)
+            error = "<@{}> Unable to fetch info about that card, are you sure it exists? Cause I don't feel like playing hide and seek.".format(event.author.id)
         elif trello_info["idBoard"] not in self.config.boards.keys():
             #not a discord board
             error = "This card is not from one of the discord bug boards, what do you expect me to do with this?"
@@ -84,7 +84,7 @@ class Events(Plugin):
             listname = TrelloUtils.getListInfo(trello_info["idList"])["name"]
             if trello_info["idList"] not in board["lists"]:
                 #this list is not valid for this event
-                error = "<@{}> This card is in the {} list instead of an event list, thanks for the submission but no thanks".format(event.author.id, listname)
+                error = "<@{}> This card is in the {} list instead of an event list, thanks for the submission but no thanks.".format(event.author.id, listname)
             elif trello_info["closed"] is True:
                 #archived card
                 error = "<@{}> _cough cough_ that card has been archived and collected way to much dust for me to do anything with it".format(event.author.id)
@@ -398,7 +398,7 @@ Denied reports: {}
             return
         event.msg.delete()
 
-        message = "Yes i do have more reports for you!\n\n"
+        message = "Yes I do have more reports for you!\n\n"
         limit = 10
         count = 0
         for reportid, report in self.reported_cards.items():
