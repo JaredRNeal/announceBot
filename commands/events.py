@@ -1,6 +1,7 @@
 import json
 import os.path
 import time
+import traceback
 from datetime import datetime
 
 from disco.api.http import APIException
@@ -287,12 +288,7 @@ Denied reports: {}
             for rid, report in self.reported_cards.items():
                 if str(user) == report["author_id"] and report["status"] != "Denied":
                     points += self.config.boards[report["board"]]["points"]
-        try:
-            #try to send the message
-            event.author.open_dm().send_message(message.format(self.participants[str(user)], points))
-        except APIException:
-            #we failed, person has DMs closed
-            event.channel.send_message("Please enable Direct Messages so I can send you the information.").after(10).delete()
+            event.msg.reply(message.format(self.participants[str(user)], points))
 
     @Plugin.command("revoke", "<report:str>")
     def revoke(self, event, report):
@@ -377,7 +373,7 @@ Denied reports: {}
         dmessage.edit(new_message)
 
         event.channel.send_message("<@{}>, your report has been updated!".format(event.author.id))
-        self.botlog(event, ":pencil: {} has updated the {} of his submission for <https://trello.com/c/{}>".format(str(event.author), section.lower(), trello_info["shortLink"]))
+        self.botlog(event, ":pencil: {} has updated the {} of their submission for <https://trello.com/c/{}>".format(str(event.author), section.lower(), trello_info["shortLink"]))
 
     @Plugin.command("remove", "<report:str>", group="event")
     def remove_report(self, event, report):
@@ -464,7 +460,8 @@ Denied reports: {}
                 )
                 f.write(json.dumps(save_dict, indent=4, skipkeys=True, sort_keys=True, ensure_ascii=False))
             except IOError as ex:
-                print("failed to open file: {file}\nstrerror: {strerror}".format(file='eventstats.json', strerror=ex.strerror))
+                print(":rotating_light: <@110813477156720640> save to disc: {file}\nstrerror: {strerror}".format(file='eventstats.json', strerror=ex.strerror))
+                traceback.print_exc()
         self.saving = False
 
     def load_event_stats(self):
@@ -478,7 +475,8 @@ Denied reports: {}
                 self.status = event_stats_parsed.get("status", "Scheduled")
                 self.participants = event_stats_parsed.get("participants", dict())
             except IOError as ex:
-                print("failed to open file: {file}\nstrerror: {strerror}".format(file='eventstats.json', strerror=ex.strerror))
+                print(":rotating_light: <@110813477156720640> load from disc: {file}\nstrerror: {strerror}".format(file='eventstats.json', strerror=ex.strerror))
+                traceback.print_exc()
 
     def checkPerms(self, event, role):
         # get roles from the config
