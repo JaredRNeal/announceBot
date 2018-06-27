@@ -130,8 +130,6 @@ class Events(Plugin):
             self.participants[str(event.author.id)] = str(event.author)
             event.msg.reply("<@{}> Achievement get! Successfully submitted your first event entry :tada:".format(event.author.id))
         else:
-            #updating name in case it changed
-            self.participants[str(event.author.id)] = str(event.author)
             event.msg.reply("<@{}> Thanks for your submission!".format(event.author.id))
 
         self.botlog(event, ":inbox_tray: {} has submitted <https://trello.com/c/{}>".format(str(event.author), trello_info['shortLink']))
@@ -492,6 +490,11 @@ Denied reports: {}
     def no_chat_allowed(self, event):
         if not self.status == "Started":
             return
+        #update username cache
+        if str(event.author.id) in self.participants.keys():
+            if str(event.author) != self.participants[str(event.author.id)]:
+                self.participants[str(event.author.id)] = str(event.author)
+                #todo, update report or switch them to use id pings
         if event.channel.id != self.config.event_channel:
             return
         if event.author.id != self.bot.client.api.users_me_get().id:
