@@ -1,11 +1,16 @@
-from disco.bot import Plugin
 from disco.api.http import APIException
+from disco.bot import Plugin
+
 from commands.config import AnnounceBotConfig
+
 
 @Plugin.with_config(AnnounceBotConfig)
 class announce(Plugin):
     def load(self, ctx):
         super(announce, self).load(ctx)
+    
+    def unload(self, ctx):
+        super(announce, self).unload(ctx)
 
     @Plugin.command('evilping')
     #just wanted a standard ping command
@@ -79,7 +84,7 @@ class announce(Plugin):
                 event.msg.reply("This role was already mentionable. I made it unmentionable, please try again.")
                 return
 
-    @Plugin.command('edit', '<channel_id_to_change>:int> <message_ID_to_edit:int> [edited_announcemented_message:str...]')
+    @Plugin.command('update', '<channel_id_to_change>:int> <message_ID_to_edit:int> [edited_announcemented_message:str...]')
     def edit_most_recent_announcement(self, event, channel_id_to_change, message_ID_to_edit, edited_announcemented_message):
 
         #Variables
@@ -217,7 +222,7 @@ class announce(Plugin):
             event.msg.reply("Unlock command has successfully completed!")
 
     def checkPerms(self, event, type):
-        #get roles from the config
+        # get roles from the config
         roles = getattr(self.config, str(type)+'_roles').values()
         if any(role in roles for role in event.member.roles):
             return True

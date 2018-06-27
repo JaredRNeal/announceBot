@@ -133,3 +133,43 @@ class AnnounceBotConfig(Config):
         'hunter': 'You can acquire the Bug Hunter role by submitting a bug with the bot and getting it approved. For more in-depth instructions, please read through <#342043548369158156>'
 
     }
+
+    event_stats_filename = "eventstats.json" # event stats are saved to this location.
+
+    emojis = {
+        "red_tick": "312314733816709120",
+        "green_tick": "312314752711786497"
+    }
+
+class EventsPluginConfig(Config):
+    
+    admin_roles = {
+        'admin': 197042322939052032,
+        'employee': 197042389569765376
+    }
+
+    role_IDs = {
+        'android': 234838349800538112,
+        'bug': 197042209038663680,
+        'canary': 351008402052481025,
+        'ios': 234838392464998402,
+        'linux': 278229255169638410,
+        'mac': 351008099978706944,
+        'windows': 351008373669494794,
+        'test': 441010616388419584
+        }
+
+    mod_roles = {
+        'modinator': 440322144593772545,
+        'admin': 197042322939052032,
+        'employee': 197042389569765376
+    }
+    emojis = {
+        "yes": ":gearYes:459697272326848520",
+        "no": ":gearNo:459697272314265600"
+    }
+
+    boards = {}
+
+    bot_log= 0
+    event_channel = 0
