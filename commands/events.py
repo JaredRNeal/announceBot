@@ -456,7 +456,7 @@ Denied reports: {}
                     status= self.status,
                     participants= self.participants
                 )
-                f.write(json.dumps(save_dict, indent=4, skipkeys=True, sort_keys=True, ensure_ascii=False))
+                f.write(json.dumps(save_dict, indent=4, skipkeys=True, sort_keys=False, ensure_ascii=False))
             except IOError as ex:
                 print(":rotating_light: <@110813477156720640> save to disc: {file}\nstrerror: {strerror}".format(file='eventstats.json', strerror=ex.strerror))
                 traceback.print_exc()
