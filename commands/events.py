@@ -78,7 +78,7 @@ class Events(Plugin):
             timediv = datetime.utcnow() - datetime.utcfromtimestamp(report["report_time"])
             hours, remainder = divmod(int(timediv.total_seconds()), 3600)
             minutes, seconds = divmod(remainder, 60)
-            error = "<@{}> Looks like {} beat you to the punch. Better luck next time {}".format("SNIPED!" if minutes < 2 else "<:dupebutton:341981924010491904>", self.participants[str(report["author_id"])], event.author.id)
+            error = "{} Looks like {} beat you to the punch. Better luck next time <@{}>".format("SNIPED!" if minutes < 2 else "<:dupebutton:341981924010491904>", self.participants[str(report["author_id"])], event.author.id)
         if error is None:
             #all good so far
             board = self.config.boards[trello_info["idBoard"]]
