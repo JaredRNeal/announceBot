@@ -188,7 +188,7 @@ class announce(Plugin):
                 if name in args.channel_names or args.channel_names == "all":
                     self.botlog(event, ":lock: The "+name+" channel has been locked by "+str(event.msg.author)+" for the reason: "+args.reason+".")
                     # grab the first (bug hunter or test role) for the queue, grab everyone (or whatever test role is there) for public channels
-                    rolenum = 0 if name is "bug" else 1
+                    rolenum = 0 if name == "bug" else 1
                     role = event.guild.roles[list(self.config.role_IDs_to_lockdown.values())[rolenum]]
                     channel = event.guild.channels[channelID]
                     channel.send_message(args.reason)
