@@ -356,7 +356,7 @@ Denied reports: {}
             count = 0
             while not lines[count].startswith("**Detailed info**"):
                 count += 1
-            new_message = "\n".join(lines[:count-1])
+            new_message = "\n".join(lines[:count])
             new_message += "\n**Detailed info**: {}\n{}".format(sanitize.S(info, escape_codeblocks=True),
                                                               "\n".join(lines[-1:]))
         else:
