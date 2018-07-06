@@ -6,12 +6,8 @@ page_handlers = dict()
 
 known_messages = dict()
 
-prev_emoji = ":gearYes:459697272326848520"
-next_emoji = ":gearNo:459697272314265600"
-
-
-def on_ready():
-    load_from_disc()
+prev_emoji = "⬅"
+next_emoji = "➡"
 
 
 def register(type, init, update, sender_only=False):
