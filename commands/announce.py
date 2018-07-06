@@ -220,6 +220,21 @@ class announce(Plugin):
                         if count >= limit:
                             break
             event.msg.reply("Unlock command has successfully completed!")
+            
+       @Plugin.command('a11y')
+    def grant_role(self, event):
+        
+        if 441739649753546764 in event.member.roles:
+	    event.member.remove_role(441739649753546764)
+	    self.botlog(event, ":thumbsdown: <@" +str(event.author.id)+ "> removed the A11y role from themselves.")
+	    event.msg.reply("<@" +str(event.author.id)+ "> I have removed the A11y (Accessibility Role) from you. Use the same command again to add the role to yourself.").after(5).delete()
+	    event.msg.delete()
+	else:
+	    event.member.add_role(441739649753546764)
+	    self.botlog(event, ":thumbsup: <@" +str(event.author.id)+ "> added the A11y role to themselves.")
+	    event.msg.reply("<@" +str(event.author.id)+ "> I have added the A11y (Accessibility Role) to you. Use the same command again to remove the role from yourself.").after(5).delete()
+	    event.msg.delete()
+
 
     def checkPerms(self, event, type):
         # get roles from the config
