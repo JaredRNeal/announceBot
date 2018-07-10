@@ -14,7 +14,8 @@ class Pager(Plugin):
 
     @Plugin.listen("MessageReactionAdd")
     def on_reaction(self, event):
-        if event.user_id == self.bot.client.api.users_me_get().id:
+
+        if event.user_id == self.bot.client.state.me.id:
             return
         message = self.bot.client.api.channels_messages_get(event.channel_id, event.message_id)
         if event.emoji.name== Pages.prev_emoji:

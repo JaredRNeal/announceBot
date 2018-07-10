@@ -6,10 +6,12 @@ from datetime import datetime
 
 from disco.api.http import APIException
 from disco.bot import Plugin
+from disco.types.message import MessageEmbed
 from disco.util import sanitize
+from matplotlib import pyplot
 
 from commands.config import EventsPluginConfig
-from util import TrelloUtils
+from util import TrelloUtils, Pages
 
 
 @Plugin.with_config(EventsPluginConfig)
@@ -27,10 +29,12 @@ class Events(Plugin):
     def load(self, ctx):
         super(Events, self).load(ctx)
         self.load_event_stats()
+        Pages.register("participants", self.init_participants, self.update_participants)
 
     def unload(self, ctx):
         self.save_event_stats()
         super(Events, self).unload(ctx)
+        Pages.unregister("participants")
 
     @Plugin.command("submit", "[submission:str...]")
     def template(self, event, submission:str=None):
@@ -220,6 +224,66 @@ class Events(Plugin):
                 self.bot.client.api.channels_messages_reactions_create(event_channel.id, message.id, self.config.emojis["yes"])
                 self.bot.client.api.channels_messages_reactions_create(event_channel.id, message.id, self.config.emojis["no"])
             event.msg.reply("<@{}> all {} submissions have been prepped for approval/denial!".format(event.author.id, len(self.reported_cards)))
+
+    @Plugin.command("participants", group="event")
+    def end_event(self, event):
+        Pages.create_new(self.bot, "participants", event)
+
+    def init_participants(self, event):
+        pages = self.gen_participants_pages()
+        return None, self.gen_participants_embed(pages[0], 1, len(pages)), len(pages) > 1
+
+    def update_participants(self, message, page_num, action, data):
+        pages = self.gen_participants_pages()
+        page, page_num = Pages.basic_pages(pages, page_num, action)
+        return None, self.gen_participants_embed(page, page_num + 1, len(pages)), page_num
+
+    def gen_participants_pages(self):
+        pages = []
+        page = ""
+        count = 0
+        for participant_id in self.participants.keys():
+            if count < 2:
+                page += f"<@{participant_id}>\n"
+                count += 1
+            else:
+                pages.append(page)
+                page = f"<@{participant_id}>\n"
+                count = 1
+        pages.append(page)
+        return pages
+
+    def gen_participants_embed(self, page, num, max):
+        embed = MessageEmbed()
+        embed.title = f"Event participants {num}/{max}"
+        embed.description = page
+        embed.timestamp = datetime.utcnow().isoformat()
+        embed.color = int('F1C40F',16)
+        return embed
+
+    @Plugin.command('pie', group="event")
+    def event_chart(self, event):
+        info = {
+            "Approved": 0,
+            "Denied": 0,
+            "Submitted": 0
+        }
+        colors = ['green', 'red', 'orange']
+        for id, report in self.reported_cards.items():
+            info[report["status"]] += 1
+        if info["Submitted"] == 0:
+            info.pop("Submitted")
+        print(info)
+        wedges, labels, labels2 = pyplot.pie(info.values(), labels=info.keys(), autopct='%1.1f%%', explode=[0.05] * len(info.keys()), colors=colors)
+        for i in range(min(3, len(info))):
+            labels[i].set_color(colors[i])
+            labels[i].set_size('x-large')
+            labels[i].set_weight('black')
+        pyplot.savefig("PIE", transparent=True)
+        with open("PIE.png", "rb") as file:
+            event.msg.reply(attachments=[("pie.png", file, "image/png")])
+
+
 
     @Plugin.command('cleanuser', "<user:snowflake> <reason:str...>", group="event")
     def clear_user(self, event, user, reason):
@@ -413,7 +477,7 @@ Denied reports: {}
 
     @Plugin.listen("MessageReactionAdd")
     def on_reaction(self, event):
-        if event.channel_id!= self.config.event_channel or event.user_id == self.bot.client.api.users_me_get().id:
+        if event.channel_id!= self.config.event_channel or event.user_id == self.bot.client.state.me.id:
             return
         if ":{}:{}".format(event.emoji.name, event.emoji.id) == self.config.emojis["yes"]:
             self.setReportStatus(event, event.message_id, "Approved")
@@ -497,7 +561,7 @@ Denied reports: {}
                 #todo, update report or switch them to use id pings
         if event.channel.id != self.config.event_channel:
             return
-        if event.author.id != self.bot.client.api.users_me_get().id:
+        if event.author.id != self.bot.client.state.me.id:
             if not (event.message.content.startswith("+submit") or event.message.content.startswith("+revoke") or  event.message.content.startswith("+edit") or  event.message.content.startswith("+event")):
                 event.message.delete()
                 event.message.reply("<@{}> This channel is only event related commands (submit/revoke/edit) command, please go to <#420995378582913030> to discuss submissions".format(event.author.id))
