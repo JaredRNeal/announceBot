@@ -1,4 +1,9 @@
+import matplotlib
+#put it in headless mode before importing pyplot
+matplotlib.use('Agg')
+from matplotlib import pyplot
 import json
+import math
 import os.path
 import time
 import traceback
@@ -8,10 +13,9 @@ from disco.api.http import APIException
 from disco.bot import Plugin
 from disco.types.message import MessageEmbed
 from disco.util import sanitize
-from matplotlib import pyplot
 
 from commands.config import EventsPluginConfig
-from util import TrelloUtils, Pages
+from util import TrelloUtils, Pages, Pie
 
 
 @Plugin.with_config(EventsPluginConfig)
@@ -243,7 +247,7 @@ class Events(Plugin):
         page = ""
         count = 0
         for participant_id in self.participants.keys():
-            if count < 2:
+            if count < 20:
                 page += f"<@{participant_id}>\n"
                 count += 1
             else:
@@ -261,29 +265,162 @@ class Events(Plugin):
         embed.color = int('F1C40F',16)
         return embed
 
-    @Plugin.command('pie', group="event")
-    def event_chart(self, event):
+    @Plugin.command('pie', "<query:str>", group="event")
+    def event_chart(self, event, query):
+        if not self.checkPerms(event, "mod"):
+            return
+        #convert mentions to id
+        if query.startswith("<@"):
+            query = query[2:-1]
+        elif query.startswith("<@!"):
+            query = query[3:-1]
+
+        #convert boards
+        for id, board in self.config.boards.items():
+            if query.lower() == board["name"].lower():
+                query = id
+                break
+
+        info = self.calc_event_stats()
+        if query == "participants":
+            nr_participants = len(self.participants)
+            square = math.sqrt(nr_participants)
+            columns = int(square)
+            rows = int(nr_participants / columns)
+            if nr_participants > rows * columns:
+                rows += 1
+
+            count = 1
+            figure = pyplot.figure()
+            for id, name in self.participants.items():
+                sub = figure.add_subplot(rows, columns, count)
+                Pie.bake(sub, info[id], name, show_labels=False, size="small", title_size=8)
+                count += 1
+
+            figure.savefig("PIE", transparent=True)
+            figure.clf()
+            with open("PIE.png", "rb") as file:
+                event.msg.reply(attachments=[("pie.png", file, "image/png")])
+
+        elif query == "platforms":
+            figure = pyplot.figure()
+            sub = figure.add_subplot(1, 1, 1)
+            Pie.bake(sub, info["total"], "Reports per board")
+            figure.savefig("PIE", transparent=True)
+            with open("PIE.png", "rb") as file:
+                event.msg.reply(attachments=[("pie.png", file, "image/png")])
+
+        elif query == "lists":
+            figure = pyplot.figure()
+            count = 1
+            print(info["lists"])
+            for board_id, board in self.config.boards.items():
+                sub = figure.add_subplot(2, 2, count)
+                Pie.bake(sub, info["lists"][board_id], f"{board['name']} lists")
+                count += 1
+            figure.savefig("PIE", transparent=True)
+            with open("PIE.png", "rb") as file:
+                event.msg.reply(attachments=[("pie.png", file, "image/png")])
+        else:
+            if query in info.keys():
+                i = info[query]
+                total = i["Approved"] + i["Denied"] + i["Submitted"]
+                if total == 0:
+                    event.msg.reply("This person has submitted something during the event, but then revoked them all")
+                else:
+                    message = """
+Total reports: {}
+Approved reports: {}
+Denied reports: {}
+Remaining: {}
+                    """.format(total, i["Approved"],
+                               i["Denied"], i["Submitted"])
+                    #convert id to name for participants
+                    if query in self.participants.keys():
+                        query = self.participants[query]
+                    #convert board id to name
+                    if query in self.config.boards.keys():
+                        query = self.config.boards[query]["name"]
+                    figure = pyplot.figure()
+                    sub = figure.add_subplot(1, 1, 1)
+                    Pie.bake(sub, i, query)
+                    figure.savefig("PIE", transparent=True)
+                    figure.clf()
+                    with open("PIE.png", "rb") as file:
+                        event.msg.reply(message, attachments=[("pie.png", file, "image/png")])
+            else:
+                event.msg.reply("Sorry but i don't seem to have any stats available for that")
+
+
+    @Plugin.command("stats", group="event")
+    def event_stats(self, event):
+        """Current event stats"""
+        if not self.checkPerms(event, "mod"):
+            return
+
+        info = self.calc_event_stats()
+        message = """
+Total reports: {}
+Number of participants: {}
+Approved reports: {}
+Denied reports: {}
+Remaining: {}
+""".format(len(self.reported_cards), len(self.participants), info["all"]["Approved"], info["all"]["Denied"], info["all"]["Submitted"])
+        figure = pyplot.figure()
+        sub = figure.add_subplot(1, 1, 1)
+        Pie.bake(sub, info["all"], "All reports")
+        figure.savefig("all", transparent=True)
+        figure.clf()
+        with open("all.png", "rb") as file:
+            event.msg.reply(message, attachments=[("all.png", file, "image/png")])
+
+
+    def calc_event_stats(self):
+        start = time.perf_counter()
         info = {
-            "Approved": 0,
-            "Denied": 0,
-            "Submitted": 0
+            "all": {
+                "Approved": 0,
+                "Denied": 0,
+                "Submitted": 0
+            }
         }
-        colors = ['green', 'red', 'orange']
-        for id, report in self.reported_cards.items():
-            info[report["status"]] += 1
-        if info["Submitted"] == 0:
-            info.pop("Submitted")
-        print(info)
-        wedges, labels, labels2 = pyplot.pie(info.values(), labels=info.keys(), autopct='%1.1f%%', explode=[0.05] * len(info.keys()), colors=colors)
-        for i in range(min(3, len(info))):
-            labels[i].set_color(colors[i])
-            labels[i].set_size('x-large')
-            labels[i].set_weight('black')
-        pyplot.savefig("PIE", transparent=True)
-        with open("PIE.png", "rb") as file:
-            event.msg.reply(attachments=[("pie.png", file, "image/png")])
+        total = dict()
+        lists = dict()
+        for id, board in self.config.boards.items():
+            info[id] = {
+                "Approved": 0,
+                "Denied": 0,
+                "Submitted": 0
+            }
+            lists[id] = dict()
+            for l in board["lists"]:
+                lists[id][l] = 0
+            total[board["name"]] = 0
+        for id in self.participants.keys():
+            info[id] = {
+                "Approved": 0,
+                "Denied": 0,
+                "Submitted": 0
+            }
+        for report in self.reported_cards.values():
+            info["all"][report["status"]] += 1
+            info[report["board"]][report["status"]] += 1
+            info[report["author_id"]][report["status"]] += 1
+            total[self.config.boards[report["board"]]["name"]] += 1
+            lists[report["board"]][report["list"]] += 1
+        done = time.perf_counter()
+        info["total"] = total
 
+        #transform lists to use their names rather then IDs
+        info["lists"] = dict()
+        for board_id, content in lists.items():
+            info["lists"][board_id] = dict()
+            for k, v in content.items():
+                list_info = TrelloUtils.getListInfo(k)
+                info["lists"][board_id][list_info["name"]] = v
 
+        print(f"Calculated event stat info in {round((done - start) * 1000, 4)}ms")
+        return info
 
     @Plugin.command('cleanuser', "<user:snowflake> <reason:str...>", group="event")
     def clear_user(self, event, user, reason):
@@ -313,27 +450,6 @@ class Events(Plugin):
                     mod=str(event.msg.author), user=self.participants[str(user)], reason=reason))
                 del self.participants[str(user)]
                 self.save_event_stats()
-
-
-    @Plugin.command("stats", group="event")
-    def event_stats(self, event):
-        """Current event stats"""
-        if not self.checkPerms(event, "mod"):
-            return
-        approved = 0
-        denied = 0
-        for report_id, report in self.reported_cards.items():
-            if report["status"] == "Approved":
-                approved += 1
-            elif report["status"] == "Denied":
-                denied += 1
-        message = """
-Total reports: {}
-Number of participants: {}
-Approved reports: {}
-Denied reports: {}
-""".format(len(self.reported_cards), len(self.participants), approved, denied)
-        event.msg.reply(message)
 
     @Plugin.command("points", "<user:snowflake>")
     def points(self, event, user):

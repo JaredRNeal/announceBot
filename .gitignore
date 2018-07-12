@@ -6,3 +6,4 @@ config/
 .idea
 eventstats.json
 eval.py
+*.png
