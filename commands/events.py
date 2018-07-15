@@ -413,7 +413,7 @@ Denied reports: {}
         channel = event.guild.channels[channel_id]
         messages = []
         message_info = dict()
-        for message in channel.messages_iter(chunk_size=2, direction=MessageIterator.Direction.UP, before=event.msg.id):
+        for message in channel.messages_iter(chunk_size=100, direction=MessageIterator.Direction.UP, before=event.msg.id):
             messages.append(message.id)
             message_info[message.id] = {
                 "author_id": str(message.author.id),
@@ -428,6 +428,7 @@ Denied reports: {}
             return result.group("url") if result is not None else None
 
         invalid = 0
+        dupes = 0
         for m_id in messages:
             link = get_url(message_info[m_id]["content"])
             if link is None:
@@ -443,6 +444,7 @@ Denied reports: {}
                     self.bot.client.api.channels_messages_reactions_create(int(channel_id), m_id, "❓")
                 elif trello_info['id'] in self.reported_cards.keys(): # already reported
                     state = "Dupe"
+                    dupes += 1
                     if trello_id not in self.dupes.keys():
                         self.dupes[trello_id] = 1
                     else:
@@ -473,9 +475,9 @@ Denied reports: {}
         event.msg.reply("""
 Data import complete
 Imported entries: {}
-Dupes encountered: {}
+Dupes encountered: {} ({} tickets)
 Invalid entries skipped: {}
-""".format(len(self.reported_cards.keys()), len(self.dupes.keys()), invalid))
+""".format(len(self.reported_cards.keys()), dupes, len(self.dupes.keys()), invalid))
         #override event channel from import
         self.config.event_channel = int(channel_id)
         self.end_event(event)
