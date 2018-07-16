@@ -8,7 +8,7 @@ from commands.config import AnnounceBotConfig
 class announce(Plugin):
     def load(self, ctx):
         super(announce, self).load(ctx)
-
+    
     def unload(self, ctx):
         super(announce, self).unload(ctx)
 
@@ -206,7 +206,7 @@ class announce(Plugin):
                 if name in channels or channels == "all":
                     self.botlog(event, ":unlock: The "+name+" channel has been unlocked by "+str(event.msg.author)+".")
                     # grab the first (bug hunter or test role) for the queue, grab everyone (or whatever test role is there) for public channels
-                    rolenum = 0 if name is "bug" else 1
+                    rolenum = 0 if name == "bug" else 1
                     role = event.guild.roles[list(self.config.role_IDs_to_lockdown.values())[rolenum]]
                     channel = event.guild.channels[channelID]
                     channel.create_overwrite(role, allow=2048 if name is "bug" else 0, deny=64)
@@ -220,7 +220,7 @@ class announce(Plugin):
                         if count >= limit:
                             break
             event.msg.reply("Unlock command has successfully completed!")
-
+            
     @Plugin.command('a11y')
     def grant_role(self, event):
         if 441739649753546764 in event.member.roles:
