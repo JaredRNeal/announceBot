@@ -21,7 +21,7 @@ class announce(Plugin):
             event.msg.delete()
 
     @Plugin.command('employee', "<new_employee:str>")
-    def make_employee(self, event, new_employee):
+    def make_employee(self, event, new_employee:str):
         if any(role == 197042389569765376  for role in event.member.roles):
             if new_employee.startswith("<@"):
                 id = new_employee[2:-1]
@@ -188,7 +188,7 @@ class announce(Plugin):
                 if name in args.channel_names or args.channel_names == "all":
                     self.botlog(event, ":lock: The "+name+" channel has been locked by "+str(event.msg.author)+" for the reason: "+args.reason+".")
                     # grab the first (bug hunter or test role) for the queue, grab everyone (or whatever test role is there) for public channels
-                    rolenum = 0 if name is "bug" else 1
+                    rolenum = 0 if name == "bug" else 1
                     role = event.guild.roles[list(self.config.role_IDs_to_lockdown.values())[rolenum]]
                     channel = event.guild.channels[channelID]
                     channel.send_message(args.reason)
@@ -206,7 +206,7 @@ class announce(Plugin):
                 if name in channels or channels == "all":
                     self.botlog(event, ":unlock: The "+name+" channel has been unlocked by "+str(event.msg.author)+".")
                     # grab the first (bug hunter or test role) for the queue, grab everyone (or whatever test role is there) for public channels
-                    rolenum = 0 if name is "bug" else 1
+                    rolenum = 0 if name == "bug" else 1
                     role = event.guild.roles[list(self.config.role_IDs_to_lockdown.values())[rolenum]]
                     channel = event.guild.channels[channelID]
                     channel.create_overwrite(role, allow=2048 if name is "bug" else 0, deny=64)
@@ -223,7 +223,6 @@ class announce(Plugin):
             
     @Plugin.command('a11y')
     def grant_role(self, event):
-
         if 441739649753546764 in event.member.roles:
             event.member.remove_role(441739649753546764)
             self.botlog(event, ":thumbsdown: <@" +str(event.author.id)+ "> removed the A11y role from themselves.")
@@ -234,6 +233,7 @@ class announce(Plugin):
             self.botlog(event, ":thumbsup: <@" +str(event.author.id)+ "> added the A11y role to themselves.")
             event.msg.reply("<@" +str(event.author.id)+ "> I have added the A11y (Accessibility Role) to you. Use the same command again to remove the role from yourself.").after(5).delete()
             event.msg.delete()
+
 
     def checkPerms(self, event, type):
         # get roles from the config
