@@ -1,0 +1,2 @@
+disco-py==0.0.12
+pymongo==3.7.1

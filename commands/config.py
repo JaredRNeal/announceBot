@@ -173,3 +173,68 @@ class EventsPluginConfig(Config):
 
     bot_log= 0
     event_channel = 0
+
+class ExperiencePluginConfig(Config):
+
+    mongodb_username = "mongodb"
+    mongodb_password = "password"
+    mongodb_host = "localhost"
+    mongodb_port = 27017
+
+    bug_bot_user_id = 240545475118235648
+    dtesters_guild_id = 197038439483310086
+
+    roles = {
+        "admin": 197042322939052032,
+        "mod": 440322144593772545,
+        "employee": 197042389569765376,
+        "hunter": 197042209038663680,
+        "fehlerjager": 268404368435445761,
+        "squasher": 254347601288101888
+    }
+
+    admin_roles = {
+        'admin': 197042322939052032,
+        'employee': 197042389569765376
+    }
+
+    mod_roles = {
+        'modinator': 440322144593772545,
+        'admin': 197042322939052032,
+        'employee': 197042389569765376
+    }
+
+    channels = {
+        "bot_log": 0,
+        "prize_log": 0,
+        "bug_hunter_general_chat": 217764019661045761
+    }
+
+    rewards = {
+        "approve_deny": 5,
+        "canrepro_cantrepro": 3,
+    }
+
+    reward_limits = {
+        "approve_deny": 5,
+        "canrepro_cantrepro": 3
+    }
+
+    store = [
+        {
+            "title": "Bug Squasher role (for a week)",
+            "cost": 250,
+            "description": "Get the super cool Bug Squasher role because you squash bugs!"
+        },
+        {
+            "title": u"Fehlerjäger role",
+            "cost": 500,
+            "description": u"Show off that you're a legendary Bug Hunter with the Fehlerjäger role!"
+        },
+        {
+            "title": "Bug Hunter Badge",
+            "cost": 750,
+            "description": "Want to show off to your friends your bug-hunting skills? Get an *exclusive* badge on your "
+                           "Discord profile!"
+        }
+    ]
