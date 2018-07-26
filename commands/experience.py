@@ -66,6 +66,8 @@ class ExperiencePlugin(Plugin):
             return int(id_str)
         elif id_str.startswith("<@") and id_str.endswith(">"):
             snowflake_str = id_str[2:-1]
+            if snowflake_str.startswith("!"):
+                snowflake_str = id_str[3:-1]
             return snowflake_str
         else:
             # invalid, returning None
@@ -114,7 +116,7 @@ class ExperiencePlugin(Plugin):
 
         valid = False
         for role in member.roles:
-            if role == self.config.roles.get("bug_hunter"):
+            if role == self.config.roles.get("hunter"):
                 valid = True
 
         if not valid:
@@ -135,7 +137,9 @@ class ExperiencePlugin(Plugin):
         if not self.check_perms(event, "admin"):
             return
 
+        print("user_id as str: {user_id}".format(user_id=user_id))
         uid = self.get_id(user_id)
+        print("uid as str: {uid}".format(uid=str(uid)))
         if uid is None:
             event.msg.reply(":no_entry_sign: invalid snowflake/mention").after(7).delete()
             return
@@ -219,6 +223,16 @@ class ExperiencePlugin(Plugin):
                     "type": "canrepro_cantrepro",
                     "time": time.time()
                 })
+        elif content.startswith("📨 "):
+            for id, user in event.message.mentions.items():
+                user = self.get_user(id)
+                self.users.update_one({
+                    "user_id": str(id)
+                }, {
+                    "$set": {
+                        "xp": user["xp"] + self.config.rewards["submit"]
+                    }
+                })
 
     @Plugin.command("store")
     def store(self, event):
@@ -265,7 +279,7 @@ class ExperiencePlugin(Plugin):
 
         valid = False
         for role in member.roles:
-            if role == self.config.roles.get("bug_hunter"):
+            if role == self.config.roles.get("hunter"):
                 valid = True
 
         if not valid:
