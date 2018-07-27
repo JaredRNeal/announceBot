@@ -106,7 +106,7 @@ class ExperiencePlugin(Plugin):
         # Check bug hunter
         dtesters = self.bot.client.api.guilds_get(self.config.dtesters_guild_id)
         member = dtesters.get_member(event.msg.author)
-        if dtesters is None or if member is None:
+        if dtesters is None or member is None:
             return
 
         valid = False
