@@ -177,15 +177,6 @@ class ExperiencePlugin(Plugin):
     def message_listener(self, event):
         # Because we don't have Bug-bot access, we have to do it like this :(
 
-        #First check to see if they're a Bug Hunter or not
-        valid = False
-        for role in member.roles:
-            if role == self.config.roles.get("hunter"):
-                valid = True
-
-        if not valid:
-            return
-
         content = event.message.content
         if event.message.author.id != self.config.bug_bot_user_id:
             return
@@ -203,6 +194,18 @@ class ExperiencePlugin(Plugin):
                         actions.append(action)
                 if len(actions) >= self.config.reward_limits["approve_deny"]:
                     return
+
+                #Check to see if they're a Bug Hunter or not
+                dtesters = self.bot.client.api.guilds_get(self.config.dtesters_guild_id)
+                member = dtesters.get_member(k)
+                valid = False
+                for role in member.roles:
+                    if role == self.config.roles.get("hunter"):
+                        valid = True
+
+                if not valid:
+                    return
+
                 user = self.get_user(k)
                 self.users.update_one({
                     "user_id": str(k)
@@ -228,6 +231,18 @@ class ExperiencePlugin(Plugin):
                         actions.append(action)
                 if len(actions) >= self.config.reward_limits["canrepro_cantrepro"]:
                     return
+                    
+                #Check to see if they're a Bug Hunter or not
+                dtesters = self.bot.client.api.guilds_get(self.config.dtesters_guild_id)
+                member = dtesters.get_member(k)
+                valid = False
+                for role in member.roles:
+                    if role == self.config.roles.get("hunter"):
+                        valid = True
+
+                if not valid:
+                    return
+
                 user = self.get_user(k)
                 self.users.update_one({
                     "user_id": str(k)
