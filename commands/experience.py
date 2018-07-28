@@ -102,16 +102,11 @@ class ExperiencePlugin(Plugin):
 
     @Plugin.command("xp")
     def get_xp(self, event):
-        if event.guild is not None:
-            event.msg.delete()
 
         # Check bug hunter
         dtesters = self.bot.client.api.guilds_get(self.config.dtesters_guild_id)
-        if dtesters is None:
-            return
-
         member = dtesters.get_member(event.msg.author)
-        if member is None:
+        if dtesters is None or member is None:
             return
 
         valid = False
@@ -120,6 +115,8 @@ class ExperiencePlugin(Plugin):
                 valid = True
 
         if not valid:
+            event.msg.reply("Sorry, only Bug Hunters are able to use the XP system. If you'd like to become a Bug Hunter, read all of <#342043548369158156>").after(5).delete
+            event.msg.delete()
             return
 
         # find the user's xp
@@ -131,22 +128,33 @@ class ExperiencePlugin(Plugin):
 
     @Plugin.command("givexp", "<user_id:str> <points:int>")
     def give_xp(self, event, user_id, points):
-        if event.guild is None:
-            return
-        event.msg.delete()
+
         if not self.check_perms(event, "admin"):
             return
 
-        print("user_id as str: {user_id}".format(user_id=user_id))
         uid = self.get_id(user_id)
-        print("uid as str: {uid}".format(uid=str(uid)))
+
         if uid is None:
-            event.msg.reply(":no_entry_sign: invalid snowflake/mention").after(7).delete()
+            event.msg.reply(":no_entry_sign: invalid snowflake/mention").after(5).delete()
             return
         user = self.get_user(uid)
 
         if user["xp"] + points < 0:
-            event.msg.reply(":no_entry_sign: user cannot have below 0 points.").after(7).delete()
+            xp = 0
+            self.users.update_one({
+                "user_id": str(user_id)
+            }, {
+                "$set": {
+                    "xp": xp
+                }
+            })
+            self.botlog(event, ":pencil: {mod} updated point total for {user} to {points}".format(
+                mod=str(event.msg.author),
+                user=str(uid),
+                points=str(xp)
+            ))
+            event.msg.reply("User cannot have below 0 points, so set to 0.").after(5).delete()
+            event.msg.delete()
             return
         xp = user["xp"] + points
         self.users.update_one({
@@ -157,7 +165,8 @@ class ExperiencePlugin(Plugin):
             }
         })
         event.msg.reply(":ok_hand: {user} point total updated to {points}".format(user=str(uid), points=xp))\
-            .after(7).delete()
+            .after(5).delete()
+        event.msg.delete()
         self.botlog(event, ":pencil: {mod} updated point total for {user} to {points}".format(
             mod=str(event.msg.author),
             user=str(uid),
@@ -167,8 +176,8 @@ class ExperiencePlugin(Plugin):
     @Plugin.listen("MessageCreate")
     def message_listener(self, event):
         # Because we don't have Bug-bot access, we have to do it like this :(
-        content = event.message.content
 
+        content = event.message.content
         if event.message.author.id != self.config.bug_bot_user_id:
             return
         long_repro_msg = "your repro has been successfully added to the Trello Ticket!"
@@ -185,6 +194,18 @@ class ExperiencePlugin(Plugin):
                         actions.append(action)
                 if len(actions) >= self.config.reward_limits["approve_deny"]:
                     return
+
+                #Check to see if they're a Bug Hunter or not
+                dtesters = self.bot.client.api.guilds_get(self.config.dtesters_guild_id)
+                member = dtesters.get_member(k)
+                valid = False
+                for role in member.roles:
+                    if role == self.config.roles.get("hunter"):
+                        valid = True
+
+                if not valid:
+                    return
+
                 user = self.get_user(k)
                 self.users.update_one({
                     "user_id": str(k)
@@ -210,6 +231,18 @@ class ExperiencePlugin(Plugin):
                         actions.append(action)
                 if len(actions) >= self.config.reward_limits["canrepro_cantrepro"]:
                     return
+                    
+                #Check to see if they're a Bug Hunter or not
+                dtesters = self.bot.client.api.guilds_get(self.config.dtesters_guild_id)
+                member = dtesters.get_member(k)
+                valid = False
+                for role in member.roles:
+                    if role == self.config.roles.get("hunter"):
+                        valid = True
+
+                if not valid:
+                    return
+
                 user = self.get_user(k)
                 self.users.update_one({
                     "user_id": str(k)
@@ -223,7 +256,7 @@ class ExperiencePlugin(Plugin):
                     "type": "canrepro_cantrepro",
                     "time": time.time()
                 })
-        elif content.startswith("📨 "):
+        elif content.startswith(":incoming_envelope:"):
             for id, user in event.message.mentions.items():
                 user = self.get_user(id)
                 self.users.update_one({
@@ -353,5 +386,3 @@ class ExperiencePlugin(Plugin):
     def botlog(self, event, message):
         channel = event.guild.channels[self.config.channels['bot_log']]
         channel.send_message(message)
-
-

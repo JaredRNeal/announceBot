@@ -142,7 +142,7 @@ class AnnounceBotConfig(Config):
     }
 
 class EventsPluginConfig(Config):
-    
+
     admin_roles = {
         'admin': 197042322939052032,
         'employee': 197042389569765376
@@ -227,9 +227,9 @@ class ExperiencePluginConfig(Config):
             "description": "Get the super cool Bug Squasher role because you squash bugs!"
         },
         {
-            "title": u"Fehlerjäger role",
+            "title": u"Fehlerjager role",
             "cost": 500,
-            "description": u"Show off that you're a legendary Bug Hunter with the Fehlerjäger role!"
+            "description": u"Show off that you're a legendary Bug Hunter with the Fehlerjager role!"
         },
         {
             "title": "Bug Hunter Badge",
