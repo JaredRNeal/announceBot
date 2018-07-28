@@ -233,7 +233,7 @@ class Events(Plugin):
             event.msg.reply("<@{}> all {} submissions have been prepped for approval/denial!".format(event.author.id, len(self.reported_cards)))
 
     @Plugin.command("participants", group="event")
-    def end_event(self, event):
+    def event_participants(self, event):
         Pages.create_new(self.bot, "participants", event)
 
     def init_participants(self, event):
