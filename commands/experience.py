@@ -73,6 +73,31 @@ class ExperiencePlugin(Plugin):
             # invalid, returning None
             return None
 
+    def handle_action(self, user_id, action, has_time_limit):
+        """ handles giving user XP for an action they did. """
+        if has_time_limit:
+            actions = []
+            for action in self.get_actions(user_id, action):
+                # if action happened less than 24 hours ago, add it.
+                if action.get("time", 0) + 86400.0 >= time.time():
+                    actions.append(action)
+            if len(actions) >= self.config.reward_limits[action]:
+                return
+        user = self.get_user(user_id)
+        self.users.update_one({
+            "user_id": str(user_id)
+        }, {
+            "$set": {
+                "xp": user["xp"] + self.config.rewards[action]
+            }
+        })
+        if has_time_limit:
+            self.actions.insert_one({
+                "user_id": str(user_id),
+                "type": action,
+                "time": time.time()
+            })
+
     @Plugin.schedule(3600, True, False)
     def remove_squasher_roles(self):
         t = time.time()
@@ -177,62 +202,24 @@ class ExperiencePlugin(Plugin):
         if "you've successfully approved report" in content or "you've successfully denied report" in content:
             if len(event.message.mentions) != 1:
                 return
-            for k, v in event.message.mentions.items():
-                actions = []
-                for action in self.get_actions(k, "approve_deny"):
-                    # if action happened less than 24 hours ago, add it.
-                    if action.get("time", 0) + 86400.0 >= time.time():
-                        actions.append(action)
-                if len(actions) >= self.config.reward_limits["approve_deny"]:
-                    return
-                user = self.get_user(k)
-                self.users.update_one({
-                    "user_id": str(k)
-                }, {
-                    "$set": {
-                        "xp": user["xp"] + self.config.rewards["approve_deny"]
-                    }
-                })
-                self.actions.insert_one({
-                    "user_id": str(k),
-                    "type": "approve_deny",
-                    "time": time.time()
-                })
+            for k in event.message.mentions.keys():
+                self.handle_action(k, "approve_deny", True)
         # handles canrepro/cantrepro
         elif "your reproduction has been added to the ticket" in content or long_repro_msg in content:
             if len(event.message.mentions) != 1:
                 return
-            for k, v in event.message.mentions.items():
-                actions = []
-                for action in self.get_actions(k, "canrepro_cantrepro"):
-                    # if action happened less than 24 hours ago, add it.
-                    if action.get("time", 0) + 86400.0 >= time.time():
-                        actions.append(action)
-                if len(actions) >= self.config.reward_limits["canrepro_cantrepro"]:
-                    return
-                user = self.get_user(k)
-                self.users.update_one({
-                    "user_id": str(k)
-                }, {
-                    "$set": {
-                        "xp": user["xp"] + self.config.rewards["canrepro_cantrepro"]
-                    }
-                })
-                self.actions.insert_one({
-                    "user_id": str(k),
-                    "type": "canrepro_cantrepro",
-                    "time": time.time()
-                })
+            for k in event.message.mentions.keys():
+                self.handle_action(k, "canrepro_cantrepro", True)
         elif content.startswith("📨 "):
-            for id, user in event.message.mentions.items():
-                user = self.get_user(id)
-                self.users.update_one({
-                    "user_id": str(id)
-                }, {
-                    "$set": {
-                        "xp": user["xp"] + self.config.rewards["submit"]
-                    }
-                })
+            if len(event.message.mentions) != 1:
+                return
+            for uid in event.message.mentions.keys():
+                self.handle_action(uid, "submit", False)
+        elif "your attachment has been added." in content:
+            if len(event.message.mentions) != 1:
+                return
+            for uid in event.message.mentions.keys():
+                self.handle_action(uid, "attach", True)
 
     @Plugin.command("store")
     def store(self, event):

@@ -213,11 +213,14 @@ class ExperiencePluginConfig(Config):
     rewards = {
         "approve_deny": 5,
         "canrepro_cantrepro": 3,
+        "submit": 25,
+        "attach": 5
     }
 
     reward_limits = {
         "approve_deny": 5,
-        "canrepro_cantrepro": 3
+        "canrepro_cantrepro": 3,
+        "attach": 2
     }
 
     store = [
