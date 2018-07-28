@@ -122,7 +122,6 @@ class Events(Plugin):
             #send the submission and clean input
             dmessage = event.msg.reply(message)
             event.msg.delete()
-
             # add to tracking
             self.reported_cards[trello_info['id']] = dict(
                 author_id= str(event.author.id),
@@ -243,23 +242,14 @@ class Events(Plugin):
         return None, self.gen_participants_embed(page, page_num + 1, len(pages)), page_num
 
     def gen_participants_pages(self):
-        pages = []
-        page = ""
-        count = 0
-        for participant_id in self.participants.keys():
-            if count < 20:
-                page += f"<@{participant_id}>\n"
-                count += 1
-            else:
-                pages.append(page)
-                page = f"<@{participant_id}>\n"
-                count = 1
-        pages.append(page)
-        return pages
+        info = ""
+        for participant_id, name in self.participants.items():
+            info += "{} (`{}`)\n".format(name, participant_id)
+        return Pages.paginate(info)
 
     def gen_participants_embed(self, page, num, max):
         embed = MessageEmbed()
-        embed.title = f"Event participants {num}/{max}"
+        embed.title = "Event participants {}/{}".format(num, max)
         embed.description = page
         embed.timestamp = datetime.utcnow().isoformat()
         embed.color = int('F1C40F',16)

@@ -1,5 +1,3 @@
-import discord
-
 from util import Utils
 
 page_handlers = dict()
@@ -23,7 +21,7 @@ def unregister(type_handler):
 
 def create_new(bot, type, event, **kwargs):
     text, embed, has_pages = page_handlers[type]["init"](event, **kwargs)
-    message:discord.Message = event.msg.reply(text, embed=embed)
+    message = event.msg.reply(text, embed=embed)
     data = {
         "type": type,
         "page": 0,
@@ -67,6 +65,32 @@ def basic_pages(pages, page_num, action):
         page_num = 0
     page = pages[page_num]
     return page, page_num
+
+def paginate(input, max_lines = 20):
+    lines = input.splitlines(keepends=True)
+    pages = []
+    page = ""
+    count = 0
+    for line in lines:
+        if len(page) + len(line) > 1900 or count == max_lines:
+            if page == "":
+                # single 2k line, split smaller
+                words = line.split(" ")
+                for word in words:
+                    if len(page) + len(word) > 1900:
+                        pages.append(page)
+                        page = word + " "
+                    else:
+                        page += word + " "
+            else:
+                pages.append(page)
+                page = line
+                count = 1
+        else:
+            page += line
+        count += 1
+    pages.append(page)
+    return pages
 
 def save_to_disc():
     Utils.saveToDisk("known_messages", known_messages)
