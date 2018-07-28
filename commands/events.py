@@ -310,8 +310,15 @@ class Events(Plugin):
             print(info["lists"])
             for board_id, board in self.config.boards.items():
                 sub = figure.add_subplot(2, 2, count)
-                Pie.bake(sub, info["lists"][board_id], f"{board['name']} lists")
+                Pie.bake(sub, info["lists"][board_id], "{} lists".format(board['name']))
                 count += 1
+            figure.savefig("PIE", transparent=True)
+            with open("PIE.png", "rb") as file:
+                event.msg.reply(attachments=[("pie.png", file, "image/png")])
+        elif query == "vs":
+            figure = pyplot.figure()
+            sub = figure.add_subplot(1, 1, 1)
+            Pie.bake(sub, info["vs"], "Reports per participant")
             figure.savefig("PIE", transparent=True)
             with open("PIE.png", "rb") as file:
                 event.msg.reply(attachments=[("pie.png", file, "image/png")])
@@ -370,7 +377,6 @@ Remaining: {}
 
 
     def calc_event_stats(self):
-        start = time.perf_counter()
         info = {
             "all": {
                 "Approved": 0,
@@ -380,6 +386,7 @@ Remaining: {}
         }
         total = dict()
         lists = dict()
+        vs = dict()
         for id, board in self.config.boards.items():
             info[id] = {
                 "Approved": 0,
@@ -396,24 +403,25 @@ Remaining: {}
                 "Denied": 0,
                 "Submitted": 0
             }
+            vs[id] = 0
         for report in self.reported_cards.values():
             info["all"][report["status"]] += 1
             info[report["board"]][report["status"]] += 1
             info[report["author_id"]][report["status"]] += 1
             total[self.config.boards[report["board"]]["name"]] += 1
             lists[report["board"]][report["list"]] += 1
-        done = time.perf_counter()
+            vs[report["author_id"]] += 1
         info["total"] = total
 
         #transform lists to use their names rather then IDs
         info["lists"] = dict()
+        info["vs"] = vs
         for board_id, content in lists.items():
             info["lists"][board_id] = dict()
             for k, v in content.items():
                 list_info = TrelloUtils.getListInfo(k)
                 info["lists"][board_id][list_info["name"]] = v
 
-        print(f"Calculated event stat info in {round((done - start) * 1000, 4)}ms")
         return info
 
     @Plugin.command('cleanuser', "<user:snowflake> <reason:str...>", group="event")
