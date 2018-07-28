@@ -5,3 +5,4 @@ bot:
   plugins:
     - commands.announce
     - commands.events
+    - commands.experience

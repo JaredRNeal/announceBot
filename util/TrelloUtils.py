@@ -1,3 +1,4 @@
+# coding=utf-8
 import json
 
 import requests
@@ -15,7 +16,7 @@ def getCardInfo(event, id):
         response = requests.request("GET", "https://api.trello.com/1/cards/{}".format(id))
         try:
             card_cache[id] = json.loads(response.text)
-        except json.JSONDecodeError as ex:
+        except ValueError as ex:
             return None
     return card_cache[id]
 

@@ -1,3 +1,4 @@
+# coding=utf-8
 import matplotlib
 #put it in headless mode before importing pyplot
 matplotlib.use('Agg')
@@ -8,11 +9,13 @@ import os.path
 import time
 import traceback
 from datetime import datetime
+import re
 
 from disco.api.http import APIException
 from disco.bot import Plugin
 from disco.types.message import MessageEmbed
 from disco.util import sanitize
+from disco.types.channel import MessageIterator
 
 from commands.config import EventsPluginConfig
 from util import TrelloUtils, Pages, Pie
@@ -22,13 +25,14 @@ from util import TrelloUtils, Pages, Pie
 class Events(Plugin):
 
     def __init__(self, bot, config):
-        super().__init__(bot, config)
+        super(Events, self).__init__(bot, config)
         #initialize
         self.queued = False
         self.saving = False
         self.status = "Scheduled"
         self.participants = dict()
         self.reported_cards = dict()
+        self.dupes = dict()
 
     def load(self, ctx):
         super(Events, self).load(ctx)
@@ -41,7 +45,7 @@ class Events(Plugin):
         Pages.unregister("participants")
 
     @Plugin.command("submit", "[submission:str...]")
-    def template(self, event, submission:str=None):
+    def template(self, event, submission=None):
         """Make a new submission"""
         if self.status != "Started":
             return #no event going on, pretend nothing happened #noleeks
@@ -514,7 +518,7 @@ Remaining: {}
                     self.participants[str(report_info["author_id"])], str(event.author)))
             return
         dmessage = event.guild.channels[self.config.event_channel].get_message(report_info["message_id"])
-        content:str = dmessage.content
+        content = dmessage.content
         new_message = ""
         lines = content.splitlines()
         if section == "destination":
@@ -560,6 +564,94 @@ Remaining: {}
         del self.reported_cards[trello_info["id"]]
         event.msg.reply(":warning: Submission has been nuked <@{}>!".format(event.author.id))
         self.botlog(event, ":wastebasket: {} has removed <https://trello.com/c/{}>".format(str(event.author), trello_info['shortLink']))
+
+
+    @Plugin.command("import", "<channel_id:snowflake>", group="event")
+    def import_event(self, event, channel_id):
+        if not self.checkPerms(event, "admin"):
+            return
+        if self.status != "Scheduled":
+            event.msg.reply("I have event data loaded, import aborted to prevent data corruption, please remove/rename the current eventstats file and reboot")
+            return
+        if not channel_id in event.guild.channels.keys():
+            event.msg.reply("I cannot find a channel with that ID")
+            return
+
+
+        # we're importing so no enforced anti duping, collect all for chronological processing
+        event.msg.reply("Starting import...")
+        channel = event.guild.channels[channel_id]
+        messages = []
+        message_info = dict()
+        for message in channel.messages_iter(chunk_size=100, direction=MessageIterator.Direction.UP, before=event.msg.id):
+            messages.append(message.id)
+            message_info[message.id] = {
+                "author_id": str(message.author.id),
+                "author_name": str(message.author),
+                "content": message.content
+            }
+        messages.sort()
+        print("Collected {} messages for processing".format(len(messages)))
+
+        def get_url(m):
+            result = re.search("(?P<url>https?://trello.com/c/[^\s]+)", m)
+            return result.group("url") if result is not None else None
+
+        invalid = 0
+        dupes = 0
+        for m_id in messages:
+            link = get_url(message_info[m_id]["content"])
+            if link is None:
+                state = "Invalid"
+                invalid += 1
+                self.bot.client.api.channels_messages_reactions_create(int(channel_id), m_id, "❓")
+            else:
+                trello_info = TrelloUtils.getCardInfo(None, link)
+                trello_id = trello_info["id"]
+                if trello_info in (False, None) or trello_info["idBoard"] not in self.config.boards.keys():
+                    state = "Invalid"
+                    invalid += 1
+                    self.bot.client.api.channels_messages_reactions_create(int(channel_id), m_id, "❓")
+                elif trello_info['id'] in self.reported_cards.keys(): # already reported
+                    state = "Dupe"
+                    dupes += 1
+                    if trello_id not in self.dupes.keys():
+                        self.dupes[trello_id] = 1
+                    else:
+                        self.dupes[trello_id] += 1
+                    self.bot.client.api.channels_messages_reactions_create(int(channel_id), m_id, "🚫")
+                else:
+                    board = self.config.boards[trello_info["idBoard"]]
+                    if trello_info["idList"] not in board["lists"] or trello_info["closed"] is True:
+                        state = "Invalid"
+                        invalid += 1
+                        self.bot.client.api.channels_messages_reactions_create(int(channel_id), m_id, "❓")
+                    else:
+                        state = "Valid"
+
+            print("{} - {}".format(m_id, state))
+
+            if state == "Valid":
+                self.reported_cards[trello_info['id']] = dict(
+                    author_id=message_info[m_id]["author_id"],
+                    board=trello_info["idBoard"],
+                    list=trello_info["idList"],
+                    message_id=m_id,
+                    status="Submitted",
+                )
+                if message_info[m_id]["author_id"] not in self.participants.keys():
+                    self.participants[message_info[m_id]["author_id"]] = message_info[m_id]["author_name"]
+
+        event.msg.reply("""
+Data import complete
+Imported entries: {}
+Dupes encountered: {} ({} tickets)
+Invalid entries skipped: {}
+""".format(len(self.reported_cards.keys()), dupes, len(self.dupes.keys()), invalid))
+        #override event channel from import
+        self.config.event_channel = int(channel_id)
+        self.end_event(event)
+
 
 
     @Plugin.command("next")
@@ -619,12 +711,13 @@ Remaining: {}
             else:
                 return
         self.saving = True
-        with open("eventstats.json", "w", encoding='utf8') as f:
+        with open("eventstats.json", "w") as f:
             try:
                 save_dict = dict(
                     reported_cards= self.reported_cards,
                     status= self.status,
-                    participants= self.participants
+                    participants= self.participants,
+                    dupes= self.dupes
                 )
                 f.write(json.dumps(save_dict, indent=4, skipkeys=True, sort_keys=False, ensure_ascii=False))
             except IOError as ex:
@@ -635,13 +728,14 @@ Remaining: {}
     def load_event_stats(self):
         if not os.path.isfile("eventstats.json"):
             return
-        with open('eventstats.json', "r", encoding='utf8') as f:
+        with open('eventstats.json', "r") as f:
             try:
                 event_stats = f.read()
                 event_stats_parsed = json.loads(event_stats)
                 self.reported_cards = event_stats_parsed.get("reported_cards",dict())
                 self.status = event_stats_parsed.get("status", "Scheduled")
                 self.participants = event_stats_parsed.get("participants", dict())
+                self.dupes = event_stats_parsed.get("dupes", dict())
             except IOError as ex:
                 print(":rotating_light: <@110813477156720640> load from disc: {file}\nstrerror: {strerror}".format(file='eventstats.json', strerror=ex.strerror))
                 traceback.print_exc()

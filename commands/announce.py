@@ -8,7 +8,7 @@ from commands.config import AnnounceBotConfig
 class announce(Plugin):
     def load(self, ctx):
         super(announce, self).load(ctx)
-    
+
     def unload(self, ctx):
         super(announce, self).unload(ctx)
 
@@ -21,7 +21,7 @@ class announce(Plugin):
             event.msg.delete()
 
     @Plugin.command('employee', "<new_employee:str>")
-    def make_employee(self, event, new_employee:str):
+    def make_employee(self, event, new_employee):
         if any(role == 197042389569765376  for role in event.member.roles):
             if new_employee.startswith("<@"):
                 id = new_employee[2:-1]
@@ -220,7 +220,7 @@ class announce(Plugin):
                         if count >= limit:
                             break
             event.msg.reply("Unlock command has successfully completed!")
-            
+
     @Plugin.command('a11y')
     def grant_role(self, event):
         if 441739649753546764 in event.member.roles:
