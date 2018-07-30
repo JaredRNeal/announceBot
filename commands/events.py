@@ -1,5 +1,10 @@
 # coding=utf-8
+import matplotlib
+#put it in headless mode before importing pyplot
+matplotlib.use('Agg')
+from matplotlib import pyplot
 import json
+import math
 import os.path
 import time
 import traceback
@@ -8,11 +13,12 @@ import re
 
 from disco.api.http import APIException
 from disco.bot import Plugin
+from disco.types.message import MessageEmbed
 from disco.util import sanitize
 from disco.types.channel import MessageIterator
 
 from commands.config import EventsPluginConfig
-from util import TrelloUtils
+from util import TrelloUtils, Pages, Pie
 
 
 @Plugin.with_config(EventsPluginConfig)
@@ -31,10 +37,12 @@ class Events(Plugin):
     def load(self, ctx):
         super(Events, self).load(ctx)
         self.load_event_stats()
+        Pages.register("participants", self.init_participants, self.update_participants)
 
     def unload(self, ctx):
         self.save_event_stats()
         super(Events, self).unload(ctx)
+        Pages.unregister("participants")
 
     @Plugin.command("submit", "[submission:str...]")
     def template(self, event, submission=None):
@@ -118,7 +126,6 @@ class Events(Plugin):
             #send the submission and clean input
             dmessage = event.msg.reply(message)
             event.msg.delete()
-
             # add to tracking
             self.reported_cards[trello_info['id']] = dict(
                 author_id= str(event.author.id),
@@ -225,6 +232,198 @@ class Events(Plugin):
                 self.bot.client.api.channels_messages_reactions_create(event_channel.id, message.id, self.config.emojis["no"])
             event.msg.reply("<@{}> all {} submissions have been prepped for approval/denial!".format(event.author.id, len(self.reported_cards)))
 
+    @Plugin.command("participants", group="event")
+    def event_participants(self, event):
+        Pages.create_new(self.bot, "participants", event)
+
+    def init_participants(self, event):
+        pages = self.gen_participants_pages()
+        return None, self.gen_participants_embed(pages[0], 1, len(pages)), len(pages) > 1
+
+    def update_participants(self, message, page_num, action, data):
+        pages = self.gen_participants_pages()
+        page, page_num = Pages.basic_pages(pages, page_num, action)
+        return None, self.gen_participants_embed(page, page_num + 1, len(pages)), page_num
+
+    def gen_participants_pages(self):
+        info = ""
+        for participant_id, name in self.participants.items():
+            info += "{} (`{}`)\n".format(name, participant_id)
+        return Pages.paginate(info)
+
+    def gen_participants_embed(self, page, num, max):
+        embed = MessageEmbed()
+        embed.title = "Event participants {}/{}".format(num, max)
+        embed.description = page
+        embed.timestamp = datetime.utcnow().isoformat()
+        embed.color = int('F1C40F',16)
+        return embed
+
+    @Plugin.command('pie', "<query:str>", group="event")
+    def event_chart(self, event, query):
+        if not self.checkPerms(event, "mod"):
+            return
+        #convert mentions to id
+        if query.startswith("<@"):
+            query = query[2:-1]
+        elif query.startswith("<@!"):
+            query = query[3:-1]
+
+        #convert boards
+        for id, board in self.config.boards.items():
+            if query.lower() == board["name"].lower():
+                query = id
+                break
+
+        info = self.calc_event_stats()
+        if query == "participants":
+            nr_participants = len(self.participants)
+            square = math.sqrt(nr_participants)
+            columns = int(square)
+            rows = int(nr_participants / columns)
+            if nr_participants > rows * columns:
+                rows += 1
+
+            count = 1
+            figure = pyplot.figure()
+            for id, name in self.participants.items():
+                sub = figure.add_subplot(rows, columns, count)
+                Pie.bake(sub, info[id], name, show_labels=False, size="small", title_size=8)
+                count += 1
+
+            figure.savefig("PIE", transparent=True)
+            figure.clf()
+            with open("PIE.png", "rb") as file:
+                event.msg.reply(attachments=[("pie.png", file, "image/png")])
+
+        elif query == "platforms":
+            figure = pyplot.figure()
+            sub = figure.add_subplot(1, 1, 1)
+            Pie.bake(sub, info["total"], "Reports per board")
+            figure.savefig("PIE", transparent=True)
+            with open("PIE.png", "rb") as file:
+                event.msg.reply(attachments=[("pie.png", file, "image/png")])
+
+        elif query == "lists":
+            figure = pyplot.figure()
+            count = 1
+            print(info["lists"])
+            for board_id, board in self.config.boards.items():
+                sub = figure.add_subplot(2, 2, count)
+                Pie.bake(sub, info["lists"][board_id], "{} lists".format(board['name']))
+                count += 1
+            figure.savefig("PIE", transparent=True)
+            with open("PIE.png", "rb") as file:
+                event.msg.reply(attachments=[("pie.png", file, "image/png")])
+        elif query == "vs":
+            figure = pyplot.figure()
+            sub = figure.add_subplot(1, 1, 1)
+            Pie.bake(sub, info["vs"], "Reports per participant")
+            figure.savefig("PIE", transparent=True)
+            with open("PIE.png", "rb") as file:
+                event.msg.reply(attachments=[("pie.png", file, "image/png")])
+        else:
+            if query in info.keys():
+                i = info[query]
+                total = i["Approved"] + i["Denied"] + i["Submitted"]
+                if total == 0:
+                    event.msg.reply("This person has submitted something during the event, but then revoked them all")
+                else:
+                    message = """
+Total reports: {}
+Approved reports: {}
+Denied reports: {}
+Remaining: {}
+                    """.format(total, i["Approved"],
+                               i["Denied"], i["Submitted"])
+                    #convert id to name for participants
+                    if query in self.participants.keys():
+                        query = self.participants[query]
+                    #convert board id to name
+                    if query in self.config.boards.keys():
+                        query = self.config.boards[query]["name"]
+                    figure = pyplot.figure()
+                    sub = figure.add_subplot(1, 1, 1)
+                    Pie.bake(sub, i, query)
+                    figure.savefig("PIE", transparent=True)
+                    figure.clf()
+                    with open("PIE.png", "rb") as file:
+                        event.msg.reply(message, attachments=[("pie.png", file, "image/png")])
+            else:
+                event.msg.reply("Sorry but i don't seem to have any stats available for that")
+
+
+    @Plugin.command("stats", group="event")
+    def event_stats(self, event):
+        """Current event stats"""
+        if not self.checkPerms(event, "mod"):
+            return
+
+        info = self.calc_event_stats()
+        message = """
+Total reports: {}
+Number of participants: {}
+Approved reports: {}
+Denied reports: {}
+Remaining: {}
+""".format(len(self.reported_cards), len(self.participants), info["all"]["Approved"], info["all"]["Denied"], info["all"]["Submitted"])
+        figure = pyplot.figure()
+        sub = figure.add_subplot(1, 1, 1)
+        Pie.bake(sub, info["all"], "All reports")
+        figure.savefig("all", transparent=True)
+        figure.clf()
+        with open("all.png", "rb") as file:
+            event.msg.reply(message, attachments=[("all.png", file, "image/png")])
+
+
+    def calc_event_stats(self):
+        info = {
+            "all": {
+                "Approved": 0,
+                "Denied": 0,
+                "Submitted": 0
+            }
+        }
+        total = dict()
+        lists = dict()
+        vs = dict()
+        for id, board in self.config.boards.items():
+            info[id] = {
+                "Approved": 0,
+                "Denied": 0,
+                "Submitted": 0
+            }
+            lists[id] = dict()
+            for l in board["lists"]:
+                lists[id][l] = 0
+            total[board["name"]] = 0
+        for id in self.participants.keys():
+            info[id] = {
+                "Approved": 0,
+                "Denied": 0,
+                "Submitted": 0
+            }
+            vs[id] = 0
+        for report in self.reported_cards.values():
+            info["all"][report["status"]] += 1
+            info[report["board"]][report["status"]] += 1
+            info[report["author_id"]][report["status"]] += 1
+            total[self.config.boards[report["board"]]["name"]] += 1
+            lists[report["board"]][report["list"]] += 1
+            vs[report["author_id"]] += 1
+        info["total"] = total
+
+        #transform lists to use their names rather then IDs
+        info["lists"] = dict()
+        info["vs"] = vs
+        for board_id, content in lists.items():
+            info["lists"][board_id] = dict()
+            for k, v in content.items():
+                list_info = TrelloUtils.getListInfo(k)
+                info["lists"][board_id][list_info["name"]] = v
+
+        return info
+
     @Plugin.command('cleanuser', "<user:snowflake> <reason:str...>", group="event")
     def clear_user(self, event, user, reason):
         """Someone's been so bad we need to remove all their submissions :("""
@@ -253,27 +452,6 @@ class Events(Plugin):
                     mod=str(event.msg.author), user=self.participants[str(user)], reason=reason))
                 del self.participants[str(user)]
                 self.save_event_stats()
-
-
-    @Plugin.command("stats", group="event")
-    def event_stats(self, event):
-        """Current event stats"""
-        if not self.checkPerms(event, "mod"):
-            return
-        approved = 0
-        denied = 0
-        for report_id, report in self.reported_cards.items():
-            if report["status"] == "Approved":
-                approved += 1
-            elif report["status"] == "Denied":
-                denied += 1
-        message = """
-Total reports: {}
-Number of participants: {}
-Approved reports: {}
-Denied reports: {}
-""".format(len(self.reported_cards), len(self.participants), approved, denied)
-        event.msg.reply(message)
 
     @Plugin.command("points", "<user:snowflake>")
     def points(self, event, user):
@@ -360,7 +538,7 @@ Denied reports: {}
             count = 0
             while not lines[count].startswith("**Detailed info**"):
                 count += 1
-            new_message = "\n".join(lines[:count-1])
+            new_message = "\n".join(lines[:count])
             new_message += "\n**Detailed info**: {}\n{}".format(sanitize.S(info, escape_codeblocks=True),
                                                               "\n".join(lines[-1:]))
         else:
@@ -505,7 +683,7 @@ Invalid entries skipped: {}
 
     @Plugin.listen("MessageReactionAdd")
     def on_reaction(self, event):
-        if event.channel_id!= self.config.event_channel or event.user_id == self.bot.client.api.users_me_get().id:
+        if event.channel_id!= self.config.event_channel or event.user_id == self.bot.client.state.me.id:
             return
         if ":{}:{}".format(event.emoji.name, event.emoji.id) == self.config.emojis["yes"]:
             self.setReportStatus(event, event.message_id, "Approved")
@@ -591,7 +769,7 @@ Invalid entries skipped: {}
                 #todo, update report or switch them to use id pings
         if event.channel.id != self.config.event_channel:
             return
-        if event.author.id != self.bot.client.api.users_me_get().id:
+        if event.author.id != self.bot.client.state.me.id:
             if not (event.message.content.startswith("+submit") or event.message.content.startswith("+revoke") or  event.message.content.startswith("+edit") or  event.message.content.startswith("+event")):
                 event.message.delete()
                 event.message.reply("<@{}> This channel is only event related commands (submit/revoke/edit) command, please go to <#420995378582913030> to discuss submissions".format(event.author.id))

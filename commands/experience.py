@@ -1,10 +1,11 @@
-from pymongo import MongoClient
+import time
+
 from disco.bot import Plugin
 from disco.types.message import MessageEmbed
+from pymongo import MongoClient
 
 from commands.config import ExperiencePluginConfig
 
-import time
 
 @Plugin.with_config(ExperiencePluginConfig)
 class ExperiencePlugin(Plugin):
