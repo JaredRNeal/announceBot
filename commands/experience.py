@@ -1,10 +1,11 @@
-from pymongo import MongoClient
+import time
+
 from disco.bot import Plugin
 from disco.types.message import MessageEmbed
+from pymongo import MongoClient
 
 from commands.config import ExperiencePluginConfig
 
-import time
 
 
 @Plugin.with_config(ExperiencePluginConfig)
@@ -130,6 +131,10 @@ class ExperiencePlugin(Plugin):
         if event.guild is not None:
             return
 
+        DM = False
+        if event.guild is None:
+            DM = True
+
         # Check bug hunter
         dtesters = self.bot.client.api.guilds_get(self.config.dtesters_guild_id)
         member = dtesters.get_member(event.msg.author)
@@ -142,9 +147,10 @@ class ExperiencePlugin(Plugin):
                 valid = True
 
         if not valid:
-            event.msg.reply(
-                "Sorry, only Bug Hunters are able to use the XP system. If you'd like to become a Bug Hunter, read all of <#342043548369158156>")
-            event.msg.delete()
+
+            event.msg.reply("Sorry, only Bug Hunters are able to use the XP system. If you'd like to become a Bug Hunter, read all of <#342043548369158156>").after(5).delete()
+            if DM == False:
+                event.msg.delete()
             return
 
         # find the user's xp
@@ -152,7 +158,9 @@ class ExperiencePlugin(Plugin):
         xp = user["xp"]
 
         # show xp to user
-        event.channel.send_message("<@{id}> you have {xp} XP!".format(id=str(event.msg.author.id), xp=xp))
+        event.channel.send_message("<@{id}> you have {xp} XP!".format(id=str(event.msg.author.id), xp=xp)).after(5).delete()
+        if DM == False:
+            event.msg.delete()
 
     @Plugin.command("givexp", "<user_id:str> <points:int>")
     def give_xp(self, event, user_id, points):
@@ -222,6 +230,7 @@ class ExperiencePlugin(Plugin):
                 return
             for k, v in event.message.mentions.items():
                 self.handle_action(k, "canrepro_cantrepro", True)
+
         elif content.startswith(":incoming_envelope:"):
             if len(event.message.mentions) != 1:
                 return
