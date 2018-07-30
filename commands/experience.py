@@ -127,6 +127,8 @@ class ExperiencePlugin(Plugin):
 
     @Plugin.command("xp")
     def get_xp(self, event):
+        if event.guild is not None:
+            return
 
         # Check bug hunter
         dtesters = self.bot.client.api.guilds_get(self.config.dtesters_guild_id)
@@ -141,8 +143,7 @@ class ExperiencePlugin(Plugin):
 
         if not valid:
             event.msg.reply(
-                "Sorry, only Bug Hunters are able to use the XP system. If you'd like to become a Bug Hunter, read all of <#342043548369158156>").after(
-                5).delete()
+                "Sorry, only Bug Hunters are able to use the XP system. If you'd like to become a Bug Hunter, read all of <#342043548369158156>")
             event.msg.delete()
             return
 
@@ -151,8 +152,7 @@ class ExperiencePlugin(Plugin):
         xp = user["xp"]
 
         # show xp to user
-        event.channel.send_message("<@{id}> you have {xp} XP!".format(id=str(event.msg.author.id), xp=xp)).after(
-            5).delete()
+        event.channel.send_message("<@{id}> you have {xp} XP!".format(id=str(event.msg.author.id), xp=xp))
 
     @Plugin.command("givexp", "<user_id:str> <points:int>")
     def give_xp(self, event, user_id, points):
