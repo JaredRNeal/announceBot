@@ -170,7 +170,7 @@ class ExperiencePlugin(Plugin):
         if user["xp"] + points < 0:
             xp = 0
             self.users.update_one({
-                "user_id": str(user_id)
+                "user_id": str(uid)
             }, {
                 "$set": {
                     "xp": xp
@@ -186,7 +186,7 @@ class ExperiencePlugin(Plugin):
             return
         xp = user["xp"] + points
         self.users.update_one({
-            "user_id": str(user_id)
+            "user_id": str(uid)
         }, {
             "$set": {
                 "xp": xp
