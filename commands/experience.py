@@ -7,6 +7,7 @@ from pymongo import MongoClient
 from commands.config import ExperiencePluginConfig
 
 
+
 @Plugin.with_config(ExperiencePluginConfig)
 class ExperiencePlugin(Plugin):
 
@@ -28,7 +29,6 @@ class ExperiencePlugin(Plugin):
     def get_user(self, id):
         """
         Get a user by their ID
-
         :param id: the user's ID
         :return: a dictionary containing the user's information
         """
@@ -74,6 +74,31 @@ class ExperiencePlugin(Plugin):
             # invalid, returning None
             return None
 
+    def handle_action(self, user_id, action, has_time_limit):
+        """ handles giving user XP for an action they did. """
+        if has_time_limit:
+            actions = []
+            for action in self.get_actions(user_id, action):
+                # if action happened less than 24 hours ago, add it.
+                if action.get("time", 0) + 86400.0 >= time.time():
+                    actions.append(action)
+            if len(actions) >= self.config.reward_limits[action]:
+                return
+        user = self.get_user(user_id)
+        self.users.update_one({
+            "user_id": str(user_id)
+        }, {
+            "$set": {
+                "xp": user["xp"] + self.config.rewards[action]
+            }
+        })
+        if has_time_limit:
+            self.actions.insert_one({
+                "user_id": str(user_id),
+                "type": action,
+                "time": time.time()
+            })
+
     @Plugin.schedule(3600, True, False)
     def remove_squasher_roles(self):
         t = time.time()
@@ -88,7 +113,7 @@ class ExperiencePlugin(Plugin):
             print("[SQ] expired squasher role detected.")
             # purchase has expired.
             guild = self.bot.client.api.guilds_get(self.config.dtesters_guild_id)
-            if not guild: # if not in guild, wait until we are.
+            if not guild:  # if not in guild, wait until we are.
                 print("[SQ] guild couldn't be found.")
                 return
             member = guild.get_member(purchase["user_id"])
@@ -103,6 +128,8 @@ class ExperiencePlugin(Plugin):
 
     @Plugin.command("xp")
     def get_xp(self, event):
+        if event.guild is not None:
+            return
 
         DM = False
         if event.guild is None:
@@ -120,6 +147,7 @@ class ExperiencePlugin(Plugin):
                 valid = True
 
         if not valid:
+
             event.msg.reply("Sorry, only Bug Hunters are able to use the XP system. If you'd like to become a Bug Hunter, read all of <#342043548369158156>").after(5).delete()
             if DM == False:
                 event.msg.delete()
@@ -150,7 +178,7 @@ class ExperiencePlugin(Plugin):
         if user["xp"] + points < 0:
             xp = 0
             self.users.update_one({
-                "user_id": str(user_id)
+                "user_id": str(uid)
             }, {
                 "$set": {
                     "xp": xp
@@ -166,13 +194,13 @@ class ExperiencePlugin(Plugin):
             return
         xp = user["xp"] + points
         self.users.update_one({
-            "user_id": str(user_id)
+            "user_id": str(uid)
         }, {
             "$set": {
                 "xp": xp
             }
         })
-        event.msg.reply(":ok_hand: {user} point total updated to {points}".format(user=str(uid), points=xp))\
+        event.msg.reply(":ok_hand: {user} point total updated to {points}".format(user=str(uid), points=xp)) \
             .after(5).delete()
         event.msg.delete()
         self.botlog(event, ":pencil: {mod} updated point total for {user} to {points}".format(
@@ -194,86 +222,25 @@ class ExperiencePlugin(Plugin):
         if "you've successfully approved report" in content or "you've successfully denied report" in content:
             if len(event.message.mentions) != 1:
                 return
-            for k, v in event.message.mentions.items():
-                actions = []
-                for action in self.get_actions(k, "approve_deny"):
-                    # if action happened less than 24 hours ago, add it.
-                    if action.get("time", 0) + 86400.0 >= time.time():
-                        actions.append(action)
-                if len(actions) >= self.config.reward_limits["approve_deny"]:
-                    return
-
-                #Check to see if they're a Bug Hunter or not
-                dtesters = self.bot.client.api.guilds_get(self.config.dtesters_guild_id)
-                member = dtesters.get_member(k)
-                valid = False
-                for role in member.roles:
-                    if role == self.config.roles.get("hunter"):
-                        valid = True
-
-                if not valid:
-                    return
-
-                user = self.get_user(k)
-                self.users.update_one({
-                    "user_id": str(k)
-                }, {
-                    "$set": {
-                        "xp": user["xp"] + self.config.rewards["approve_deny"]
-                    }
-                })
-                self.actions.insert_one({
-                    "user_id": str(k),
-                    "type": "approve_deny",
-                    "time": time.time()
-                })
+            for k in event.message.mentions.keys():
+                self.handle_action(k, "approve_deny", True)
         # handles canrepro/cantrepro
         elif "your reproduction has been added to the ticket" in content or long_repro_msg in content:
             if len(event.message.mentions) != 1:
                 return
             for k, v in event.message.mentions.items():
-                actions = []
-                for action in self.get_actions(k, "canrepro_cantrepro"):
-                    # if action happened less than 24 hours ago, add it.
-                    if action.get("time", 0) + 86400.0 >= time.time():
-                        actions.append(action)
-                if len(actions) >= self.config.reward_limits["canrepro_cantrepro"]:
-                    return
+                self.handle_action(k, "canrepro_cantrepro", True)
 
-                #Check to see if they're a Bug Hunter or not
-                dtesters = self.bot.client.api.guilds_get(self.config.dtesters_guild_id)
-                member = dtesters.get_member(k)
-                valid = False
-                for role in member.roles:
-                    if role == self.config.roles.get("hunter"):
-                        valid = True
-
-                if not valid:
-                    return
-
-                user = self.get_user(k)
-                self.users.update_one({
-                    "user_id": str(k)
-                }, {
-                    "$set": {
-                        "xp": user["xp"] + self.config.rewards["canrepro_cantrepro"]
-                    }
-                })
-                self.actions.insert_one({
-                    "user_id": str(k),
-                    "type": "canrepro_cantrepro",
-                    "time": time.time()
-                })
         elif content.startswith(":incoming_envelope:"):
-            for id, user in event.message.mentions.items():
-                user = self.get_user(id)
-                self.users.update_one({
-                    "user_id": str(id)
-                }, {
-                    "$set": {
-                        "xp": user["xp"] + self.config.rewards["submit"]
-                    }
-                })
+            if len(event.message.mentions) != 1:
+                return
+            for uid in event.message.mentions.keys():
+                self.handle_action(uid, "submit", False)
+        elif "your attachment has been added." in content:
+            if len(event.message.mentions) != 1:
+                return
+            for uid in event.message.mentions.keys():
+                self.handle_action(uid, "attach", True)
 
     @Plugin.command("store")
     def store(self, event):
@@ -284,7 +251,7 @@ class ExperiencePlugin(Plugin):
         embed.title = "Discord Testers Shop"
         embed.description = "Use XP to get super cool Dabbit-approved rewards from the shop!"
         embed.thumbnail.url = "https://cdn.discordapp.com/attachments/330341170720800768/471497246328881153/2Mjvv7E.png"
-        embed.color = int(0xe74c3c) # bug hunter red = #e74c3c
+        embed.color = int(0xe74c3c)  # bug hunter red = #e74c3c
 
         index = 0
         for item in self.config.store:
@@ -354,9 +321,11 @@ class ExperiencePlugin(Plugin):
         ))
 
         if store_item["id"] == "bug_squasher":
-            self.bot.client.api.guilds_members_get(self.config.dtesters_guild_id, event.msg.author.id).add_role(event.guild.roles[self.config.roles["squasher"]])
+            self.bot.client.api.guilds_members_get(self.config.dtesters_guild_id, event.msg.author.id).add_role(
+                event.guild.roles[self.config.roles["squasher"]])
         elif store_item["id"] == "fehlerjager_role":
-            self.bot.client.api.guilds_members_get(self.config.dtesters_guild_id, event.msg.author.id).add_role(event.guild.roles[self.config.roles["fehlerjager"]])
+            self.bot.client.api.guilds_members_get(self.config.dtesters_guild_id, event.msg.author.id).add_role(
+                event.guild.roles[self.config.roles["fehlerjager"]])
 
         self.purchases.insert_one({
             "user_id": str(event.msg.author.id),
@@ -384,11 +353,12 @@ class ExperiencePlugin(Plugin):
 
     def check_perms(self, event, type):
         # get roles from the config
-        roles = getattr(self.config, str(type)+'_roles').values()
+        roles = getattr(self.config, str(type) + '_roles').values()
         if any(role in roles for role in event.member.roles):
             return True
         event.msg.reply(":lock: You do not have permission to use this command!").after(5).delete()
-        self.botlog(event, ":warning: "+str(event.msg.author)+" tried to use a command they do not have permission to use.")
+        self.botlog(event, ":warning: " + str(
+            event.msg.author) + " tried to use a command they do not have permission to use.")
         return False
 
     def botlog(self, event, message):
