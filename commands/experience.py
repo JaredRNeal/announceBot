@@ -242,14 +242,14 @@ class ExperiencePlugin(Plugin):
             for uid in event.message.mentions.keys():
                 self.handle_action(uid, "attach", True)
 
-    @Plugin.command("store")
+    @Plugin.command(alises=['store', 'shop'])
     def store(self, event):
         if event.guild is not None:
             event.msg.delete()
 
         embed = MessageEmbed()
-        embed.title = "Discord Testers Shop"
-        embed.description = "Use XP to get super cool Dabbit-approved rewards from the shop!"
+        embed.title = "Discord Testers Store"
+        embed.description = "Use XP to get super cool Dabbit-approved rewards from the store!"
         embed.thumbnail.url = "https://cdn.discordapp.com/attachments/330341170720800768/471497246328881153/2Mjvv7E.png"
         embed.color = int(0xe74c3c)  # bug hunter red = #e74c3c
 
@@ -267,7 +267,7 @@ class ExperiencePlugin(Plugin):
             embed.add_field(name=name, value=content, inline=False)
         try:
             channel = event.msg.author.open_dm()
-            channel.send_message("Shop:", embed=embed)
+            channel.send_message("Store:", embed=embed)
         except:
             event.channel.send_message("please open your direct messages.").after(10).delete()
 
