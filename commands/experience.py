@@ -242,7 +242,7 @@ class ExperiencePlugin(Plugin):
             for uid in event.message.mentions.keys():
                 self.handle_action(uid, "attach", True)
 
-    @Plugin.command(alises=['store', 'shop'])
+    @Plugin.command(aliases=['store', 'shop'])
     def store(self, event):
         if event.guild is not None:
             event.msg.delete()
