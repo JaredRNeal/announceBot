@@ -158,7 +158,7 @@ class ExperiencePlugin(Plugin):
         xp = user["xp"]
 
         # show xp to user
-        event.channel.send_message("<@{id}> you have {xp} XP!".format(id=str(event.msg.author.id), xp=xp)).after(5).delete()
+        event.channel.send_message("<@{id}> you have {xp} XP!".format(id=str(event.msg.author.id), xp=xp))
         if DM == False:
             event.msg.delete()
 
