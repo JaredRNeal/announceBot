@@ -349,7 +349,7 @@ class ExperiencePlugin(Plugin):
             event.msg.reply(":no_entry_sign: invalid snowflake/mention.").after(5).delete()
             return
         user = self.get_user(uid)
-        event.msg.reply("that user has {xp} XP.".format(xp=user["xp"])).after(10).delete()
+        event.msg.reply("<@{uid}> has {xp} XP.".format(user=str(uid), xp=user["xp"])).after(10).delete()
 
     def check_perms(self, event, type):
         # get roles from the config
