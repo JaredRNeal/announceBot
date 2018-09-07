@@ -188,8 +188,8 @@ class announce(Plugin):
                 if name in args.channel_names or args.channel_names == "all":
                     self.botlog(event, ":lock: The "+name+" channel has been locked by "+str(event.msg.author)+" for the reason: "+args.reason+".")
                     # grab the first (bug hunter or test role) for the queue, grab everyone (or whatever test role is there) for public channels
-                    rolenum = 0 if name == "bug" else 1
-                    role = event.guild.roles[list(self.config.role_IDs_to_lockdown.values())[rolenum]]
+                    rolename = "bug_hunter" if name == "bug" else "everyone"
+                    role = event.guild.roles[self.config.role_IDs_to_lockdown[rolename]]
                     channel = event.guild.channels[channelID]
                     channel.send_message(args.reason)
                     # deny reactions and sending perms
@@ -206,10 +206,10 @@ class announce(Plugin):
                 if name in channels or channels == "all":
                     self.botlog(event, ":unlock: The "+name+" channel has been unlocked by "+str(event.msg.author)+".")
                     # grab the first (bug hunter or test role) for the queue, grab everyone (or whatever test role is there) for public channels
-                    rolenum = 0 if name == "bug" else 1
-                    role = event.guild.roles[list(self.config.role_IDs_to_lockdown.values())[rolenum]]
+                    rolename = "bug_hunter" if name == "bug" else "everyone"
+                    role = event.guild.roles[self.config.role_IDs_to_lockdown[rolename]]
                     channel = event.guild.channels[channelID]
-                    channel.create_overwrite(role, allow=2048 if name is "bug" else 0, deny=64)
+                    channel.create_overwrite(role, allow=2048 if name == "bug" else 0, deny=64)
                     # clean up lockdown message, scan last 5 messages just in case
                     limit = 5
                     count = 0
