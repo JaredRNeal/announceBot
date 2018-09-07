@@ -158,7 +158,7 @@ class ExperiencePlugin(Plugin):
         xp = user["xp"]
 
         # show xp to user
-        event.channel.send_message("<@{id}> you have {xp} XP!".format(id=str(event.msg.author.id), xp=xp)).after(5).delete()
+        event.channel.send_message("<@{id}> you have {xp} XP!".format(id=str(event.msg.author.id), xp=xp))
         if DM == False:
             event.msg.delete()
 
@@ -242,14 +242,14 @@ class ExperiencePlugin(Plugin):
             for uid in event.message.mentions.keys():
                 self.handle_action(uid, "attach", True)
 
-    @Plugin.command("store")
+    @Plugin.command("store", aliases=['shop'])
     def store(self, event):
         if event.guild is not None:
             event.msg.delete()
 
         embed = MessageEmbed()
-        embed.title = "Discord Testers Shop"
-        embed.description = "Use XP to get super cool Dabbit-approved rewards from the shop!"
+        embed.title = "Discord Testers Store"
+        embed.description = "Use XP to get super cool Dabbit-approved rewards from the store!"
         embed.thumbnail.url = "https://cdn.discordapp.com/attachments/330341170720800768/471497246328881153/2Mjvv7E.png"
         embed.color = int(0xe74c3c)  # bug hunter red = #e74c3c
 
@@ -267,7 +267,7 @@ class ExperiencePlugin(Plugin):
             embed.add_field(name=name, value=content, inline=False)
         try:
             channel = event.msg.author.open_dm()
-            channel.send_message("Shop:", embed=embed)
+            channel.send_message("Store:", embed=embed)
         except:
             event.channel.send_message("please open your direct messages.").after(10).delete()
 
@@ -311,7 +311,7 @@ class ExperiencePlugin(Plugin):
                 "xp": user["xp"] - store_item["cost"]
             }
         })
-        event.msg.reply(":ok_hand: item purchased! Note that if them item you purchased needs to be shipped, you have "
+        event.msg.reply(":ok_hand: item purchased! Note that if the item you purchased needs to be shipped, you have "
                         "to contact Dabbit Prime#0896 via DMs to provide a mailing address.").after(15).delete()
         prize_log_channel = self.bot.client.api.channels_get(self.config.channels["prize_log"])
         prize_log_channel.send_message("{name} (`{id}`) bought {title}!".format(
@@ -349,7 +349,7 @@ class ExperiencePlugin(Plugin):
             event.msg.reply(":no_entry_sign: invalid snowflake/mention.").after(5).delete()
             return
         user = self.get_user(uid)
-        event.msg.reply("that user has {xp} XP.".format(xp=user["xp"])).after(10).delete()
+        event.msg.reply("<@{uid}> has {xp} XP.".format(user=str(uid), xp=user["xp"])).after(10).delete()
 
     def check_perms(self, event, type):
         # get roles from the config
