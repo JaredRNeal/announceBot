@@ -311,7 +311,7 @@ class ExperiencePlugin(Plugin):
                 "xp": user["xp"] - store_item["cost"]
             }
         })
-        event.msg.reply(":ok_hand: item purchased! Note that if them item you purchased needs to be shipped, you have "
+        event.msg.reply(":ok_hand: item purchased! Note that if the item you purchased needs to be shipped, you have "
                         "to contact Dabbit Prime#0896 via DMs to provide a mailing address.").after(15).delete()
         prize_log_channel = self.bot.client.api.channels_get(self.config.channels["prize_log"])
         prize_log_channel.send_message("{name} (`{id}`) bought {title}!".format(
