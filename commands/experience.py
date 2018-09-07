@@ -78,9 +78,9 @@ class ExperiencePlugin(Plugin):
         """ handles giving user XP for an action they did. """
         if has_time_limit:
             actions = []
-            for action in self.get_actions(user_id, action):
+        for previous_action in self.get_actions(user_id, action):
                 # if action happened less than 24 hours ago, add it.
-                if action.get("time", 0) + 86400.0 >= time.time():
+                if previous_action.get("time", 0) + 86400.0 >= time.time():
                     actions.append(action)
             if len(actions) >= self.config.reward_limits[action]:
                 return
