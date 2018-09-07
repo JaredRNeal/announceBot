@@ -322,10 +322,10 @@ class ExperiencePlugin(Plugin):
 
         if store_item["id"] == "bug_squasher":
             self.bot.client.api.guilds_members_get(self.config.dtesters_guild_id, event.msg.author.id).add_role(
-                event.guild.roles[self.config.roles["squasher"]])
+                self.bot.client.state.guilds[self.config.dtesters_guild_id].roles[self.config.roles["squasher"]])
         elif store_item["id"] == "fehlerjager_role":
             self.bot.client.api.guilds_members_get(self.config.dtesters_guild_id, event.msg.author.id).add_role(
-                event.guild.roles[self.config.roles["fehlerjager"]])
+                self.bot.client.state.guilds[self.config.dtesters_guild_id].roles[self.config.roles["fehlerjager"]])
 
         self.purchases.insert_one({
             "user_id": str(event.msg.author.id),
