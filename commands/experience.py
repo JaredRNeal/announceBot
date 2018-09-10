@@ -1,4 +1,5 @@
 import time
+import traceback
 
 from disco.bot import Plugin
 from disco.types.message import MessageEmbed
@@ -7,10 +8,9 @@ from pymongo import MongoClient
 from commands.config import ExperiencePluginConfig
 
 
-
 @Plugin.with_config(ExperiencePluginConfig)
 class ExperiencePlugin(Plugin):
-
+    
     def load(self, ctx):
         super(ExperiencePlugin, self).load(ctx)
         self.client = MongoClient(self.config.mongodb_host, self.config.mongodb_port,
@@ -78,10 +78,11 @@ class ExperiencePlugin(Plugin):
         """ handles giving user XP for an action they did. """
         if has_time_limit:
             actions = []
-        for previous_action in self.get_actions(user_id, action):
-                # if action happened less than 24 hours ago, add it.
-                if previous_action.get("time", 0) + 86400.0 >= time.time():
-                    actions.append(action)
+            for previous_action in self.get_actions(user_id, action):
+                    # if action happened less than 24 hours ago, add it.
+                    if previous_action.get("time", 0) + 86400.0 >= time.time():
+                        actions.append(previous_action)
+
             if len(actions) >= self.config.reward_limits[action]:
                 return
         user = self.get_user(user_id)
@@ -116,7 +117,7 @@ class ExperiencePlugin(Plugin):
             if not guild:  # if not in guild, wait until we are.
                 print("[SQ] guild couldn't be found.")
                 return
-            member = guild.get_member(purchase["user_id"])
+            member = guild.get_member(str(purchase["user_id"]))
             # they left, so that means they don't have bug squasher
             if not member:
                 self.set_purchase_expired(purchase["_id"])
@@ -164,19 +165,38 @@ class ExperiencePlugin(Plugin):
 
     @Plugin.command("givexp", "<user_id:str> <points:int>")
     def give_xp(self, event, user_id, points):
+        try:
+            if event.guild is None:
+                return
 
-        if not self.check_perms(event, "admin"):
-            return
+            if not self.check_perms(event, "admin"):
+                return
 
-        uid = self.get_id(user_id)
+            uid = self.get_id(user_id)
 
-        if uid is None:
-            event.msg.reply(":no_entry_sign: invalid snowflake/mention").after(5).delete()
-            return
-        user = self.get_user(uid)
+            if uid is None:
+                event.msg.reply(":no_entry_sign: invalid snowflake/mention").after(5).delete()
+                return
+            user = self.get_user(uid)
 
-        if user["xp"] + points < 0:
-            xp = 0
+            if user["xp"] + points < 0:
+                xp = 0
+                self.users.update_one({
+                    "user_id": str(uid)
+                }, {
+                    "$set": {
+                        "xp": xp
+                    }
+                })
+                self.botlog(event, ":pencil: {mod} updated point total for {user} to {points}".format(
+                    mod=str(event.msg.author),
+                    user=str(uid),
+                    points=str(xp)
+                ))
+                event.msg.reply("User cannot have below 0 points, so set to 0.").after(5).delete()
+                event.msg.delete()
+                return
+            xp = user["xp"] + points
             self.users.update_one({
                 "user_id": str(uid)
             }, {
@@ -184,63 +204,53 @@ class ExperiencePlugin(Plugin):
                     "xp": xp
                 }
             })
+            event.msg.reply(":ok_hand: {user} point total updated to {points}".format(user=str(uid), points=xp)) \
+                .after(5).delete()
+            event.msg.delete()
             self.botlog(event, ":pencil: {mod} updated point total for {user} to {points}".format(
                 mod=str(event.msg.author),
                 user=str(uid),
                 points=str(xp)
             ))
-            event.msg.reply("User cannot have below 0 points, so set to 0.").after(5).delete()
-            event.msg.delete()
-            return
-        xp = user["xp"] + points
-        self.users.update_one({
-            "user_id": str(uid)
-        }, {
-            "$set": {
-                "xp": xp
-            }
-        })
-        event.msg.reply(":ok_hand: {user} point total updated to {points}".format(user=str(uid), points=xp)) \
-            .after(5).delete()
-        event.msg.delete()
-        self.botlog(event, ":pencil: {mod} updated point total for {user} to {points}".format(
-            mod=str(event.msg.author),
-            user=str(uid),
-            points=str(xp)
-        ))
+        except:
+            self.error_log(event, "an error occurred: ```python\n{error}```".format(error=traceback.format_exc()))
+            raise
 
     @Plugin.listen("MessageCreate")
     def message_listener(self, event):
         # Because we don't have Bug-bot access, we have to do it like this :(
+        try:
+            content = event.message.content
+            if event.message.author.id != self.config.bug_bot_user_id:
+                return
+            long_repro_msg = "your repro has been successfully added to the Trello Ticket!"
 
-        content = event.message.content
-        if event.message.author.id != self.config.bug_bot_user_id:
-            return
-        long_repro_msg = "your repro has been successfully added to the Trello Ticket!"
+            # handles approve/deny reports
+            if "you've successfully approved report" in content or "you've successfully denied report" in content:
+                if len(event.message.mentions) != 1:
+                    return
+                for k in event.message.mentions.keys():
+                    self.handle_action(k, "approve_deny", True)
+            # handles canrepro/cantrepro
+            elif "your reproduction has been added to the ticket" in content or long_repro_msg in content:
+                if len(event.message.mentions) != 1:
+                    return
+                for k, v in event.message.mentions.items():
+                    self.handle_action(k, "canrepro_cantrepro", True)
 
-        # handles approve/deny reports
-        if "you've successfully approved report" in content or "you've successfully denied report" in content:
-            if len(event.message.mentions) != 1:
-                return
-            for k in event.message.mentions.keys():
-                self.handle_action(k, "approve_deny", True)
-        # handles canrepro/cantrepro
-        elif "your reproduction has been added to the ticket" in content or long_repro_msg in content:
-            if len(event.message.mentions) != 1:
-                return
-            for k, v in event.message.mentions.items():
-                self.handle_action(k, "canrepro_cantrepro", True)
-
-        elif content.startswith(":incoming_envelope:"):
-            if len(event.message.mentions) != 1:
-                return
-            for uid in event.message.mentions.keys():
-                self.handle_action(uid, "submit", False)
-        elif "your attachment has been added." in content:
-            if len(event.message.mentions) != 1:
-                return
-            for uid in event.message.mentions.keys():
-                self.handle_action(uid, "attach", True)
+            elif content.startswith(":incoming_envelope:"):
+                if len(event.message.mentions) != 1:
+                    return
+                for uid in event.message.mentions.keys():
+                    self.handle_action(uid, "submit", False)
+            elif "your attachment has been added." in content:
+                if len(event.message.mentions) != 1:
+                    return
+                for uid in event.message.mentions.keys():
+                    self.handle_action(uid, "attach", True)
+        except Exception:
+            self.error_log(event, "an error occurred: ```python\n{error}```".format(error=traceback.format_exc()))
+            raise
 
     @Plugin.command("store", aliases=['shop'])
     def store(self, event):
@@ -273,66 +283,70 @@ class ExperiencePlugin(Plugin):
 
     @Plugin.command("buy", "<item:int>")
     def buy(self, event, item):
-        # Check bug hunter
-        dtesters = self.bot.client.api.guilds_get(self.config.dtesters_guild_id)
-        if dtesters is None:
-            return
+        try:
+            # Check bug hunter
+            dtesters = self.bot.client.api.guilds_get(self.config.dtesters_guild_id)
+            if dtesters is None:
+                return
 
-        if event.guild is not None:
-            event.msg.delete()
+            if event.guild is not None:
+                event.msg.delete()
 
-        member = dtesters.get_member(event.msg.author)
-        if member is None:
-            return
+            member = dtesters.get_member(event.msg.author)
+            if member is None:
+                return
 
-        valid = False
-        for role in member.roles:
-            if role == self.config.roles.get("hunter"):
-                valid = True
+            valid = False
+            for role in member.roles:
+                if role == self.config.roles.get("hunter"):
+                    valid = True
 
-        if not valid:
-            return
+            if not valid:
+                return
 
-        if len(self.config.store) < item or item < 1:
-            event.msg.reply(":no_entry_sign: invalid store item! use `+store` to see the items!").after(10).delete()
-            return
+            if len(self.config.store) < item or item < 1:
+                event.msg.reply(":no_entry_sign: invalid store item! use `+store` to see the items!").after(10).delete()
+                return
 
-        store_item = self.config.store[item - 1]
+            store_item = self.config.store[item - 1]
 
-        user = self.get_user(event.msg.author.id)
+            user = self.get_user(event.msg.author.id)
 
-        if user["xp"] < store_item["cost"]:
-            event.msg.reply(":no_entry_sign: you don't have enough XP to buy that!").after(10).delete()
-            return
-        self.users.update_one({
-            "user_id": str(event.msg.author.id)
-        }, {
-            "$set": {
-                "xp": user["xp"] - store_item["cost"]
-            }
-        })
-        event.msg.reply(":ok_hand: item purchased! Note that if the item you purchased needs to be shipped, you have "
-                        "to contact Dabbit Prime#0896 via DMs to provide a mailing address.").after(15).delete()
-        prize_log_channel = self.bot.client.api.channels_get(self.config.channels["prize_log"])
-        prize_log_channel.send_message("{name} (`{id}`) bought {title}!".format(
-            name=str(event.msg.author),
-            id=str(event.msg.author.id),
-            title=store_item["title"]
-        ))
+            if user["xp"] < store_item["cost"]:
+                event.msg.reply(":no_entry_sign: you don't have enough XP to buy that!").after(10).delete()
+                return
+            self.users.update_one({
+                "user_id": str(event.msg.author.id)
+            }, {
+                "$set": {
+                    "xp": user["xp"] - store_item["cost"]
+                }
+            })
+            event.msg.reply(":ok_hand: item purchased! Note that if the item you purchased needs to be shipped, you have "
+                            "to contact Dabbit Prime#0896 via DMs to provide a mailing address.").after(15).delete()
+            prize_log_channel = self.bot.client.api.channels_get(self.config.channels["prize_log"])
+            prize_log_channel.send_message("{name} (`{id}`) bought {title}!".format(
+                name=str(event.msg.author),
+                id=str(event.msg.author.id),
+                title=store_item["title"]
+            ))
 
-        if store_item["id"] == "bug_squasher":
-            self.bot.client.api.guilds_members_get(self.config.dtesters_guild_id, event.msg.author.id).add_role(
-                self.bot.client.state.guilds[self.config.dtesters_guild_id].roles[self.config.roles["squasher"]])
-        elif store_item["id"] == "fehlerjager_role":
-            self.bot.client.api.guilds_members_get(self.config.dtesters_guild_id, event.msg.author.id).add_role(
-                self.bot.client.state.guilds[self.config.dtesters_guild_id].roles[self.config.roles["fehlerjager"]])
+            if store_item["id"] == "bug_squasher":
+                self.bot.client.api.guilds_members_get(self.config.dtesters_guild_id, event.msg.author.id).add_role(
+                    self.bot.client.state.guilds[self.config.dtesters_guild_id].roles[self.config.roles["squasher"]])
+            elif store_item["id"] == "fehlerjager_role":
+                self.bot.client.api.guilds_members_get(self.config.dtesters_guild_id, event.msg.author.id).add_role(
+                    self.bot.client.state.guilds[self.config.dtesters_guild_id].roles[self.config.roles["fehlerjager"]])
 
-        self.purchases.insert_one({
-            "user_id": str(event.msg.author.id),
-            "type": store_item["id"],
-            "time": time.time(),
-            "expired": False if store_item["id"] == "bug_squasher" else True
-        })
+            self.purchases.insert_one({
+                "user_id": str(event.msg.author.id),
+                "type": store_item["id"],
+                "time": time.time(),
+                "expired": False if store_item["id"] == "bug_squasher" else True
+            })
+        except Exception:
+            self.error_log(event, "an error occurred: ```python\n{error}```".format(error=traceback.format_exc()))
+            raise
 
     @Plugin.command("getxp", "<user_id:str>")
     def stats(self, event, user_id):
@@ -349,7 +363,7 @@ class ExperiencePlugin(Plugin):
             event.msg.reply(":no_entry_sign: invalid snowflake/mention.").after(5).delete()
             return
         user = self.get_user(uid)
-        event.msg.reply("<@{uid}> has {xp} XP.".format(user=str(uid), xp=user["xp"])).after(10).delete()
+        event.msg.reply("<@{user}> has {xp} XP.".format(user=str(uid), xp=user["xp"])).after(10).delete()
 
     def check_perms(self, event, type):
         # get roles from the config
@@ -364,3 +378,11 @@ class ExperiencePlugin(Plugin):
     def botlog(self, event, message):
         channel = event.guild.channels[self.config.channels['bot_log']]
         channel.send_message(message)
+
+    def error_log(self, event, message):
+        """ logs an error to the error log """
+        if self.config.channels.get('error_log', '') == '':
+            return
+        channel = event.guild.channels[self.config.channels['error_log']]
+        channel.send_message(message)
+

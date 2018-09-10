@@ -7,3 +7,4 @@ config/
 eventstats.json
 eval.py
 *.png
+config.yaml
