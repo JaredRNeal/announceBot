@@ -81,13 +81,13 @@ class ExperiencePlugin(Plugin):
         """ handles giving user XP for an action they did. """
         if has_time_limit:
             actions = []
-            for previous_action in self.get_actions(user_id, action):
-                    # if action happened less than 24 hours ago, add it.
-                    if previous_action.get("time", 0) + 86400.0 >= time.time():
-                        actions.append(previous_action)
+        for previous_action in self.get_actions(user_id, action):
+                # if action happened less than 24 hours ago, add it.
+                if previous_action.get("time", 0) + 86400.0 >= time.time():
+                    actions.append(previous_action)
 
-            if len(actions) >= self.config.reward_limits[action]:
-                return
+        if len(actions) >= self.config.reward_limits[action]:
+            return
         user = self.get_user(user_id)
         self.users.update_one({
             "user_id": str(user_id)
@@ -267,42 +267,44 @@ class ExperiencePlugin(Plugin):
     @command_wrapper(perm_lvl=0, allowed_in_dm=True)
     def buy(self, event, item):
         if len(self.config.store) < item or item < 1:
-            store_item = self.config.store[item - 1]
+            event.msg.reply(":no_entry_sign: invalid store item! use `+store` to see the items!").after(10).delete()
+            return
+        store_item = self.config.store[item - 1]
 
-            user = self.get_user(event.msg.author.id)
+        user = self.get_user(event.msg.author.id)
 
-            if user["xp"] < store_item["cost"]:
-                event.msg.reply(":no_entry_sign: you don't have enough XP to buy that!").after(10).delete()
-                return
-            self.users.update_one({
-                "user_id": str(event.msg.author.id)
-            }, {
-                "$set": {
-                    "xp": user["xp"] - store_item["cost"]
-                }
-            })
-            event.msg.reply(":ok_hand: item purchased! Note that if the item you purchased needs to be shipped, you have "
-                            "to contact Dabbit Prime#0896 via DMs to provide a mailing address.").after(15).delete()
-            prize_log_channel = self.bot.client.api.channels_get(self.config.channels["prize_log"])
-            prize_log_channel.send_message("{name} (`{id}`) bought {title}!".format(
-                name=str(event.msg.author),
-                id=str(event.msg.author.id),
-                title=store_item["title"]
-            ))
+        if user["xp"] < store_item["cost"]:
+            event.msg.reply(":no_entry_sign: you don't have enough XP to buy that!").after(10).delete()
+            return
+        self.users.update_one({
+            "user_id": str(event.msg.author.id)
+        }, {
+            "$set": {
+                "xp": user["xp"] - store_item["cost"]
+            }
+        })
+        event.msg.reply(":ok_hand: item purchased! Note that if the item you purchased needs to be shipped, you have "
+                        "to contact Dabbit Prime#0896 via DMs to provide a mailing address.").after(15).delete()
+        prize_log_channel = self.bot.client.api.channels_get(self.config.channels["prize_log"])
+        prize_log_channel.send_message("{name} (`{id}`) bought {title}!".format(
+            name=str(event.msg.author),
+            id=str(event.msg.author.id),
+            title=store_item["title"]
+        ))
 
-            if store_item["id"] == "bug_squasher":
-                self.bot.client.api.guilds_members_get(self.config.dtesters_guild_id, event.msg.author.id).add_role(
-                    self.bot.client.state.guilds[self.config.dtesters_guild_id].roles[self.config.roles["squasher"]])
-            elif store_item["id"] == "fehlerjager_role":
-                self.bot.client.api.guilds_members_get(self.config.dtesters_guild_id, event.msg.author.id).add_role(
-                    self.bot.client.state.guilds[self.config.dtesters_guild_id].roles[self.config.roles["fehlerjager"]])
+        if store_item["id"] == "bug_squasher":
+            self.bot.client.api.guilds_members_get(self.config.dtesters_guild_id, event.msg.author.id).add_role(
+                self.bot.client.state.guilds[self.config.dtesters_guild_id].roles[self.config.roles["squasher"]])
+        elif store_item["id"] == "fehlerjager_role":
+            self.bot.client.api.guilds_members_get(self.config.dtesters_guild_id, event.msg.author.id).add_role(
+                self.bot.client.state.guilds[self.config.dtesters_guild_id].roles[self.config.roles["fehlerjager"]])
 
-            self.purchases.insert_one({
-                "user_id": str(event.msg.author.id),
-                "type": store_item["id"],
-                "time": time.time(),
-                "expired": False if store_item["id"] == "bug_squasher" else True
-            })
+        self.purchases.insert_one({
+            "user_id": str(event.msg.author.id),
+            "type": store_item["id"],
+            "time": time.time(),
+            "expired": False if store_item["id"] == "bug_squasher" else True
+        })
 
     @Plugin.command("getxp", "<user_id:str>")
     @command_wrapper()
