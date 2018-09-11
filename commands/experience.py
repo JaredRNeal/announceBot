@@ -1,11 +1,14 @@
 import time
 import traceback
 
+from disco.api.http import APIException
 from disco.bot import Plugin
 from disco.types.message import MessageEmbed
 from pymongo import MongoClient
 
 from commands.config import ExperiencePluginConfig
+
+from util.GlobalHandlers import command_wrapper, log_to_bot_log, handle_exception
 
 
 @Plugin.with_config(ExperiencePluginConfig)
@@ -125,17 +128,12 @@ class ExperiencePlugin(Plugin):
             role = self.config.roles["squasher"]
             if role in member.roles:
                 member.remove_role(role)
+            log_to_bot_log("Removed the bug squasher role from {} as their purchase expired".format(str(member)))
             self.set_purchase_expired(purchase["_id"])
 
     @Plugin.command("xp")
+    @command_wrapper(perm_lvl=0, allowed_on_server=False, allowed_in_dm=True, log=False)
     def get_xp(self, event):
-        if event.guild is not None:
-            return
-
-        DM = False
-        if event.guild is None:
-            DM = True
-
         # Check bug hunter
         dtesters = self.bot.client.api.guilds_get(self.config.dtesters_guild_id)
         member = dtesters.get_member(event.msg.author)
@@ -148,10 +146,7 @@ class ExperiencePlugin(Plugin):
                 valid = True
 
         if not valid:
-
             event.msg.reply("Sorry, only Bug Hunters are able to use the XP system. If you'd like to become a Bug Hunter, read all of <#342043548369158156>").after(5).delete()
-            if DM == False:
-                event.msg.delete()
             return
 
         # find the user's xp
@@ -160,43 +155,19 @@ class ExperiencePlugin(Plugin):
 
         # show xp to user
         event.channel.send_message("<@{id}> you have {xp} XP!".format(id=str(event.msg.author.id), xp=xp))
-        if DM == False:
-            event.msg.delete()
 
     @Plugin.command("givexp", "<user_id:str> <points:int>")
+    @command_wrapper(perm_lvl=2)
     def give_xp(self, event, user_id, points):
-        try:
-            if event.guild is None:
-                return
+        uid = self.get_id(user_id)
 
-            if not self.check_perms(event, "admin"):
-                return
+        if uid is None:
+            event.msg.reply(":no_entry_sign: invalid snowflake/mention").after(5).delete()
+            return
+        user = self.get_user(uid)
 
-            uid = self.get_id(user_id)
-
-            if uid is None:
-                event.msg.reply(":no_entry_sign: invalid snowflake/mention").after(5).delete()
-                return
-            user = self.get_user(uid)
-
-            if user["xp"] + points < 0:
-                xp = 0
-                self.users.update_one({
-                    "user_id": str(uid)
-                }, {
-                    "$set": {
-                        "xp": xp
-                    }
-                })
-                self.botlog(event, ":pencil: {mod} updated point total for {user} to {points}".format(
-                    mod=str(event.msg.author),
-                    user=str(uid),
-                    points=str(xp)
-                ))
-                event.msg.reply("User cannot have below 0 points, so set to 0.").after(5).delete()
-                event.msg.delete()
-                return
-            xp = user["xp"] + points
+        if user["xp"] + points < 0:
+            xp = 0
             self.users.update_one({
                 "user_id": str(uid)
             }, {
@@ -204,17 +175,30 @@ class ExperiencePlugin(Plugin):
                     "xp": xp
                 }
             })
-            event.msg.reply(":ok_hand: {user} point total updated to {points}".format(user=str(uid), points=xp)) \
-                .after(5).delete()
-            event.msg.delete()
-            self.botlog(event, ":pencil: {mod} updated point total for {user} to {points}".format(
+            log_to_bot_log(self.bot, ":pencil: {mod} updated point total for {user} to {points}".format(
                 mod=str(event.msg.author),
                 user=str(uid),
                 points=str(xp)
             ))
-        except:
-            self.error_log(event, "an error occurred: ```python\n{error}```".format(error=traceback.format_exc()))
-            raise
+            event.msg.reply("User cannot have below 0 points, so set to 0.").after(5).delete()
+            event.msg.delete()
+            return
+        xp = user["xp"] + points
+        self.users.update_one({
+            "user_id": str(uid)
+        }, {
+            "$set": {
+                "xp": xp
+            }
+        })
+        event.msg.reply(":ok_hand: {user} point total updated to {points}".format(user=str(uid), points=xp)) \
+            .after(5).delete()
+        event.msg.delete()
+        log_to_bot_log(self.bot, ":pencil: {mod} updated point total for {user} to {points}".format(
+            mod=str(event.msg.author),
+            user=str(uid),
+            points=str(xp)
+        ))
 
     @Plugin.listen("MessageCreate")
     def message_listener(self, event):
@@ -248,14 +232,12 @@ class ExperiencePlugin(Plugin):
                     return
                 for uid in event.message.mentions.keys():
                     self.handle_action(uid, "attach", True)
-        except Exception:
-            self.error_log(event, "an error occurred: ```python\n{error}```".format(error=traceback.format_exc()))
-            raise
+        except Exception as exception:
+            handle_exception(event, self.bot, exception)
 
     @Plugin.command("store", aliases=['shop'])
+    @command_wrapper(perm_lvl=0, allowed_on_server=False, allowed_in_dm=True)
     def store(self, event):
-        if event.guild is not None:
-            event.msg.delete()
 
         embed = MessageEmbed()
         embed.title = "Discord Testers Store"
@@ -278,36 +260,13 @@ class ExperiencePlugin(Plugin):
         try:
             channel = event.msg.author.open_dm()
             channel.send_message("Store:", embed=embed)
-        except:
+        except APIException:
             event.channel.send_message("please open your direct messages.").after(10).delete()
 
     @Plugin.command("buy", "<item:int>")
+    @command_wrapper(perm_lvl=0, allowed_in_dm=True)
     def buy(self, event, item):
-        try:
-            # Check bug hunter
-            dtesters = self.bot.client.api.guilds_get(self.config.dtesters_guild_id)
-            if dtesters is None:
-                return
-
-            if event.guild is not None:
-                event.msg.delete()
-
-            member = dtesters.get_member(event.msg.author)
-            if member is None:
-                return
-
-            valid = False
-            for role in member.roles:
-                if role == self.config.roles.get("hunter"):
-                    valid = True
-
-            if not valid:
-                return
-
-            if len(self.config.store) < item or item < 1:
-                event.msg.reply(":no_entry_sign: invalid store item! use `+store` to see the items!").after(10).delete()
-                return
-
+        if len(self.config.store) < item or item < 1:
             store_item = self.config.store[item - 1]
 
             user = self.get_user(event.msg.author.id)
@@ -344,45 +303,13 @@ class ExperiencePlugin(Plugin):
                 "time": time.time(),
                 "expired": False if store_item["id"] == "bug_squasher" else True
             })
-        except Exception:
-            self.error_log(event, "an error occurred: ```python\n{error}```".format(error=traceback.format_exc()))
-            raise
 
     @Plugin.command("getxp", "<user_id:str>")
+    @command_wrapper()
     def stats(self, event, user_id):
-        if event.guild is None:
-            return
-
-        event.msg.delete()
-
-        if not self.check_perms(event, "mod"):
-            return
-
         uid = self.get_id(user_id)
         if uid is None:
             event.msg.reply(":no_entry_sign: invalid snowflake/mention.").after(5).delete()
             return
         user = self.get_user(uid)
         event.msg.reply("<@{user}> has {xp} XP.".format(user=str(uid), xp=user["xp"])).after(10).delete()
-
-    def check_perms(self, event, type):
-        # get roles from the config
-        roles = getattr(self.config, str(type) + '_roles').values()
-        if any(role in roles for role in event.member.roles):
-            return True
-        event.msg.reply(":lock: You do not have permission to use this command!").after(5).delete()
-        self.botlog(event, ":warning: " + str(
-            event.msg.author) + " tried to use a command they do not have permission to use.")
-        return False
-
-    def botlog(self, event, message):
-        channel = event.guild.channels[self.config.channels['bot_log']]
-        channel.send_message(message)
-
-    def error_log(self, event, message):
-        """ logs an error to the error log """
-        if self.config.channels.get('error_log', '') == '':
-            return
-        channel = event.guild.channels[self.config.channels['error_log']]
-        channel.send_message(message)
-

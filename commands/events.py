@@ -19,6 +19,7 @@ from disco.types.channel import MessageIterator
 
 from commands.config import EventsPluginConfig
 from util import TrelloUtils, Pages, Pie
+from util.GlobalHandlers import command_wrapper, log_to_bot_log
 
 
 @Plugin.with_config(EventsPluginConfig)
@@ -45,11 +46,12 @@ class Events(Plugin):
         Pages.unregister("participants")
 
     @Plugin.command("submit", "[submission:str...]")
+    @command_wrapper(perm_lvl=0, log=False)
     def template(self, event, submission=None):
         """Make a new submission"""
         if self.status != "Started":
             return #no event going on, pretend nothing happened #noleeks
-        if event.guild is None or event.channel.id != self.config.event_channel: #ignore users running this in the wrong channel, also prevents non hunters from submitting
+        if event.channel.id != self.config.event_channel: #ignore users running this in the wrong channel, also prevents non hunters from submitting
             return
 
         help_message = "<@{}> It seems you're missing parts, the syntax for this command is `+submit <trello link> | <where this ticket should be moved to> | <why it should be moved there and/or new steps>`".format(event.author.id)
@@ -143,49 +145,47 @@ class Events(Plugin):
         else:
             event.msg.reply("<@{}> Thanks for your submission!".format(event.author.id))
 
-        self.botlog(event, ":inbox_tray: {} has submitted <https://trello.com/c/{}>".format(str(event.author), trello_info['shortLink']))
+        log_to_bot_log(self.bot, ":inbox_tray: {} has submitted <https://trello.com/c/{}>".format(str(event.author), trello_info['shortLink']))
         self.save_event_stats()
 
 
 
     @Plugin.command('start', group="event")
+    @command_wrapper(perm_lvl=2)
     def start_command(self, event):
         """Start the event"""
-        if self.checkPerms(event, "admin"):
-            # check permissions
-            if self.status != "Scheduled":
-                event.msg.reply("Event has already started")
-                return
+        if self.status != "Scheduled":
+            event.msg.reply("Event has already started")
+            return
 
-            if event.guild is None:
-                return
-            # give bug hunters access to submission channel
-            participants_role = event.guild.roles[int(self.config.participants_role)]
-            event_channel = event.guild.channels[int(self.config.event_channel)]
+        if event.guild is None:
+            return
+        # give bug hunters access to submission channel
+        participants_role = event.guild.roles[int(self.config.participants_role)]
+        event_channel = event.guild.channels[int(self.config.event_channel)]
 
-            #determine current overrides and if one exists just flip the read channel bit around
-            perms = event_channel.overwrites
-            view_channel = 1024
+        #determine current overrides and if one exists just flip the read channel bit around
+        perms = event_channel.overwrites
+        view_channel = 1024
 
-            if participants_role.id in perms.keys():
-                #update existing override
-                allow = perms[participants_role.id].allow.add(view_channel)
-                deny = perms[participants_role.id].deny.sub(view_channel)
-                event_channel.create_overwrite(participants_role, allow = allow, deny=deny)
-            else:
-                #no override present, make a new one
-                event_channel.create_overwrite(participants_role, allow=view_channel, deny=0)
+        if participants_role.id in perms.keys():
+            #update existing override
+            allow = perms[participants_role.id].allow.add(view_channel)
+            deny = perms[participants_role.id].deny.sub(view_channel)
+            event_channel.create_overwrite(participants_role, allow = allow, deny=deny)
+        else:
+            #no override present, make a new one
+            event_channel.create_overwrite(participants_role, allow=view_channel, deny=0)
 
-            self.status = "Started"
-            event.channel.send_message("<:approve:302137375092375553> Submissions channel unlocked and commands unlocked, here we go")
-            self.botlog(event, ":unlock: {name} (`{id}`) started the event.".format(name=str(event.msg.author),
-                                                                                     id=event.msg.author.id))
-            self.save_event_stats()
+        self.status = "Started"
+        event.channel.send_message("<:approve:302137375092375553> Submissions channel unlocked and commands unlocked, here we go")
+        self.botlog(event, ":unlock: {name} (`{id}`) started the event.".format(name=str(event.msg.author),
+                                                                                 id=event.msg.author.id))
+        self.save_event_stats()
 
     @Plugin.command('winners', group="event")
+    @command_wrapper(perm_lvl=2)
     def event_winners(self, event):
-        if not self.checkPerms(event, "admin"):
-            return
         # build list of user ids => number of points
         point_count = dict()
 
@@ -207,32 +207,33 @@ class Events(Plugin):
         event.msg.reply(message)
 
     @Plugin.command('end', group="event")
+    @command_wrapper(perm_lvl=2, log=False)
     def end_event(self, event):
         """End the event, hide channel and prep for approval/denial"""
-        if self.checkPerms(event, "admin"):
-            participants_role = event.guild.roles[int(self.config.participants_role)]
-            event_channel = event.guild.channels[int(self.config.event_channel)]
-            perms = event_channel.overwrites
-            view_channel = 1024
+        participants_role = event.guild.roles[int(self.config.participants_role)]
+        event_channel = event.guild.channels[int(self.config.event_channel)]
+        perms = event_channel.overwrites
+        view_channel = 1024
 
-            if participants_role.id in perms.keys():
-                event_channel.create_overwrite(participants_role, allow=0, deny=1024)
-            else:
-                event_channel.create_overwrite(participants_role, allow=0, deny=1024)
-            event.msg.delete()
-            event.channel.send_message("<{}> Event ended, preparing submissions...".format(self.config.emojis["yes"]))
-            self.botlog(event, ":lock: {user} ended event, prepping the submissions".format(user=str(event.msg.author)))
-            self.status = "Ended"
-            self.save_event_stats()
+        if participants_role.id in perms.keys():
+            event_channel.create_overwrite(participants_role, allow=0, deny=1024)
+        else:
+            event_channel.create_overwrite(participants_role, allow=0, deny=1024)
+        event.msg.delete()
+        event.channel.send_message("<{}> Event ended, preparing submissions...".format(self.config.emojis["yes"]))
+        log_to_bot_log(self.bot, ":lock: {user} ended event, prepping the submissions".format(user=str(event.msg.author)))
+        self.status = "Ended"
+        self.save_event_stats()
 
-            #loop through all submissions and add reactions to it
-            for reporter, report in self.reported_cards.items():
-                message = event_channel.get_message(report["message_id"])
-                self.bot.client.api.channels_messages_reactions_create(event_channel.id, message.id, self.config.emojis["yes"])
-                self.bot.client.api.channels_messages_reactions_create(event_channel.id, message.id, self.config.emojis["no"])
-            event.msg.reply("<@{}> all {} submissions have been prepped for approval/denial!".format(event.author.id, len(self.reported_cards)))
+        #loop through all submissions and add reactions to it
+        for reporter, report in self.reported_cards.items():
+            message = event_channel.get_message(report["message_id"])
+            self.bot.client.api.channels_messages_reactions_create(event_channel.id, message.id, self.config.emojis["yes"])
+            self.bot.client.api.channels_messages_reactions_create(event_channel.id, message.id, self.config.emojis["no"])
+        event.msg.reply("<@{}> all {} submissions have been prepped for approval/denial!".format(event.author.id, len(self.reported_cards)))
 
     @Plugin.command("participants", group="event")
+    @command_wrapper()
     def event_participants(self, event):
         Pages.create_new(self.bot, "participants", event)
 
@@ -260,9 +261,8 @@ class Events(Plugin):
         return embed
 
     @Plugin.command('pie', "<query:str>", group="event")
+    @command_wrapper()
     def event_chart(self, event, query):
-        if not self.checkPerms(event, "mod"):
-            return
         #convert mentions to id
         if query.startswith("<@"):
             query = query[2:-1]
@@ -354,10 +354,9 @@ Remaining: {}
 
 
     @Plugin.command("stats", group="event")
+    @command_wrapper()
     def event_stats(self, event):
         """Current event stats"""
-        if not self.checkPerms(event, "mod"):
-            return
 
         info = self.calc_event_stats()
         message = """
@@ -425,39 +424,36 @@ Remaining: {}
         return info
 
     @Plugin.command('cleanuser', "<user:snowflake> <reason:str...>", group="event")
+    @command_wrapper(log=False)
     def clear_user(self, event, user, reason):
         """Someone's been so bad we need to remove all their submissions :("""
-        if event.guild is None:
+        if not str(user) in self.participants:
+            #that definitely was the wrong user
+            event.msg.reply("This user has not participated in the event")
             return
-        if self.checkPerms(event, "mod"):
-            if not str(user) in self.participants:
-                #that definitely was the wrong user
-                event.msg.reply("This user has not participated in the event")
-                return
-            else:
-                #seperate list to remove as we can't alter the list we are iterating over
-                to_remove = []
-                for rid, report in self.reported_cards.items():
-                    if str(user) == str(report["author_id"]):
-                        try:
-                            channel = event.guild.channels[self.config.event_channel]
-                            channel.get_message(report["message_id"]).delete()
-                        except APIException:
-                            pass #mod already removed it?
-                        to_remove.append(rid)
-                for r in to_remove:
-                    del self.reported_cards[r]
-                event.channel.send_message("<{}> cleared reports from {}.".format(self.config.emojis["yes"], self.participants[str(user)]))
-                self.botlog(event, ":wastebasket: {mod} cleared all submissions for {user} with reason {reason}".format(
-                    mod=str(event.msg.author), user=self.participants[str(user)], reason=reason))
-                del self.participants[str(user)]
-                self.save_event_stats()
+        else:
+            #seperate list to remove as we can't alter the list we are iterating over
+            to_remove = []
+            for rid, report in self.reported_cards.items():
+                if str(user) == str(report["author_id"]):
+                    try:
+                        channel = event.guild.channels[self.config.event_channel]
+                        channel.get_message(report["message_id"]).delete()
+                    except APIException:
+                        pass #mod already removed it?
+                    to_remove.append(rid)
+            for r in to_remove:
+                del self.reported_cards[r]
+            event.channel.send_message("<{}> cleared reports from {}.".format(self.config.emojis["yes"], self.participants[str(user)]))
+            log_to_bot_log(self.bot, ":wastebasket: {mod} cleared all submissions for {user} with reason {reason}".format(
+                mod=str(event.msg.author), user=self.participants[str(user)], reason=reason))
+            del self.participants[str(user)]
+            self.save_event_stats()
 
     @Plugin.command("points", "<user:snowflake>")
+    @command_wrapper()
     def points(self, event, user):
         """Points acquired by someone"""
-        if not self.checkPerms(event, "mod"):
-            return
         event.msg.delete()
         if not str(user) in self.participants.keys():
             message = "This user has not participated in the event yet."
@@ -471,6 +467,7 @@ Remaining: {}
             event.msg.reply(message.format(self.participants[str(user)], points))
 
     @Plugin.command("revoke", "<report:str>")
+    @command_wrapper(perm_lvl=0, log=False)
     def revoke(self, event, report):
         """Revoke a submission"""
         if event.msg.channel.id != self.config.event_channel:
@@ -495,10 +492,11 @@ Remaining: {}
         event.msg.channel.get_message(report_info["message_id"]).delete()
         del self.reported_cards[trello_info["id"]]
         event.msg.reply(":warning: Your submission has been nuked <@{}>!".format(event.author.id))
-        self.botlog(event, ":outbox_tray:  {} has revoked <https://trello.com/c/{}>".format(str(event.author), trello_info['shortLink']))
+        log_to_bot_log(self.bot, ":outbox_tray:  {} has revoked <https://trello.com/c/{}>".format(str(event.author), trello_info['shortLink']))
         self.save_event_stats()
 
     @Plugin.command("edit", "<details:str...>")
+    @command_wrapper(perm_lvl=0, log=False)
     def edit(self, event, details):
         if event.msg.channel.id != self.config.event_channel:
             return
@@ -553,12 +551,11 @@ Remaining: {}
         dmessage.edit(new_message)
 
         event.channel.send_message("<@{}>, your report has been updated!".format(event.author.id))
-        self.botlog(event, ":pencil: {} has updated the {} of their submission for <https://trello.com/c/{}>".format(str(event.author), section.lower(), trello_info["shortLink"]))
+        log_to_bot_log(self.bot, ":pencil: {} has updated the {} of their submission for <https://trello.com/c/{}>".format(str(event.author), section.lower(), trello_info["shortLink"]))
 
     @Plugin.command("remove", "<report:str>", group="event")
+    @command_wrapper(log=False)
     def remove_report(self, event, report):
-        if not self.checkPerms(event, "mod"):
-            return
         trello_info = TrelloUtils.getCardInfo(event, report)
         if trello_info is None:
             event.msg.reply("I can't even fetch info for that, you sure someone reported that one?")
@@ -571,13 +568,12 @@ Remaining: {}
         event.guild.channels[self.config.event_channel].get_message(report_info["message_id"]).delete()
         del self.reported_cards[trello_info["id"]]
         event.msg.reply(":warning: Submission has been nuked <@{}>!".format(event.author.id))
-        self.botlog(event, ":wastebasket: {} has removed <https://trello.com/c/{}>".format(str(event.author), trello_info['shortLink']))
+        log_to_bot_log(self.bot, ":wastebasket: {} has removed <https://trello.com/c/{}>".format(str(event.author), trello_info['shortLink']))
 
 
     @Plugin.command("import", "<channel_id:snowflake>", group="event")
+    @command_wrapper(perm_lvl=2)
     def import_event(self, event, channel_id):
-        if not self.checkPerms(event, "admin"):
-            return
         if self.status != "Scheduled":
             event.msg.reply("I have event data loaded, import aborted to prevent data corruption, please remove/rename the current eventstats file and reboot")
             return
@@ -663,9 +659,8 @@ Invalid entries skipped: {}
 
 
     @Plugin.command("next")
+    @command_wrapper()
     def next(self, event):
-        if not self.checkPerms(event, "admin"):
-            return
         event.msg.delete()
 
         message = "Yes I do have more reports for you!\n\n"
@@ -748,16 +743,6 @@ Invalid entries skipped: {}
                 print(":rotating_light: <@110813477156720640> load from disc: {file}\nstrerror: {strerror}".format(file='eventstats.json', strerror=ex.strerror))
                 traceback.print_exc()
 
-    def checkPerms(self, event, role):
-        # get roles from the config
-        roles = getattr(self.config, str(role) + '_roles').values()
-        if any(role in roles for role in event.member.roles):
-            return True
-        event.msg.reply(":lock: You do not have permission to use this command!")
-        self.botlog(event, ":warning: " + str(
-            event.msg.author) + " tried to use a command they do not have permission to use.")
-        return False
-
     @Plugin.listen('MessageCreate')
     def no_chat_allowed(self, event):
         if not self.status == "Started":
@@ -785,7 +770,3 @@ Invalid entries skipped: {}
                 except APIException:
                     pass  # already gone, no need to clean
 
-
-    def botlog(self, event, message):
-        channel = event.guild.channels[self.config.bot_log]
-        channel.send_message(message)
