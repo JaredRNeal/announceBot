@@ -85,7 +85,7 @@ def handle_exception(event, bot, exception):
     embed.add_field(name="Original message", value=str(event.msg.content))
     embed.add_field(name="Channel", value="{} ({})".format(event.msg.channel.name, event.msg.channel.id))
     embed.add_field(name="Sender", value=str(event.msg.author))
-    # embed.add_field(name="Exception", value=str(exception))
+    embed.add_field(name="Exception", value=str(exception))
     embed.add_field(name="Stacktrace", value=str(traceback.format_exc()))
     embed.timestamp = datetime.utcnow().isoformat()
     embed.color = int('ff0000', 16)
