@@ -56,11 +56,6 @@ class AnnounceBotConfig(Config):
         'everyone': 411673927698350100
     }
     """
-    #DTesters IDs:
-    admin_roles = {
-        'admin': 197042322939052032,
-        'employee': 197042389569765376
-    }
     role_IDs = {
         'android': 234838349800538112,
         'bug': 197042209038663680,
@@ -72,12 +67,6 @@ class AnnounceBotConfig(Config):
         'test': 441010616388419584
         }
 
-    mod_roles = {
-        'modinator': 440322144593772545,
-        'admin': 197042322939052032,
-        'employee': 197042389569765376
-
-    }
 
     channel_IDs = {
         'android': 411645018105970699,
@@ -143,11 +132,6 @@ class AnnounceBotConfig(Config):
 
 class EventsPluginConfig(Config):
 
-    admin_roles = {
-        'admin': 197042322939052032,
-        'employee': 197042389569765376
-    }
-
     role_IDs = {
         'android': 234838349800538112,
         'bug': 197042209038663680,
@@ -159,19 +143,12 @@ class EventsPluginConfig(Config):
         'test': 441010616388419584
         }
 
-    mod_roles = {
-        'modinator': 440322144593772545,
-        'admin': 197042322939052032,
-        'employee': 197042389569765376
-    }
     emojis = {
         "yes": ":gearYes:459697272326848520",
         "no": ":gearNo:459697272314265600"
     }
 
     boards = {}
-
-    bot_log= 0
     event_channel = 0
 
 class ExperiencePluginConfig(Config):
@@ -182,7 +159,6 @@ class ExperiencePluginConfig(Config):
     mongodb_port = 27017
 
     bug_bot_user_id = 240545475118235648
-    dtesters_guild_id = 197038439483310086
 
     roles = {
         "admin": 197042322939052032,
@@ -191,17 +167,6 @@ class ExperiencePluginConfig(Config):
         "hunter": 197042209038663680,
         "fehlerjager": 268404368435445761,
         "squasher": 254347601288101888
-    }
-
-    admin_roles = {
-        'admin': 197042322939052032,
-        'employee': 197042389569765376
-    }
-
-    mod_roles = {
-        'modinator': 440322144593772545,
-        'admin': 197042322939052032,
-        'employee': 197042389569765376
     }
 
     channels = {
