@@ -3,7 +3,7 @@ from disco.bot import Plugin
 from disco.types.guild import VerificationLevel
 
 from commands.config import AnnounceBotConfig
-from util.GlobalHandlers import command_wrapper, log_to_bot_log
+from util.GlobalHandlers import command_wrapper, log_to_bot_log, handle_exception
 
 
 @Plugin.with_config(AnnounceBotConfig)
@@ -209,15 +209,16 @@ class announce(Plugin):
         event.msg.reply("Unlock command has successfully completed!")
 
     @Plugin.command('verification', '<level:str> [reason:str...]')
-    @command_wrapper()
+    @command_wrapper(log=False)
     def change_verification_level(self, event, level, reason=None):
         vl = VerificationLevel.get(level.lower())
         if vl is not None:
             if event.guild.verification_level != vl:
                 try:
                     self.bot.client.api.guilds_modify(event.guild.id, reason, verification_level=vl.value)
-                except APIException:
+                except APIException as e:
                     event.msg.reply("Failed to change the server verification level")
+                    handle_exception(event, self.bot, e)
                 else:
                     if reason is None:
                         reason = ""
