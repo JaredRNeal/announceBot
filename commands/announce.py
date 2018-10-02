@@ -1,5 +1,6 @@
 from disco.api.http import APIException
 from disco.bot import Plugin
+from disco.types.guild import VerificationLevel
 
 from commands.config import AnnounceBotConfig
 from util.GlobalHandlers import command_wrapper, log_to_bot_log
@@ -206,6 +207,28 @@ class announce(Plugin):
                     if count >= limit:
                         break
         event.msg.reply("Unlock command has successfully completed!")
+
+    @Plugin.command('verification', '<level:str> [reason:str...]')
+    @command_wrapper()
+    def change_verification_level(self, event, level, reason=None):
+        vl = VerificationLevel.get(level.lower())
+        if vl is not None:
+            if event.guild.verification_level != vl:
+                try:
+                    self.bot.client.api.guilds_modify(event.guild.id, reason, verification_level=vl.value)
+                except APIException:
+                    event.msg.reply("Failed to change the server verification level")
+                else:
+                    if reason is None:
+                        reason = ""
+                    else:
+                        reason = " with reason `{}`".format(reason)
+                    log_to_bot_log(self.bot, ":vertical_traffic_light: {} changed the server verification level to {}{}".format(event.msg.author, level, reason))
+                    event.msg.reply("Server verification level changed successfully")
+            else:
+                event.msg.reply("The server verification level is already set to {}".format(level))
+        else:
+            event.msg.reply("That level name doesn't seem to be valid")
 
     @Plugin.command('a11y')
     def grant_role(self, event):
