@@ -206,3 +206,39 @@ class ExperiencePluginConfig(Config):
                            "Discord profile!"
         }
     ]
+
+
+class GuideConfig(Config):
+    guides = {
+        "test-guide": {
+            "title": "Test Guide",
+            "description": "Testing test test. test test?",
+            "pages": [
+                {
+                    "title": "Test Table of Contents",
+                    "description": "testing the table of contents",
+                    "fields": [{
+                        "name": "test field",
+                        "value": "test value"
+                    }],
+                    "table_of_contents": True
+                },
+                {
+                    "title": "Test Page 1",
+                    "description": "TEST",
+                    "fields": [{
+                        "name": "test",
+                        "value": "Testing stuff. *test* test test **test**!"
+                    }]
+                },
+                {
+                    "title": "Test Page 2",
+                    "description": "TEST",
+                    "fields": [{
+                        "name": "test",
+                        "value": "Testing more stuff. *test test* test test **test**! (2)"
+                    }]
+                }
+            ]
+        }
+    }

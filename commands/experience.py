@@ -1,5 +1,5 @@
 import time
-import traceback
+import math
 
 from disco.api.http import APIException
 from disco.bot import Plugin
@@ -9,6 +9,7 @@ from pymongo import MongoClient
 from commands.config import ExperiencePluginConfig
 
 from util.GlobalHandlers import command_wrapper, log_to_bot_log, handle_exception
+from util import Pages
 
 
 @Plugin.with_config(ExperiencePluginConfig)
@@ -23,11 +24,66 @@ class ExperiencePlugin(Plugin):
         self.users = self.database.get_collection("users")
         self.actions = self.database.get_collection("actions")
         self.purchases = self.database.get_collection("purchases")
+        Pages.register("xp_store", self.initialize_pages, self.update_page)
 
     def unload(self, ctx):
         self.users.save()
         self.actions.save()
         super(ExperiencePlugin, self).load(ctx)
+
+    def initialize_pages(self, event):
+        page_count = self.generate_page_count()
+        return "Store:", self.generate_page(0, page_count - 1), page_count >= 2
+
+    def update_page(self, message, page_num, action, data):
+        page_count = self.generate_page_count()
+        if action == "PREV":
+            if page_num == 0:
+                return "Store:", self.generate_page(page_count - 1, page_count - 1), page_count - 1
+            new_page = page_num - 1
+        else:
+            if page_num + 2 > page_count:
+                return "Store:", self.generate_page(0, page_count - 1), 0
+            new_page = page_num + 1
+        return "Store:", self.generate_page(new_page, page_count - 1), new_page
+
+    def generate_store_embed(self, current, max):
+        embed = MessageEmbed()
+        embed.title = "Discord Testers Store ({current}/{max})".format(current=str(current + 1), max=str(max + 1))
+        embed.description = "Use XP to get super cool Dabbit-approve:tm: rewards from the store!"
+        embed.thumbnail.url = "https://cdn.discordapp.com/attachments/330341170720800768/471497246328881153/2Mjvv7E.png"
+        embed.color = int(0xe74c3c)
+        return embed
+
+    def generate_page_count(self):
+        item_length = len(self.config.store)
+        return math.ceil(item_length / 2)
+
+    def generate_page(self, current, max):
+        items = self.generate_items(current * 2)
+        embed = self.generate_store_embed(current, max)
+        for item in items:
+            name = item["title"]
+            content = "Cost: {cost}\nDescription: {description}\n{link}Buy this with `+buy {id}`".format(
+                cost=item["cost"],
+                description=item["description"],
+                link="" if item.get("link", None) is None else "[Example]({link})\n".format(link=item["link"]),
+                id=item["id"] + 1
+            )
+            embed.add_field(name=name, value=content)
+        return embed
+
+    def generate_items(self, index):
+        if len(self.config.store) <= index:
+            return []
+        fields = []
+        i = 0
+        for store_item in self.config.store:
+            if index <= i < index + 2:
+                store_item["id"] = i
+                fields.append(store_item)
+            i = i + 1
+        return fields
 
     def get_user(self, id):
         """
@@ -238,33 +294,10 @@ class ExperiencePlugin(Plugin):
     @Plugin.command("store", aliases=['shop'])
     @command_wrapper(perm_lvl=0, allowed_on_server=False, allowed_in_dm=True)
     def store(self, event):
-
-        embed = MessageEmbed()
-        embed.title = "Discord Testers Store"
-        embed.description = "Use XP to get super cool Dabbit-approved rewards from the store!"
-        embed.thumbnail.url = "https://cdn.discordapp.com/attachments/330341170720800768/471497246328881153/2Mjvv7E.png"
-        embed.color = int(0xe74c3c)  # bug hunter red = #e74c3c
-
-        index = 0
-        for item in self.config.store:
-            index = index + 1
-            name = item["title"]
-            content = "Cost: {cost}\nDescription: {description}\n{link}Buy this with `+buy {id}`".format(
-                cost=item["cost"],
-                description=item["description"],
-                link="" if item.get("link", None) is None else "[Example]({link})\n".format(link=item["link"]),
-                id=index
-            )
-
-            embed.add_field(name=name, value=content, inline=False)
-        try:
-            channel = event.msg.author.open_dm()
-            channel.send_message("Store:", embed=embed)
-        except APIException:
-            event.channel.send_message("please open your direct messages.").after(10).delete()
+        Pages.create_new(self.bot, "xp_store", event)
 
     @Plugin.command("buy", "<item:int>")
-    @command_wrapper(perm_lvl=0, allowed_in_dm=True)
+    @command_wrapper(perm_lvl=0, allowed_in_dm=True, allowed_on_server=False)
     def buy(self, event, item):
         if len(self.config.store) < item or item < 1:
             event.msg.reply(":no_entry_sign: invalid store item! use `+store` to see the items!").after(10).delete()
