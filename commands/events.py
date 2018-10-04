@@ -5,6 +5,7 @@ matplotlib.use('Agg')
 from matplotlib import pyplot
 import json
 import math
+import calendar
 import os.path
 import time
 import traceback
@@ -102,7 +103,7 @@ class Events(Plugin):
                 error = "<@{}> This card is in the {} list instead of an event list, thanks for the submission but no thanks.".format(event.author.id, listname)
             elif trello_info["closed"] is True:
                 #archived card
-                error = "<@{}> _cough cough_ that card has been archived and collected way to much dust for me to do anything with it".format(event.author.id)
+                error = "<@{}> _cough cough_ that card has been archived and collected way too much dust for me to do anything with it".format(event.author.id)
 
         if error is not None:
             #card failed one of the checks, inform user and terminate processing
@@ -117,13 +118,13 @@ class Events(Plugin):
 **Destination**: {}
 **Submitted by**: {}
 **Detailed info**: {}
-**Trello link**: {}""".format(board["name"], board["emoji"], listname, destination, str(event.author), info,
+**Trello link**: {}""".format(board["name"], board["emoji"], listname, destination, str(event.author.id), info,
                                           trello_info["shortUrl"])
             #sanitze the entire thing, no pinging or breaking codeblocks
             message = sanitize.S(message, escape_codeblocks=True)
             if len(message) > 2000:
                 #discord only accepts essays up to 2000 characters
-                event.msg.reply("<@{}> Sorry, but that report is too long for me to process, would mind removing {} characters? Then everything should be fine again.".format(event.author.id, len(message) - 2000))
+                event.msg.reply("<@{}> Sorry, but that report is too long for me to process, would you mind removing {} characters? Then everything should be fine again.".format(event.author.id, len(message) - 2000))
                 return
             #send the submission and clean input
             dmessage = event.msg.reply(message)
@@ -135,17 +136,17 @@ class Events(Plugin):
                 list= trello_info["idList"],
                 message_id= dmessage.id,
                 status= "Submitted",
-                report_time = datetime.utcnow().timestamp()
+                report_time = calendar.timegm(datetime.utcnow().utctimetuple())
         )
 
         if not str(event.author.id) in self.participants.keys():
             #this person has not submitted anything yet, special message
-            self.participants[str(event.author.id)] = str(event.author)
+            self.participants[str(event.author.id)] = str(event.author.id)
             event.msg.reply("<@{}> Achievement get! Successfully submitted your first event entry :tada:".format(event.author.id))
         else:
             event.msg.reply("<@{}> Thanks for your submission!".format(event.author.id))
 
-        log_to_bot_log(self.bot, ":inbox_tray: {} has submitted <https://trello.com/c/{}>".format(str(event.author), trello_info['shortLink']))
+        log_to_bot_log(self.bot, ":inbox_tray: {} has submitted <https://trello.com/c/{}>".format(str(event.author.id), trello_info['shortLink']))
         self.save_event_stats()
 
 
@@ -179,7 +180,7 @@ class Events(Plugin):
 
         self.status = "Started"
         event.channel.send_message("<:approve:302137375092375553> Submissions channel unlocked and commands unlocked, here we go")
-        self.botlog(event, ":unlock: {name} (`{id}`) started the event.".format(name=str(event.msg.author),
+        log_to_bot_log(self.bot, ":unlock: {name} (`{id}`) started the event.".format(name=str(event.msg.author),
                                                                                  id=event.msg.author.id))
         self.save_event_stats()
 
@@ -749,7 +750,7 @@ Invalid entries skipped: {}
             return
         #update username cache
         if str(event.author.id) in self.participants.keys():
-            if str(event.author) != self.participants[str(event.author.id)]:
+            if str(event.author.id) != self.participants[str(event.author.id)]:
                 self.participants[str(event.author.id)] = str(event.author)
                 #todo, update report or switch them to use id pings
         if event.channel.id != self.config.event_channel:

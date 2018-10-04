@@ -1,5 +1,5 @@
 import time
-import math
+import traceback
 
 from disco.api.http import APIException
 from disco.bot import Plugin
@@ -9,7 +9,6 @@ from pymongo import MongoClient
 from commands.config import ExperiencePluginConfig
 
 from util.GlobalHandlers import command_wrapper, log_to_bot_log, handle_exception
-from util import Pages
 
 
 @Plugin.with_config(ExperiencePluginConfig)
@@ -300,14 +299,14 @@ class ExperiencePlugin(Plugin):
     @command_wrapper(perm_lvl=0, allowed_in_dm=True, allowed_on_server=False)
     def buy(self, event, item):
         if len(self.config.store) < item or item < 1:
-            event.msg.reply(":no_entry_sign: invalid store item! use `+store` to see the items!").after(10).delete()
+            event.msg.reply(":no_entry_sign: invalid store item! use `+store` to see the items!")
             return
         store_item = self.config.store[item - 1]
 
         user = self.get_user(event.msg.author.id)
 
         if user["xp"] < store_item["cost"]:
-            event.msg.reply(":no_entry_sign: you don't have enough XP to buy that!").after(10).delete()
+            event.msg.reply(":no_entry_sign: you don't have enough XP to buy that!")
             return
         self.users.update_one({
             "user_id": str(event.msg.author.id)
@@ -317,7 +316,7 @@ class ExperiencePlugin(Plugin):
             }
         })
         event.msg.reply(":ok_hand: item purchased! Note that if the item you purchased needs to be shipped, you have "
-                        "to contact Dabbit Prime#0896 via DMs to provide a mailing address.").after(15).delete()
+                        "to contact Dabbit Prime#0896 via DMs to provide a mailing address.").
         prize_log_channel = self.bot.client.api.channels_get(self.config.channels["prize_log"])
         prize_log_channel.send_message("{name} (`{id}`) bought {title}!".format(
             name=str(event.msg.author),
