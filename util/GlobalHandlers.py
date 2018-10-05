@@ -33,7 +33,7 @@ PERM_CHECKS = [
 ]
 
 #this handles all the command wrapping, with some defaults
-def command_wrapper(perm_lvl = 1, log=True, allowed_on_server = True, allowed_in_dm = False):
+def command_wrapper(perm_lvl = 1, log=True, allowed_on_server = True, allowed_in_dm = False, skip_perm_check = False):
     def func_receiver(func):
         def func_wrapper(*args, **kwargs):
             if not LOADED:
@@ -43,7 +43,7 @@ def command_wrapper(perm_lvl = 1, log=True, allowed_on_server = True, allowed_in
             event = args[1]
             #grab user from guild and validate permissions (this assumes the user is on there, but since the bot is not used anywhere else this is a safe assumption to make)
             member = plugin.bot.client.api.guilds_members_get(INFO["SERVER_ID"], event.msg.author.id)
-            allowed = PERM_CHECKS[perm_lvl](member)
+            allowed = PERM_CHECKS[perm_lvl](member) or skip_perm_check
             if not allowed:
                 log_to_bot_log(plugin.bot, ":warning: {} tried to use a command they do not have permission to use: ``{} ``".format(str(event.msg.author), sanitize.S(event.msg.content, escape_codeblocks=True)))
                 event.msg.reply(":lock: You do not have permission to use this command!").after(10).delete()
