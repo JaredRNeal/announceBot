@@ -20,7 +20,7 @@ class Pager(Plugin):
         message = self.bot.client.api.channels_messages_get(event.channel_id, event.message_id)
         if event.emoji.name == Pages.prev_emoji:
             Pages.update(message, "PREV", event.user_id)
-        elif event.emoji.name == Pages.next_emoji:
+        elif str(event.emoji.name) == str(Pages.next_emoji):
             Pages.update(message, "NEXT", event.user_id)
 
     @Plugin.listen("MessageReactionRemove")

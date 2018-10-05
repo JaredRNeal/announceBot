@@ -87,7 +87,6 @@ class GuidePlugin(Plugin):
             else:
                 new_page_number = page_num
                 new_page_number += 1
-        print(str(page_num))
         return "Guide:", self.generate_page(new_page_number, data["sender"], data["guide"]), new_page_number
 
     @Plugin.command("guide", "<guide_name:str>")

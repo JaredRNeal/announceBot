@@ -9,11 +9,12 @@ from pymongo import MongoClient
 from commands.config import ExperiencePluginConfig
 
 from util.GlobalHandlers import command_wrapper, log_to_bot_log, handle_exception
+from util import Pages
 
 
 @Plugin.with_config(ExperiencePluginConfig)
 class ExperiencePlugin(Plugin):
-    
+
     def load(self, ctx):
         super(ExperiencePlugin, self).load(ctx)
         self.client = MongoClient(self.config.mongodb_host, self.config.mongodb_port,
@@ -316,7 +317,7 @@ class ExperiencePlugin(Plugin):
             }
         })
         event.msg.reply(":ok_hand: item purchased! Note that if the item you purchased needs to be shipped, you have "
-                        "to contact Dabbit Prime#0896 via DMs to provide a mailing address.").
+                        "to contact Dabbit Prime#0896 via DMs to provide a mailing address.")
         prize_log_channel = self.bot.client.api.channels_get(self.config.channels["prize_log"])
         prize_log_channel.send_message("{name} (`{id}`) bought {title}!".format(
             name=str(event.msg.author),

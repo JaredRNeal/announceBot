@@ -57,7 +57,7 @@ def command_wrapper(perm_lvl = 1, log=True, allowed_on_server = True, allowed_in
                         handle_exception(event, plugin.bot, exception)
                     else:
                         if log:
-                            log_to_bot_log(plugin.bot, ":wrench: {} executed a command: {}".format(str(event.msg.author), sanitize.S(event.msg.content, escape_codeblocks=True)))
+                            log_to_bot_log(plugin.bot, ":wrench: <@{}> executed a command: {}".format(str(event.msg.author.id), sanitize.S(event.msg.content, escape_codeblocks=True)))
         return func_wrapper
     return func_receiver
 

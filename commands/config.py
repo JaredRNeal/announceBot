@@ -159,6 +159,7 @@ class ExperiencePluginConfig(Config):
     mongodb_port = 27017
 
     bug_bot_user_id = 240545475118235648
+    dtesters_guild_id = 197038439483310086
 
     roles = {
         "admin": 197042322939052032,
