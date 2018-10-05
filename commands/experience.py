@@ -1,5 +1,6 @@
 import time
 import traceback
+import math
 
 from disco.api.http import APIException
 from disco.bot import Plugin
@@ -50,7 +51,7 @@ class ExperiencePlugin(Plugin):
     def generate_store_embed(self, current, max):
         embed = MessageEmbed()
         embed.title = "Discord Testers Store ({current}/{max})".format(current=str(current + 1), max=str(max + 1))
-        embed.description = "Use XP to get super cool Dabbit-approve:tm: rewards from the store!"
+        embed.description = "Use XP to get super cool Dabbit-approved:tm: rewards from the store!"
         embed.thumbnail.url = "https://cdn.discordapp.com/attachments/330341170720800768/471497246328881153/2Mjvv7E.png"
         embed.color = int(0xe74c3c)
         return embed
@@ -135,8 +136,7 @@ class ExperiencePlugin(Plugin):
 
     def handle_action(self, user_id, action, has_time_limit):
         """ handles giving user XP for an action they did. """
-        if has_time_limit:
-            actions = []
+        actions = []
         for previous_action in self.get_actions(user_id, action):
                 # if action happened less than 24 hours ago, add it.
                 if previous_action.get("time", 0) + 86400.0 >= time.time():
