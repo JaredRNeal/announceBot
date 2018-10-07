@@ -20,7 +20,7 @@ from disco.types.channel import MessageIterator
 
 from commands.config import EventsPluginConfig
 from util import TrelloUtils, Pages, Pie
-from util.GlobalHandlers import command_wrapper, log_to_bot_log
+from util.GlobalHandlers import command_wrapper, log_to_bot_log, handle_exception
 
 
 @Plugin.with_config(EventsPluginConfig)
@@ -47,7 +47,7 @@ class Events(Plugin):
         Pages.unregister("participants")
 
     @Plugin.command("submit", "[submission:str...]")
-    @command_wrapper(perm_lvl=0, log=False)
+    @command_wrapper(perm_lvl=1, log=False)
     def template(self, event, submission=None):
         """Make a new submission"""
         if self.status != "Started":
@@ -136,23 +136,23 @@ class Events(Plugin):
                 list= trello_info["idList"],
                 message_id= dmessage.id,
                 status= "Submitted",
-                report_time = calendar.timegm(datetime.utcnow().utctimetuple())
+                report_time = datetime.utcnow().timestamp()
         )
 
         if not str(event.author.id) in self.participants.keys():
             #this person has not submitted anything yet, special message
-            self.participants[str(event.author.id)] = str(event.author.id)
+            self.participants[str(event.author.id)] = str(event.author)
             event.msg.reply("<@{}> Achievement get! Successfully submitted your first event entry :tada:".format(event.author.id))
         else:
             event.msg.reply("<@{}> Thanks for your submission!".format(event.author.id))
 
-        log_to_bot_log(self.bot, ":inbox_tray: {} has submitted <https://trello.com/c/{}>".format(str(event.author.id), trello_info['shortLink']))
+        log_to_bot_log(self.bot, f":inbox_tray: {event.author} (``{event.author.id}``) has submitted <https://trello.com/c/{trello_info['shortLink']}>")
         self.save_event_stats()
 
 
 
     @Plugin.command('start', group="event")
-    @command_wrapper(perm_lvl=2)
+    @command_wrapper(perm_lvl=3)
     def start_command(self, event):
         """Start the event"""
         if self.status != "Scheduled":
@@ -185,7 +185,7 @@ class Events(Plugin):
         self.save_event_stats()
 
     @Plugin.command('winners', group="event")
-    @command_wrapper(perm_lvl=2)
+    @command_wrapper(perm_lvl=3)
     def event_winners(self, event):
         # build list of user ids => number of points
         point_count = dict()
@@ -208,7 +208,7 @@ class Events(Plugin):
         event.msg.reply(message)
 
     @Plugin.command('end', group="event")
-    @command_wrapper(perm_lvl=2, log=False)
+    @command_wrapper(perm_lvl=3, log=False)
     def end_event(self, event):
         """End the event, hide channel and prep for approval/denial"""
         participants_role = event.guild.roles[int(self.config.participants_role)]
@@ -249,11 +249,19 @@ class Events(Plugin):
 
     def gen_participants_pages(self):
         info = ""
+        point_count = dict()
+        for rid, report in self.reported_cards.items():
+            user = str(report["author_id"])
+            if not user in point_count.keys():
+                point_count[user] = 0
+            if report["status"] == "Approved":
+                point_count[user] += self.config.boards[report["board"]]["points"]
         for participant_id, name in self.participants.items():
-            info += "{} (`{}`)\n".format(name, participant_id)
+            info += f"{name} (`{participant_id}`: {point_count[user]})\n"
         return Pages.paginate(info)
 
-    def gen_participants_embed(self, page, num, max):
+    @staticmethod
+    def gen_participants_embed(page, num, max):
         embed = MessageEmbed()
         embed.title = "Event participants {}/{}".format(num, max)
         embed.description = page
@@ -332,11 +340,10 @@ class Events(Plugin):
                 else:
                     message = """
 Total reports: {}
-Approved reports: {}
-Denied reports: {}
-Remaining: {}
-                    """.format(total, i["Approved"],
-                               i["Denied"], i["Submitted"])
+Approved reports: {Approved}
+Denied reports: {Denied}
+Remaining: {Submitted}
+                    """.format(total, **i)
                     #convert id to name for participants
                     if query in self.participants.keys():
                         query = self.participants[query]
@@ -363,10 +370,10 @@ Remaining: {}
         message = """
 Total reports: {}
 Number of participants: {}
-Approved reports: {}
-Denied reports: {}
-Remaining: {}
-""".format(len(self.reported_cards), len(self.participants), info["all"]["Approved"], info["all"]["Denied"], info["all"]["Submitted"])
+Approved reports: {Approved}
+Denied reports: {Denied}
+Remaining: {Submitted}
+""".format(len(self.reported_cards), len(self.participants), **info["all"])
         figure = pyplot.figure()
         sub = figure.add_subplot(1, 1, 1)
         Pie.bake(sub, info["all"], "All reports")
@@ -428,7 +435,7 @@ Remaining: {}
     @command_wrapper(log=False)
     def clear_user(self, event, user, reason):
         """Someone's been so bad we need to remove all their submissions :("""
-        if not str(user) in self.participants:
+        if not str(user.id) in self.participants:
             #that definitely was the wrong user
             event.msg.reply("This user has not participated in the event")
             return
@@ -468,7 +475,7 @@ Remaining: {}
             event.msg.reply(message.format(self.participants[str(user)], points))
 
     @Plugin.command("revoke", "<report:str>")
-    @command_wrapper(perm_lvl=0, log=False)
+    @command_wrapper(perm_lvl=1, log=False)
     def revoke(self, event, report):
         """Revoke a submission"""
         if event.msg.channel.id != self.config.event_channel:
@@ -493,11 +500,11 @@ Remaining: {}
         event.msg.channel.get_message(report_info["message_id"]).delete()
         del self.reported_cards[trello_info["id"]]
         event.msg.reply(":warning: Your submission has been nuked <@{}>!".format(event.author.id))
-        log_to_bot_log(self.bot, ":outbox_tray:  {} has revoked <https://trello.com/c/{}>".format(str(event.author), trello_info['shortLink']))
+        log_to_bot_log(self.bot, f":outbox_tray: {event.author} (``{event.author.id}``)  has revoked <https://trello.com/c/{trello_info['shortLink']}>")
         self.save_event_stats()
 
     @Plugin.command("edit", "<details:str...>")
-    @command_wrapper(perm_lvl=0, log=False)
+    @command_wrapper(perm_lvl=1, log=False)
     def edit(self, event, details):
         if event.msg.channel.id != self.config.event_channel:
             return
@@ -573,7 +580,7 @@ Remaining: {}
 
 
     @Plugin.command("import", "<channel_id:snowflake>", group="event")
-    @command_wrapper(perm_lvl=2)
+    @command_wrapper(perm_lvl=3)
     def import_event(self, event, channel_id):
         if self.status != "Scheduled":
             event.msg.reply("I have event data loaded, import aborted to prevent data corruption, please remove/rename the current eventstats file and reboot")

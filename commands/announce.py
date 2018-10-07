@@ -19,7 +19,7 @@ class announce(Plugin):
     @command_wrapper(log=False)
     def check_bot_heartbeat(self, event):
         event.msg.reply('Evil pong!').after(1).delete()
-        log_to_bot_log(self.bot, ":evilDabbit: "+str(event.msg.author)+" used the EvilPing command.")
+        log_to_bot_log(self.bot, "<:evilDabbit:233327051686412288> "+str(event.msg.author)+" used the EvilPing command.")
         event.msg.delete()
 
     @Plugin.command('employee', "<new_employee:str>")
@@ -49,7 +49,7 @@ class announce(Plugin):
 
 
     @Plugin.command('announce', '<role_to_ping:str> [announcement_message:str...]')
-    @command_wrapper(perm_lvl=2)
+    @command_wrapper(perm_lvl=3)
     def Make_an_Announcement(self, event, role_to_ping, announcement_message):
 
         role_Name = role_to_ping.lower()
@@ -86,7 +86,7 @@ class announce(Plugin):
             return
 
     @Plugin.command('update', '<channel_id_to_change>:int> <message_ID_to_edit:int> [edited_announcemented_message:str...]')
-    @command_wrapper(perm_lvl=2)
+    @command_wrapper(perm_lvl=3)
     def edit_most_recent_announcement(self, event, channel_id_to_change, message_ID_to_edit, edited_announcemented_message):
 
         #Variables
@@ -110,7 +110,7 @@ class announce(Plugin):
     @Plugin.command('multiping', parser=True)
     @Plugin.add_argument('-r', '--roles', help="all of the roles you want to ping")
     @Plugin.add_argument('-a', '--announcement', help="the message you want to send out to everyone.")
-    @command_wrapper(perm_lvl=2)
+    @command_wrapper(perm_lvl=3)
     def ping_multiple_roles(self, event, args):
 
         admin_only_channel = self.config.channel_IDs['mod_Channel']
@@ -234,11 +234,11 @@ class announce(Plugin):
     def grant_role(self, event):
         if 441739649753546764 in event.member.roles:
             event.member.remove_role(441739649753546764)
-            log_to_bot_log(self.bot, ":thumbsdown: <@" +str(event.author.id)+ "> removed the A11y role from themselves.")
-            event.msg.reply("<@" +str(event.author.id)+ "> I have removed the A11y (Accessibility Role) from you. Use the same command again to add the role to yourself.").after(5).delete()
+            log_to_bot_log(self.bot, f":thumbsdown: {str(event.author)} removed the A11y role from themselves.")
+            event.msg.reply(f"<@{event.author.id}> I have removed the A11y (Accessibility Role) from you. Use the same command again to add the role to yourself.").after(5).delete()
             event.msg.delete()
         else:
             event.member.add_role(441739649753546764)
-            log_to_bot_log(self.bot, ":thumbsup: <@" +str(event.author.id)+ "> added the A11y role to themselves.")
-            event.msg.reply("<@" +str(event.author.id)+ "> I have added the A11y (Accessibility Role) to you. Use the same command again to remove the role from yourself.").after(5).delete()
+            log_to_bot_log(self.bot, f":thumbsup: {event.author} added the A11y role to themselves.")
+            event.msg.reply(f"<@{event.author.id}> I have added the A11y (Accessibility Role) to you. Use the same command again to remove the role from yourself.").after(5).delete()
             event.msg.delete()

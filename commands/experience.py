@@ -188,7 +188,7 @@ class ExperiencePlugin(Plugin):
             self.set_purchase_expired(purchase["_id"])
 
     @Plugin.command("xp")
-    @command_wrapper(perm_lvl=0, allowed_on_server=False, allowed_in_dm=True, log=False)
+    @command_wrapper(perm_lvl=1, allowed_on_server=False, allowed_in_dm=True, log=False)
     def get_xp(self, event):
         # Check bug hunter
         dtesters = self.bot.client.api.guilds_get(self.config.dtesters_guild_id)
@@ -213,7 +213,7 @@ class ExperiencePlugin(Plugin):
         event.channel.send_message("<@{id}> you have {xp} XP!".format(id=str(event.msg.author.id), xp=xp))
 
     @Plugin.command("givexp", "<user_id:str> <points:int>")
-    @command_wrapper(perm_lvl=2)
+    @command_wrapper(perm_lvl=3)
     def give_xp(self, event, user_id, points):
         uid = self.get_id(user_id)
 
@@ -292,12 +292,12 @@ class ExperiencePlugin(Plugin):
             handle_exception(event, self.bot, exception)
 
     @Plugin.command("store", aliases=['shop'])
-    @command_wrapper(perm_lvl=0, allowed_on_server=False, allowed_in_dm=True)
+    @command_wrapper(perm_lvl=1, allowed_on_server=False, allowed_in_dm=True)
     def store(self, event):
         Pages.create_new(self.bot, "xp_store", event)
 
     @Plugin.command("buy", "<item:int>")
-    @command_wrapper(perm_lvl=0, allowed_in_dm=True, allowed_on_server=False)
+    @command_wrapper(perm_lvl=1, allowed_in_dm=True, allowed_on_server=False)
     def buy(self, event, item):
         if len(self.config.store) < item or item < 1:
             event.msg.reply(":no_entry_sign: invalid store item! use `+store` to see the items!")
