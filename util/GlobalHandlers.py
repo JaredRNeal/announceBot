@@ -4,7 +4,7 @@ from datetime import datetime
 from disco.types.message import MessageEmbed
 from disco.util import sanitize
 
-from util import Utils
+from util import Utils, Pages
 
 LOADED = False
 INFO = None
@@ -87,11 +87,16 @@ def handle_exception(event, bot, exception):
 
     embed = MessageEmbed()
     embed.title = "Exception caught"
-    embed.add_field(name="Original message", value=str(event.msg.content))
+    embed.add_field(name="Original message", value=Utils.trim_message(event.msg.content, 1024))
     embed.add_field(name="Channel", value="{} ({})".format(event.msg.channel.name, event.msg.channel.id))
     embed.add_field(name="Sender", value=str(event.msg.author))
     embed.add_field(name="Exception", value=str(exception))
-    embed.add_field(name="Stacktrace", value=str(traceback.format_exc()))
+    parts = Pages.paginate(str(traceback.format_exc()), max_chars=1024)
+    if len(parts) > 4:
+        embed.add_field(name="Stacktrace", value="Something went incredibly wrong, stacktrace is over 4096 chars!")
+    else:
+        for part in parts:
+            embed.add_field(name="Stacktrace", value=part)
     embed.timestamp = datetime.utcnow().isoformat()
     embed.color = int('ff0000', 16)
     log_to_bot_log(bot, embed=embed)

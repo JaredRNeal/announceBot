@@ -184,7 +184,7 @@ class ExperiencePlugin(Plugin):
             role = self.config.roles["squasher"]
             if role in member.roles:
                 member.remove_role(role)
-            log_to_bot_log("Removed the bug squasher role from {} as their purchase expired".format(str(member)))
+            log_to_bot_log(self.bot, "Removed the bug squasher role from {} as their purchase expired".format(str(member)))
             self.set_purchase_expired(purchase["_id"])
 
     @Plugin.command("xp")
