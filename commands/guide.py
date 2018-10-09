@@ -7,6 +7,9 @@ a bug when I was looking at my uncreative variable naming.
 
 import time
 import math
+import random
+import os
+import json
 
 from disco.bot import Plugin
 from disco.types.message import MessageEmbed
@@ -23,6 +26,12 @@ class GuidePlugin(Plugin):
     def load(self, ctx):
         super(GuidePlugin, self).load(ctx)
         Pages.register("guide", self.initialize_page, self.update_page)
+        if not os.path.isfile("experiments.json"):
+            self.experiments = { "dm-guide-on-join": 25 }
+            return
+        with open("experiments.json", "r") as experiments:
+            # if this errors, dabbit didn't do the config right.
+            self.experiments = json.loads(experiments)
 
     def unload(self, ctx):
         Pages.unregister("guide")
@@ -105,3 +114,22 @@ class GuidePlugin(Plugin):
             guide = "`+guide {name}` - {description}\n".format(name=k, description=v["description"])
             guide_list = guide_list + guide
         event.msg.reply(guide_list)
+    
+    @Plugin.command("dmguidepercent", "<percentage:float>")
+    @command_wrapper(perm_lvl=2, allowed_in_dm=True, allowed_on_server=True)
+    def set_dm_guide_percentage(self, event, percent):
+        self.experiments["dm-guide-on-join"] = percent
+        file = open("experiments.json", "w")
+        file.write(json.dumps(self.experiments))
+        event.msg.reply(":ok_hand: set dm guide percentage experimentation thing to `{percent}`".format(percent=percent))
+        log_to_bot_log(self.bot, ":wrench: DM Guide percentage updated to `{percent}` by {user}".format(percent=percent, user=str(event.msg.author))
+        
+    @Plugin.listener("GuildMemberAdd")
+    def guide_send(self, event):
+        randnum = random.random()
+        if randnum <= self.experiments["dm-guide-on-join"]:
+            try:
+                event.member.user.open_dm().send_message("Welcome to Discord Testers! Feel free to read our guide with `+guide guide` for a quick overview.")
+            except:
+                log_to_bot_log(self.bot, ":no_entry: {user} did not recieve the guide because their DMs were closed.".format(user=str(event.member.user))
+        
