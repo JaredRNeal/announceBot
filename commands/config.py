@@ -159,6 +159,7 @@ class ExperiencePluginConfig(Config):
     mongodb_port = 27017
 
     bug_bot_user_id = 240545475118235648
+    dtesters_guild_id = 197038439483310086
 
     roles = {
         "admin": 197042322939052032,
@@ -185,7 +186,8 @@ class ExperiencePluginConfig(Config):
     reward_limits = {
         "approve_deny": 5,
         "canrepro_cantrepro": 3,
-        "attach": 2
+        "attach": 2,
+        "submit": 200
     }
 
     store = [
@@ -210,13 +212,13 @@ class ExperiencePluginConfig(Config):
 
 class GuideConfig(Config):
     guides = {
-        "test-guide": {
-            "title": "Test Guide",
-            "description": "Testing test test. test test?",
+        "guide": {
+            "title": "DTesters Guide",
+            "description": "A quick reference guide for all things Discord Testers.",
             "pages": [
                 {
-                    "title": "Test Table of Contents",
-                    "description": "testing the table of contents",
+                    "title": "Table of Contents",
+                    "description": "",
                     "fields": [{
                         "name": "test field",
                         "value": "test value"

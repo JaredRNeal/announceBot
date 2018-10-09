@@ -6,3 +6,5 @@ bot:
     - commands.announce
     - commands.events
     - commands.experience
+    - commands.pager
+    - commands.guide

@@ -4,15 +4,19 @@ from datetime import datetime
 from disco.types.message import MessageEmbed
 from disco.util import sanitize
 
-from util import Utils
+from util import Utils, Pages
 
 LOADED = False
 INFO = None
 
 # perm lvls:
 # 0: public
-# 1: mod+
-# 2: admin
+# 1: bug-hunter
+# 2: mod+
+# 3: admin
+
+def is_public(member):
+    return True
 
 def is_hunter(member):
     return has_role(member, [INFO["HUNTER_ROLE"]]) or is_mod(member)
@@ -27,13 +31,14 @@ def has_role(member, roles):
     return any(role in roles for role in member.roles)
 
 PERM_CHECKS = [
+    is_public,
     is_hunter,
     is_mod,
     is_admin
 ]
 
 #this handles all the command wrapping, with some defaults
-def command_wrapper(perm_lvl = 1, log=True, allowed_on_server = True, allowed_in_dm = False, skip_perm_check = False):
+def command_wrapper(perm_lvl = 2, log=True, allowed_on_server = True, allowed_in_dm = False):
     def func_receiver(func):
         def func_wrapper(*args, **kwargs):
             if not LOADED:
@@ -43,9 +48,9 @@ def command_wrapper(perm_lvl = 1, log=True, allowed_on_server = True, allowed_in
             event = args[1]
             #grab user from guild and validate permissions (this assumes the user is on there, but since the bot is not used anywhere else this is a safe assumption to make)
             member = plugin.bot.client.api.guilds_members_get(INFO["SERVER_ID"], event.msg.author.id)
-            allowed = PERM_CHECKS[perm_lvl](member) or skip_perm_check
+            allowed = PERM_CHECKS[perm_lvl](member)
             if not allowed:
-                log_to_bot_log(plugin.bot, ":warning: {} tried to use a command they do not have permission to use: ``{} ``".format(str(event.msg.author), sanitize.S(event.msg.content, escape_codeblocks=True)))
+                log_to_bot_log(plugin.bot, f":warning: {event.msg.author} (``{event.msg.author.id}``) tried to use a command they do not have permission to use: ``{sanitize.S(event.msg.content, escape_codeblocks=True)} ``")
                 event.msg.reply(":lock: You do not have permission to use this command!").after(10).delete()
                 event.msg.delete()
             else:
@@ -57,7 +62,7 @@ def command_wrapper(perm_lvl = 1, log=True, allowed_on_server = True, allowed_in
                         handle_exception(event, plugin.bot, exception)
                     else:
                         if log:
-                            log_to_bot_log(plugin.bot, ":wrench: {} executed a command: {}".format(str(event.msg.author), sanitize.S(event.msg.content, escape_codeblocks=True)))
+                            log_to_bot_log(plugin.bot, f":wrench: {event.msg.author} executed a command: {sanitize.S(event.msg.content, escape_codeblocks=True)}")
         return func_wrapper
     return func_receiver
 
@@ -82,11 +87,16 @@ def handle_exception(event, bot, exception):
 
     embed = MessageEmbed()
     embed.title = "Exception caught"
-    embed.add_field(name="Original message", value=str(event.msg.content))
+    embed.add_field(name="Original message", value=Utils.trim_message(event.msg.content, 1024))
     embed.add_field(name="Channel", value="{} ({})".format(event.msg.channel.name, event.msg.channel.id))
     embed.add_field(name="Sender", value=str(event.msg.author))
     embed.add_field(name="Exception", value=str(exception))
-    embed.add_field(name="Stacktrace", value=str(traceback.format_exc()))
+    parts = Pages.paginate(str(traceback.format_exc()), max_chars=1024)
+    if len(parts) > 4:
+        embed.add_field(name="Stacktrace", value="Something went incredibly wrong, stacktrace is over 4096 chars!")
+    else:
+        for part in parts:
+            embed.add_field(name="Stacktrace", value=part)
     embed.timestamp = datetime.utcnow().isoformat()
     embed.color = int('ff0000', 16)
     log_to_bot_log(bot, embed=embed)

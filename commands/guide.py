@@ -87,11 +87,10 @@ class GuidePlugin(Plugin):
             else:
                 new_page_number = page_num
                 new_page_number += 1
-        print(str(page_num))
         return "Guide:", self.generate_page(new_page_number, data["sender"], data["guide"]), new_page_number
 
     @Plugin.command("guide", "<guide_name:str>")
-    @command_wrapper(perm_lvl=0, allowed_in_dm=True, allowed_on_server=False, skip_perm_check=True)
+    @command_wrapper(perm_lvl=0, allowed_in_dm=True, allowed_on_server=False)
     def guide(self, event, guide_name):
         if self.config.guides.get(guide_name, "no-guide") == "no-guide":
             event.msg.reply(":no_entry_sign: couldn't find that guide. use `+guide list` to find guides.")
@@ -99,7 +98,7 @@ class GuidePlugin(Plugin):
         Pages.create_new(self.bot, "guide", event, page=1, guide=guide_name)
 
     @Plugin.command("list", group="guide")
-    @command_wrapper(perm_lvl=0, allowed_in_dm=True, allowed_on_server=False, skip_perm_check=True)
+    @command_wrapper(perm_lvl=0, allowed_in_dm=True, allowed_on_server=False)
     def list_guides(self, event):
         guide_list = "Guide List:\n\n"
         for k, v in self.config.guides.items():

@@ -1,4 +1,5 @@
 import time
+import traceback
 import math
 
 from disco.api.http import APIException
@@ -14,7 +15,7 @@ from util import Pages
 
 @Plugin.with_config(ExperiencePluginConfig)
 class ExperiencePlugin(Plugin):
-    
+
     def load(self, ctx):
         super(ExperiencePlugin, self).load(ctx)
         self.client = MongoClient(self.config.mongodb_host, self.config.mongodb_port,
@@ -50,7 +51,7 @@ class ExperiencePlugin(Plugin):
     def generate_store_embed(self, current, max):
         embed = MessageEmbed()
         embed.title = "Discord Testers Store ({current}/{max})".format(current=str(current + 1), max=str(max + 1))
-        embed.description = "Use XP to get super cool Dabbit-approve:tm: rewards from the store!"
+        embed.description = "Use XP to get super cool Dabbit-approved:tm: rewards from the store!"
         embed.thumbnail.url = "https://cdn.discordapp.com/attachments/330341170720800768/471497246328881153/2Mjvv7E.png"
         embed.color = int(0xe74c3c)
         return embed
@@ -135,8 +136,7 @@ class ExperiencePlugin(Plugin):
 
     def handle_action(self, user_id, action, has_time_limit):
         """ handles giving user XP for an action they did. """
-        if has_time_limit:
-            actions = []
+        actions = []
         for previous_action in self.get_actions(user_id, action):
                 # if action happened less than 24 hours ago, add it.
                 if previous_action.get("time", 0) + 86400.0 >= time.time():
@@ -184,11 +184,11 @@ class ExperiencePlugin(Plugin):
             role = self.config.roles["squasher"]
             if role in member.roles:
                 member.remove_role(role)
-            log_to_bot_log("Removed the bug squasher role from {} as their purchase expired".format(str(member)))
+            log_to_bot_log(self.bot, "Removed the bug squasher role from {} as their purchase expired".format(str(member)))
             self.set_purchase_expired(purchase["_id"])
 
     @Plugin.command("xp")
-    @command_wrapper(perm_lvl=0, allowed_on_server=False, allowed_in_dm=True, log=False)
+    @command_wrapper(perm_lvl=1, allowed_on_server=False, allowed_in_dm=True, log=False)
     def get_xp(self, event):
         # Check bug hunter
         dtesters = self.bot.client.api.guilds_get(self.config.dtesters_guild_id)
@@ -213,7 +213,7 @@ class ExperiencePlugin(Plugin):
         event.channel.send_message("<@{id}> you have {xp} XP!".format(id=str(event.msg.author.id), xp=xp))
 
     @Plugin.command("givexp", "<user_id:str> <points:int>")
-    @command_wrapper(perm_lvl=2)
+    @command_wrapper(perm_lvl=3)
     def give_xp(self, event, user_id, points):
         uid = self.get_id(user_id)
 
@@ -292,22 +292,22 @@ class ExperiencePlugin(Plugin):
             handle_exception(event, self.bot, exception)
 
     @Plugin.command("store", aliases=['shop'])
-    @command_wrapper(perm_lvl=0, allowed_on_server=False, allowed_in_dm=True)
+    @command_wrapper(perm_lvl=1, allowed_on_server=False, allowed_in_dm=True)
     def store(self, event):
         Pages.create_new(self.bot, "xp_store", event)
 
     @Plugin.command("buy", "<item:int>")
-    @command_wrapper(perm_lvl=0, allowed_in_dm=True, allowed_on_server=False)
+    @command_wrapper(perm_lvl=1, allowed_in_dm=True, allowed_on_server=False)
     def buy(self, event, item):
         if len(self.config.store) < item or item < 1:
-            event.msg.reply(":no_entry_sign: invalid store item! use `+store` to see the items!").after(10).delete()
+            event.msg.reply(":no_entry_sign: invalid store item! use `+store` to see the items!")
             return
         store_item = self.config.store[item - 1]
 
         user = self.get_user(event.msg.author.id)
 
         if user["xp"] < store_item["cost"]:
-            event.msg.reply(":no_entry_sign: you don't have enough XP to buy that!").after(10).delete()
+            event.msg.reply(":no_entry_sign: you don't have enough XP to buy that!")
             return
         self.users.update_one({
             "user_id": str(event.msg.author.id)
@@ -317,7 +317,7 @@ class ExperiencePlugin(Plugin):
             }
         })
         event.msg.reply(":ok_hand: item purchased! Note that if the item you purchased needs to be shipped, you have "
-                        "to contact Dabbit Prime#0896 via DMs to provide a mailing address.").after(15).delete()
+                        "to contact Dabbit Prime#0896 via DMs to provide a mailing address.")
         prize_log_channel = self.bot.client.api.channels_get(self.config.channels["prize_log"])
         prize_log_channel.send_message("{name} (`{id}`) bought {title}!".format(
             name=str(event.msg.author),
