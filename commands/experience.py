@@ -282,7 +282,7 @@ class ExperiencePlugin(Plugin):
                 if len(event.message.mentions) != 1:
                     return
                 for uid in event.message.mentions.keys():
-                    self.handle_action(uid, "submit", False)
+                    self.handle_action(uid, "submit", True)
             elif "your attachment has been added." in content:
                 if len(event.message.mentions) != 1:
                     return
