@@ -19,6 +19,14 @@ from commands.config import GuideConfig
 from util.GlobalHandlers import command_wrapper, log_to_bot_log, handle_exception
 from util import Pages
 
+class MockEventObject:
+    
+    def __init__(self, msg):
+        """ Pages util requires an event be passed as a parameter, so this is a mock object. """
+        self.msg = msg
+        self.author = msg.author
+        self.channel = msg.channel
+
 
 @Plugin.with_config(GuideConfig)
 class GuidePlugin(Plugin):
@@ -129,7 +137,8 @@ class GuidePlugin(Plugin):
         randnum = random.random()
         if randnum <= self.experiments["dm-guide-on-join"]:
             try:
-                event.member.user.open_dm().send_message("Welcome to Discord Testers! Feel free to read our guide with `+guide guide` for a quick overview.")
+                message = event.member.user.open_dm().send_message("Welcome to Discord Testers! Feel free to read the guide we are sending you!")
+                Pages.create_new(self.bot, "guide", MockEventObject(message), page=1, guide="guide")
             except:
                 log_to_bot_log(self.bot, ":no_entry: {user} did not recieve the guide because their DMs were closed.".format(user=str(event.member.user))
         
