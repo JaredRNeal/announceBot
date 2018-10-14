@@ -257,7 +257,7 @@ class Events(Plugin):
             if report["status"] == "Approved":
                 point_count[user] += self.config.boards[report["board"]]["points"]
         for participant_id, name in self.participants.items():
-            info += f"{name} (`{participant_id}`: {point_count[participant_id]})\n"
+            info += f"{name} (`{participant_id}`: {point_count[participant_id] if participant_id in point_count else 0})\n"
         return Pages.paginate(info)
 
     @staticmethod
