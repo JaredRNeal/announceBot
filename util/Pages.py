@@ -40,9 +40,10 @@ def create_new(bot, type, event, **kwargs):
         del known_messages[list(known_messages.keys())[0]]
     save_to_disc()
 
-def update(message, action, user):
-    message_id = str(message.id)
-    if message_id in known_messages.keys():
+def update(bot, channel_id, message_id, action, user):
+    if str(message_id) in known_messages.keys():
+        message = bot.client.state.channels[channel_id].get_message(message_id)
+        message_id = str(message_id)
         type = known_messages[message_id]["type"]
         if type in page_handlers.keys():
             data = known_messages[message_id]
