@@ -79,7 +79,7 @@ class NotifyPlugin(Plugin):
         return ','.join(names)
 
     @Plugin.command('get', group='notify')
-    @command_wrapper(allowed_on_server=False, allowed_in_dm=True)
+    @command_wrapper(perm_lvl=0, allowed_on_server=False, allowed_in_dm=True)
     def get_subscriptions(self, event):
         reports = self.reports.find({f'subs.{event.author.id}': {'$exists': True}})
         if len(reports) > 0:
@@ -92,7 +92,7 @@ class NotifyPlugin(Plugin):
         event.msg.reply(response)
 
     @Plugin.command('notify', '<report_id:int> [scopes:str...]')
-    @command_wrapper(log=False, allowed_in_dm=True)
+    @command_wrapper(perm_lvl=0, log=False, allowed_in_dm=True)
     def update_subscriptions(self, event, report_id, scopes=None):
         report = self.reports.find_one({'report_id': report_id})
         if report is not None:
