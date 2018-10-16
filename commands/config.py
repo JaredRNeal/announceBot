@@ -78,7 +78,7 @@ class AnnounceBotConfig(Config):
         'mod_Channel': 281283303326089216,
         'windows': 411645098946985984,
         'test': 281283303326089216,
-        'bot_log': 455874979146235916,
+        'bot_log': 455874979146235916
         }
 
     #relevant channel IDs in DTesters:
