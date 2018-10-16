@@ -75,18 +75,20 @@ class NotifyPlugin(Plugin):
 
     @staticmethod
     def _get_scope_str(scopes):
-        names = [s.name for s in Scope if s != Scope.NONE and s in scopes]
+        names = [s.name for s in Scope if s not in [Scope.NONE, Scope.ALL] and s in scopes]
         return ','.join(names)
 
     @Plugin.command('get', group='notify')
     @command_wrapper(perm_lvl=0, allowed_on_server=False, allowed_in_dm=True)
     def get_subscriptions(self, event):
+        rl = []
         reports = self.reports.find({f'subs.{event.author.id}': {'$exists': True}})
-        if len(reports) > 0:
+        for r in reports:
+            scope_str = self._get_scope_str(Scope(r['subs'][str(event.author.id)]))
+            rl.append(f"#{r['report_id']} - `{scope_str}`")
+        if len(rl) > 0:
             response = "You're registered for notifications for:\n"
-            for r in reports:
-                scope_str = self._get_scope_str(Scope(r['subs'][str(event.author.id)]))
-                response += f"#{r['report_id']} - `{scope_str}`\n"
+            response += '\n'.join(rl)
         else:
             response = "You aren't currently registered for any notifications"
         event.msg.reply(response)
@@ -132,7 +134,7 @@ class NotifyPlugin(Plugin):
                             user_scopes |= req_scopes
                             response = f"You'll receive `{self._get_scope_str(user_scopes)}` notifications for #{report_id}"
             # If they've made valid changes to their scopes
-            if old_scopes != new_scopes:
+            if old_scopes != user_scopes:
                 # Removed
                 if user_scopes == Scope.NONE:
                     self.reports.update_one({'report_id': report_id}, {'$unset': {f'subs.{user_id}': ''}})
@@ -193,7 +195,7 @@ class NotifyPlugin(Plugin):
             if report is not None:
                 if len(report['subs']) > 0:
                     action_scope = Scope[action.upper()]
-                    report_str = f'Report **#{report_id}**'
+                    report_str = f'**#{report_id}**'
                     if action == 'approved':
                         msg = SCOPE_DATA[action][1].format(report=report_str, link=link)
                     else:
@@ -207,13 +209,13 @@ class NotifyPlugin(Plugin):
                         if action_scope & Scope(v):
                             dm = self.bot.client.api.users_me_dms_create(int(k))
                             try:
-                                dm.send_message(embed=embed)
+                                dm.send_message(embed=em)
                             except APIException:
                                 # Closed DMs
                                 pass
                             else:
                                 uc += 1
                     if uc > 0:
-                        log_to_bot_log(self.bot, f':pager: `{action}` notification for **#{report_id}** sent to {uc} user(s)')
+                        log_to_bot_log(self.bot, f':pager: `{action.upper()}` notification for **#{report_id}** sent to {uc} user(s)')
                 if action in ['approved', 'denied']:
                     self.reports.delete_one({'report_id': report_id})
