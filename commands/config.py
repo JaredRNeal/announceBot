@@ -1,8 +1,7 @@
 from disco.bot import Config
 
+
 class AnnounceBotConfig(Config):
-    #Test Server IDs
-    #role IDs
     """
     admin_roles = {
         'employee': 411674069528870912,
@@ -80,7 +79,6 @@ class AnnounceBotConfig(Config):
         'windows': 411645098946985984,
         'test': 281283303326089216,
         'bot_log': 455874979146235916,
-        'MENTOR_CHANNEL': 471421747669762048
         }
 
     #relevant channel IDs in DTesters:
@@ -129,11 +127,6 @@ class AnnounceBotConfig(Config):
     emojis = {
         "red_tick": "312314733816709120",
         "green_tick": "312314752711786497"
-    }
-
-    messages = {
-    "help_message": "{},{},{}",
-    "no_mentors_available": "PLACEHOLDER"
     }
 
 class EventsPluginConfig(Config):
