@@ -2,9 +2,15 @@ bot:
   commands_require_mention: false
   commands_level_getter: commands.command_level_getter
   commands_prefix: '+'
+  shared_config:
+    mongodb_username: "mongodb"
+    mongodb_password: "password"
+    mongodb_host: "localhost"
+    mongodb_port: 27017
   plugins:
     - commands.announce
     - commands.events
     - commands.experience
     - commands.pager
     - commands.guide
+    - commands.notify
