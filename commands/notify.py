@@ -60,7 +60,9 @@ class NotifyPlugin(Plugin):
 
     def load(self, ctx):
         super(NotifyPlugin, self).load(ctx)
-        self.client = MongoClient(self.config.mongodb_host, self.config.mongodb_port)
+        self.client = MongoClient(self.config.mongodb_host, self.config.mongodb_port
+                                  username=self.config.mongodb_username,
+                                  password=self.config.mongodb_password)
         self.reports = self.client.notify.reports
         self._compile_exp()
 
