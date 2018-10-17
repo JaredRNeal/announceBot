@@ -14,3 +14,5 @@ bot:
     - commands.pager
     - commands.guide
     - commands.notify
+    - commands.mentor
+

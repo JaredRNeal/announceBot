@@ -1,8 +1,7 @@
 from disco.bot import Config
 
+
 class AnnounceBotConfig(Config):
-    #Test Server IDs
-    #role IDs
     """
     admin_roles = {
         'employee': 411674069528870912,
