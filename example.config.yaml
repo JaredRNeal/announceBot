@@ -8,3 +8,4 @@ bot:
     - commands.experience
     - commands.pager
     - commands.guide
+    - commands.mentor
