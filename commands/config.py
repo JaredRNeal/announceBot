@@ -243,3 +243,12 @@ class GuideConfig(Config):
             ]
         }
     }
+
+class NotifyPluginConfig(Config):
+    bug_bot_id = 240545475118235648
+
+    channels = {
+        'bot-log': 455874979146235916,
+        'denied-bugs': 327914056591736834,
+        'bug-approval-queue': 253923313460445184
+    }
