@@ -44,7 +44,7 @@ SCOPE_DATA = {
     ),
     'approved': (
         'Report approved',
-        '{report} has been fully approved\n\nLink: {link}',
+        '{report} has been fully approved',
         r':incoming_envelope:.*?(https?://trello.com/c/[\w]+)>\s+([0-9]+)$'
     ),
     'denied': (
@@ -79,6 +79,28 @@ class NotifyPlugin(Plugin):
     def _get_scope_str(scopes):
         names = [s.name for s in Scope if s not in [Scope.NONE, Scope.ALL] and s in scopes]
         return ','.join(names)
+        
+    @staticmethod
+    def _build_jump_link(guild_id, channel_id, message_id):
+        return f'https://discordapp.com/channels/{guild_id}/{channel_id}/{message_id}'
+        
+    @Plugin.command('sync', group='notify')
+    @command_wrapper(log=False)
+    def sync_queue(self, event):
+        queue = event.guild.channels[self.config.channels['bug-approval-queue']]
+        reports = []
+        for message in queue.messages:
+            if message.author.id == self.config.bug_bot_id:
+                search = re.findall(r'(?<=Report\sID:\s\*{2})[0-9]+', message.content)
+                if search:
+                    report_id = int(search[-1])
+                    if not self.reports.find_one({'report_id': report_id}):
+                        reports.append({'report_id': report_id, 'subs': {}, 'queue_msg': message.id})
+        if len(reports) > 0:
+            self.reports.insert_many(reports)
+        log_to_bot_log(self.bot, f':envelope_with_arrow: {event.author} triggered a notify sync. {len(reports)} unseen reports added to the database')
+        event.msg.delete()
+
 
     @Plugin.command('get', group='notify')
     @command_wrapper(perm_lvl=0, allowed_on_server=False, allowed_in_dm=True)
@@ -184,27 +206,26 @@ class NotifyPlugin(Plugin):
         elif event.channel.id == self.config.channels['bug-approval-queue']:
             search = re.findall(r'(?<=Report\sID:\s\*{2})[0-9]+', event.message.content)
             if search:
-                try:
-                    # Get the last ID in case the report includes the format above
-                    report_id = int(search[-1])
-                except IndexError as e:
-                    # Couldn't extract the report ID from the message
-                    handle_exception(event, self.bot, e)
-                else:
-                    self.reports.insert_one({'report_id': report_id, 'subs': {}})
+                # Get the last ID in case the report includes the format above
+                report_id = int(search[-1])
+                self.reports.insert_one({'report_id': report_id, 'subs': {}, 'queue_msg': event.message.id})
+        #Check if we need to send a DM update
         if action is not None:
             report = self.reports.find_one({'report_id': report_id})
             if report is not None:
                 if len(report['subs']) > 0:
                     action_scope = Scope[action.upper()]
-                    report_str = f'**#{report_id}**'
+                    #Linkify the report ID
                     if action == 'approved':
-                        msg = SCOPE_DATA[action][1].format(report=report_str, link=link)
+                        report_str = f'report [**#{report_id}**]({link})'
+                    elif action == 'denied':
+                        report_str = f'report **#{report_id}**'
                     else:
-                        msg = SCOPE_DATA[action][1].format(report=report_str)
+                        link = self._build_jump_link(event.guild.id, self.config.channels['bug-approval-queue'], report['queue_msg'])
+                        report_str = f'report [**#{report_id}**]({link})'
                     em = MessageEmbed()
                     em.title = f'{SCOPE_DATA[action][0]} (#{report_id})'
-                    em.description = msg
+                    em.description = SCOPE_DATA[action][1].format(report=report_str).capitalize()
                     em.color = '7506394'
                     uc = 0
                     for k, v in report['subs'].items():
