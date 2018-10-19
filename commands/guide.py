@@ -39,7 +39,7 @@ class GuidePlugin(Plugin):
             return
         with open("experiments.json", "r") as experiments:
             # if this errors, dabbit didn't do the config right.
-            self.experiments = json.loads(experiments)
+            self.experiments = json.loads(experiments.readline())
 
     def unload(self, ctx):
         Pages.unregister("guide")
@@ -57,6 +57,10 @@ class GuidePlugin(Plugin):
             embed.add_field(name="what??", value="how did you get here? report this bug to brxxn#0632 or Dabbit Prime#0896.")
             return embed
         page = guide["pages"][page_number - 1]
+        if page.get("color") is not None:
+            embed.color = page["color"]
+        if page.get("image") is not None:
+            embed.image = page["image"]
         table_of_contents_field = None
         if "table_of_contents" in page:
             if page["table_of_contents"]:
@@ -123,16 +127,19 @@ class GuidePlugin(Plugin):
             guide_list = guide_list + guide
         event.msg.reply(guide_list)
     
-    @Plugin.command("dmguidepercent", "<percentage:float>")
+    @Plugin.command("dmguidepercent", "<percent:float>")
     @command_wrapper(perm_lvl=2, allowed_in_dm=True, allowed_on_server=True)
     def set_dm_guide_percentage(self, event, percent):
+        percent = percent / 100
         self.experiments["dm-guide-on-join"] = percent
         file = open("experiments.json", "w")
         file.write(json.dumps(self.experiments))
-        event.msg.reply(":ok_hand: set dm guide percentage experimentation thing to `{percent}`".format(percent=percent))
-        log_to_bot_log(self.bot, ":wrench: DM Guide percentage updated to `{percent}` by {user}".format(percent=percent, user=str(event.msg.author))
-        
-    @Plugin.listener("GuildMemberAdd")
+        file.close()
+        event.msg.reply(":ok_hand: set dm guide percentage experimentation thing to `{percent}`".format(percent=percent * 100))
+        log_to_bot_log(self.bot, ":wrench: DM Guide percentage updated to `{percent}` by {user}".format(percent=percent * 100, user=str(event.msg.author)))
+
+
+    @Plugin.listen("GuildMemberAdd")
     def guide_send(self, event):
         randnum = random.random()
         if randnum <= self.experiments["dm-guide-on-join"]:
@@ -140,5 +147,5 @@ class GuidePlugin(Plugin):
                 message = event.member.user.open_dm().send_message("Welcome to Discord Testers! Feel free to read the guide we are sending you!")
                 Pages.create_new(self.bot, "guide", MockEventObject(message), page=1, guide="guide")
             except:
-                log_to_bot_log(self.bot, ":no_entry: {user} did not recieve the guide because their DMs were closed.".format(user=str(event.member.user))
+                log_to_bot_log(self.bot, ":no_entry: {user} did not recieve the guide because their DMs were closed.".format(user=str(event.member.user)))
         
