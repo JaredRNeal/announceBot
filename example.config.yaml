@@ -7,6 +7,24 @@ bot:
     mongodb_password: "password"
     mongodb_host: "localhost"
     mongodb_port: 27017
+    bug_bot_user_id: 240545475118235648
+    dtesters_guild_id: 197038439483310086
+    role_IDs:
+      admin: 197042322939052032
+      mod: 440322144593772545
+      employee: 197042389569765376
+      hunter: 197042209038663680
+      fehlerjager: 268404368435445761
+      squasher: 254347601288101888
+      android: 234838349800538112
+      bug: 197042209038663680
+      canary: 351008402052481025
+      ios: 234838392464998402
+      linux: 278229255169638410
+      mac: 351008099978706944
+      windows: 351008373669494794
+      test: 441010616388419584
+        
   plugins:
     - commands.announce
     - commands.events

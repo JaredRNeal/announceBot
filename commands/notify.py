@@ -90,7 +90,7 @@ class NotifyPlugin(Plugin):
         queue = event.guild.channels[self.config.channels['bug-approval-queue']]
         reports = []
         for message in queue.messages:
-            if message.author.id == self.config.bug_bot_id:
+            if message.author.id == self.config.bug_bot_user_id:
                 search = re.findall(r'(?<=Report\sID:\s\*{2})[0-9]+', message.content)
                 if search:
                     report_id = int(search[-1])
@@ -175,7 +175,7 @@ class NotifyPlugin(Plugin):
 
     @Plugin.listen('MessageCreate')
     def on_message_create(self, event):
-        if event.author.id != self.config.bug_bot_id:
+        if event.author.id != self.config.bug_bot_user_id:
             return
         action = None
         # Bot Log - covers almost all events
