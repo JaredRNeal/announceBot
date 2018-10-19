@@ -252,3 +252,33 @@ class NotifyPluginConfig(Config):
         'denied-bugs': 327914056591736834,
         'bug-approval-queue': 253923313460445184
     }
+
+class ChatInteractionsConfig(Config):
+    # Love should be easier to come across.
+    hug_cost = 5
+    fight_cost = 10
+
+    hug_msgs = [
+        'just gave you a big big hug!'
+    ]
+
+    fight_msgs = [
+        ", but instead slipped on some jam and fell right into Dabbit, who is not pleased.", 
+        " with a transformer.", 
+        ", but creates a black hole and gets sucked in.", 
+        " with poutine.", 
+        ", but they slipped on a banana peel", 
+        " and in the end, the only victor was the coffin maker.", 
+        ", and what a fight it is!  Whoa mama!", 
+        ", with two thousand blades!", 
+        ", but he fell into a conveniently placed manhole!", 
+        ", but they tripped over a rock and fell in the ocean", 
+        ", but they hurt themselves in confusion", 
+        ". HADOUKEN!", 
+        " with a pillow", 
+        " with a large fish", 
+        ", but they stumbled over their shoelaces", 
+        ", but they missed", 
+        " with a burnt piece of toast", 
+        ", but it wasn't every effective"
+    ]
