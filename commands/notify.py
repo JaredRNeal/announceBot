@@ -25,12 +25,12 @@ SCOPE_DATA = {
     'approve': (
         'New approval',
         'A Bug Hunter has approved {report}',
-        r':thumbsup:\s\*{2}\w+#[0-9]{4}\*{2}\sapproved:\s\*{2}#([0-9]+)'
+        r':thumbsup:\s\*{2}.+?#[0-9]{4}\*{2}\sapproved:\s\*{2}#([0-9]+)'
     ),
     'deny': (
         'New denial',
         'A Bug Hunter has denied {report}',
-        r':thumbsdown:\s\*{2}\w+#[0-9]{4}\*{2}\sdenied:\s\*{2}#([0-9]+)'
+        r':thumbsdown:\s\*{2}.+?#[0-9]{4}\*{2}\sdenied:\s\*{2}#([0-9]+)'
     ),
     'attach': (
         'New attachment',
@@ -40,7 +40,7 @@ SCOPE_DATA = {
     'edit': (
         'Report edited',
         '{report} has been edited',
-        r':pencil2:\s\*{2}\w+#[0-9]{4}\*{2}\sedited\s\*{2}#([0-9]+)'
+        r':pencil2:\s\*{2}.+?#[0-9]{4}\*{2}\sedited\s\*{2}#([0-9]+)'
     ),
     'approved': (
         'Report approved',
@@ -79,11 +79,11 @@ class NotifyPlugin(Plugin):
     def _get_scope_str(scopes):
         names = [s.name for s in Scope if s not in [Scope.NONE, Scope.ALL] and s in scopes]
         return ','.join(names)
-        
+
     @staticmethod
     def _build_jump_link(guild_id, channel_id, message_id):
         return f'https://discordapp.com/channels/{guild_id}/{channel_id}/{message_id}'
-        
+
     @Plugin.command('sync', group='notify')
     @command_wrapper(log=False)
     def sync_queue(self, event):
@@ -100,7 +100,6 @@ class NotifyPlugin(Plugin):
             self.reports.insert_many(reports)
         log_to_bot_log(self.bot, f':envelope_with_arrow: {event.author} triggered a notify sync. {len(reports)} unseen reports added to the database')
         event.msg.delete()
-
 
     @Plugin.command('get', group='notify')
     @command_wrapper(perm_lvl=0, allowed_on_server=False, allowed_in_dm=True)
@@ -171,7 +170,8 @@ class NotifyPlugin(Plugin):
             event.msg.reply(f'{event.author.mention} {response}').after(5).delete()
         else:
             event.msg.reply(f"{event.author.mention} I can't find that report ID").after(5).delete()
-        event.msg.delete()
+        if not event.msg.channel.is_dm:
+            event.msg.delete()
 
     @Plugin.listen('MessageCreate')
     def on_message_create(self, event):
@@ -209,13 +209,13 @@ class NotifyPlugin(Plugin):
                 # Get the last ID in case the report includes the format above
                 report_id = int(search[-1])
                 self.reports.insert_one({'report_id': report_id, 'subs': {}, 'queue_msg': event.message.id})
-        #Check if we need to send a DM update
+        # Check if we need to send a DM update
         if action is not None:
             report = self.reports.find_one({'report_id': report_id})
             if report is not None:
                 if len(report['subs']) > 0:
                     action_scope = Scope[action.upper()]
-                    #Linkify the report ID
+                    # Linkify the report ID
                     if action == 'approved':
                         report_str = f'report [**#{report_id}**]({link})'
                     elif action == 'denied':
