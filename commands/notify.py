@@ -117,22 +117,15 @@ class NotifyPlugin(Plugin):
         event.msg.reply(response)
 
     @Plugin.command('notify', '<report_id:int> [scopes:str...]')
-    @command_wrapper(perm_lvl=0, log=False, allowed_on_server=False, allowed_in_dm=True)
+    @command_wrapper(perm_lvl=0, log=False, allowed_in_dm=True)
     def update_subscriptions(self, event, report_id, scopes=None):
         report = self.reports.find_one({'report_id': report_id})
         if report is not None:
             user_id = str(event.author.id)
             user_scopes = Scope(report['subs'].get(user_id, 0))
             old_scopes = user_scopes
-            # User wants to clear notifications
-            if scopes == 'clear':
-                if user_scopes:
-                    user_scopes = Scope.NONE
-                    response = f"You'll no longer receive notifications for #{report_id}"
-                else:
-                    response = f"You haven't registered for notifications for #{report_id}"
             # User wants all notifications (or wants to reverse that)
-            elif scopes is None:
+            if scopes is None:
                 if user_scopes == Scope.ALL:
                     # Could be confusing but acts as a toggle for convenience
                     user_scopes = Scope.NONE
@@ -140,6 +133,13 @@ class NotifyPlugin(Plugin):
                 else:
                     user_scopes = Scope.ALL
                     response = f"You'll receive all notifications for #{report_id}"
+            # User wants to clear notifications
+            elif scopes.lower() in ['clear', 'none']:
+                if user_scopes:
+                    user_scopes = Scope.NONE
+                    response = f"You'll no longer receive notifications for #{report_id}"
+                else:
+                    response = f"You haven't registered for notifications for #{report_id}"
             # User wants specific notifications
             else:
                 req_scopes = Scope.NONE
@@ -170,6 +170,12 @@ class NotifyPlugin(Plugin):
             event.msg.reply(f'{event.author.mention} {response}').after(5).delete()
         else:
             event.msg.reply(f"{event.author.mention} I can't find that report ID").after(5).delete()
+        if not event.msg.channel.is_dm:
+            try:
+                event.msg.delete()
+            except APIException:
+                # Bug Bot caught it
+                pass
 
     @Plugin.listen('MessageCreate')
     def on_message_create(self, event):
