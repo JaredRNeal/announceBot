@@ -117,7 +117,7 @@ class NotifyPlugin(Plugin):
         event.msg.reply(response)
 
     @Plugin.command('notify', '<report_id:int> [scopes:str...]')
-    @command_wrapper(perm_lvl=0, log=False, allowed_in_dm=True)
+    @command_wrapper(perm_lvl=0, log=False, allowed_on_server=False, allowed_in_dm=True)
     def update_subscriptions(self, event, report_id, scopes=None):
         report = self.reports.find_one({'report_id': report_id})
         if report is not None:
@@ -170,8 +170,6 @@ class NotifyPlugin(Plugin):
             event.msg.reply(f'{event.author.mention} {response}').after(5).delete()
         else:
             event.msg.reply(f"{event.author.mention} I can't find that report ID").after(5).delete()
-        if not event.msg.channel.is_dm:
-            event.msg.delete()
 
     @Plugin.listen('MessageCreate')
     def on_message_create(self, event):
@@ -225,7 +223,8 @@ class NotifyPlugin(Plugin):
                         report_str = f'report [**#{report_id}**]({link})'
                     em = MessageEmbed()
                     em.title = f'{SCOPE_DATA[action][0]} (#{report_id})'
-                    em.description = SCOPE_DATA[action][1].format(report=report_str).capitalize()
+                    desc = SCOPE_DATA[action][1].format(report=report_str)
+                    em.description = desc[0].upper() + desc[1:]
                     em.color = '7506394'
                     uc = 0
                     for k, v in report['subs'].items():
