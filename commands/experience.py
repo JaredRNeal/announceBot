@@ -32,7 +32,7 @@ class ExperiencePlugin(Plugin):
         self.actions.save()
         super(ExperiencePlugin, self).load(ctx)
 
-    def initialize_pages(self, event):
+    def initialize_pages(self, channel, trigger):
         page_count = self.generate_page_count()
         return "Store:", self.generate_page(0, page_count - 1), page_count >= 2
 
@@ -294,7 +294,7 @@ class ExperiencePlugin(Plugin):
     @Plugin.command("store", aliases=['shop'])
     @command_wrapper(perm_lvl=1, allowed_on_server=False, allowed_in_dm=True)
     def store(self, event):
-        Pages.create_new(self.bot, "xp_store", event)
+        Pages.create_new(self.bot, "xp_store", event.channel, event.msg)
 
     @Plugin.command("buy", "<item:int>")
     @command_wrapper(perm_lvl=1, allowed_in_dm=True, allowed_on_server=False)
