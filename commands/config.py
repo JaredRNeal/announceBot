@@ -124,6 +124,9 @@ class EventsPluginConfig(Config):
     boards = {}
     event_channel = 0
 
+class StatsPluginConfig(Config):
+    queue_channel = 253923313460445184
+
 class ExperiencePluginConfig(Config):
 
     channels = {
