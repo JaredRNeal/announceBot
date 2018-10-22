@@ -236,9 +236,9 @@ class Events(Plugin):
     @Plugin.command("participants", group="event")
     @command_wrapper()
     def event_participants(self, event):
-        Pages.create_new(self.bot, "participants", event)
+        Pages.create_new(self.bot, "participants", event.channel, event.msg)
 
-    def init_participants(self, event):
+    def init_participants(self, channel, trigger):
         pages = self.gen_participants_pages()
         return None, self.gen_participants_embed(pages[0], 1, len(pages)), len(pages) > 1
 
