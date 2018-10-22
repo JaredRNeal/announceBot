@@ -234,5 +234,5 @@ class ChatInteractionsConfig(Config):
         ", but they stumbled over their shoelaces", 
         ", but they missed", 
         " with a burnt piece of toast", 
-        ", but it wasn't every effective"
+        ", but it wasn't very effective"
     ]
