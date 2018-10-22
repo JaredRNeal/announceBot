@@ -124,15 +124,8 @@ class NotifyPlugin(Plugin):
             user_id = str(event.author.id)
             user_scopes = Scope(report['subs'].get(user_id, 0))
             old_scopes = user_scopes
-            # User wants to clear notifications
-            if scopes == 'clear':
-                if user_scopes:
-                    user_scopes = Scope.NONE
-                    response = f"You'll no longer receive notifications for #{report_id}"
-                else:
-                    response = f"You haven't registered for notifications for #{report_id}"
             # User wants all notifications (or wants to reverse that)
-            elif scopes is None:
+            if scopes is None:
                 if user_scopes == Scope.ALL:
                     # Could be confusing but acts as a toggle for convenience
                     user_scopes = Scope.NONE
@@ -140,6 +133,13 @@ class NotifyPlugin(Plugin):
                 else:
                     user_scopes = Scope.ALL
                     response = f"You'll receive all notifications for #{report_id}"
+            # User wants to clear notifications
+            elif scopes.lower() in ['clear', 'none']:
+                if user_scopes:
+                    user_scopes = Scope.NONE
+                    response = f"You'll no longer receive notifications for #{report_id}"
+                else:
+                    response = f"You haven't registered for notifications for #{report_id}"
             # User wants specific notifications
             else:
                 req_scopes = Scope.NONE
@@ -171,7 +171,11 @@ class NotifyPlugin(Plugin):
         else:
             event.msg.reply(f"{event.author.mention} I can't find that report ID").after(5).delete()
         if not event.msg.channel.is_dm:
-            event.msg.delete()
+            try:
+                event.msg.delete()
+            except APIException:
+                # Bug Bot caught it
+                pass
 
     @Plugin.listen('MessageCreate')
     def on_message_create(self, event):
@@ -225,7 +229,8 @@ class NotifyPlugin(Plugin):
                         report_str = f'report [**#{report_id}**]({link})'
                     em = MessageEmbed()
                     em.title = f'{SCOPE_DATA[action][0]} (#{report_id})'
-                    em.description = SCOPE_DATA[action][1].format(report=report_str).capitalize()
+                    desc = SCOPE_DATA[action][1].format(report=report_str)
+                    em.description = desc[0].upper() + desc[1:]
                     em.color = '7506394'
                     uc = 0
                     for k, v in report['subs'].items():
