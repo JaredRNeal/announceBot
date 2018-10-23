@@ -22,7 +22,7 @@ def unregister(type_handler):
 
 def create_new(bot, type, channel, trigger=None, **kwargs):
     text, embed, has_pages = page_handlers[type]["init"](channel, trigger, **kwargs)
-    message = trigger.reply(text, embed=embed)
+    message = channel.send_message(text, embed=embed)
     data = {
         "type": type,
         "page": 0,

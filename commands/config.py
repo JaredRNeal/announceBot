@@ -199,6 +199,7 @@ class GuideConfig(Config):
             ]
         }
     }
+    welcome_message = "Welcome to Discord Testers! Read this guide for information on Discord Testers:"
 
 class NotifyPluginConfig(Config):
     channels = {
