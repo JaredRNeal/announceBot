@@ -54,7 +54,8 @@ class GuidePlugin(Plugin):
         embed.title = title
         embed.description = description
         if page_number > max_page_number:
-            embed.add_field(name="what??", value="how did you get here? report this bug to brxxn#0632 or Dabbit Prime#0896.")
+            embed.add_field(name="what??",
+                            value="how did you get here? report this bug to brxxn#0632 or Dabbit Prime#0896.")
             return embed
         page = guide["pages"][page_number - 1]
         if page.get("color") is not None:
@@ -85,10 +86,10 @@ class GuidePlugin(Plugin):
             embed.add_field(name=field["name"], value=field["value"])
         return embed
 
-    def initialize_page(self, event, **kwargs):
-        return "Guide:", self.generate_page(1, event.msg.author.id, kwargs["guide"]), len(self.config.guides[
-                                                                             kwargs["guide"]
-                                                                         ]) >= 2
+    def initialize_page(self, channel, trigger, **kwargs):
+        return "Guide:", self.generate_page(1, trigger.author.id, kwargs["guide"]), len(self.config.guides[
+                                                                                            kwargs["guide"]
+                                                                                        ]) >= 2
 
     def update_page(self, message, page_num, action, data):
         if data.get("sender") is None:
@@ -116,7 +117,7 @@ class GuidePlugin(Plugin):
         if self.config.guides.get(guide_name, "no-guide") == "no-guide":
             event.msg.reply(":no_entry_sign: couldn't find that guide. use `+guide list` to find guides.")
             return
-        Pages.create_new(self.bot, "guide", event, page=1, guide=guide_name)
+        Pages.create_new(self.bot, "guide", event.channel, event.msg, page=1, guide=guide_name)
 
     @Plugin.command("list", group="guide")
     @command_wrapper(perm_lvl=0, allowed_in_dm=True, allowed_on_server=False)

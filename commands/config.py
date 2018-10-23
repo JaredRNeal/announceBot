@@ -1,8 +1,6 @@
 from disco.bot import Config
 
 class AnnounceBotConfig(Config):
-    #Test Server IDs
-    #role IDs
     """
     admin_roles = {
         'employee': 411674069528870912,
@@ -56,17 +54,6 @@ class AnnounceBotConfig(Config):
         'everyone': 411673927698350100
     }
     """
-    role_IDs = {
-        'android': 234838349800538112,
-        'bug': 197042209038663680,
-        'canary': 351008402052481025,
-        'ios': 234838392464998402,
-        'linux': 278229255169638410,
-        'mac': 351008099978706944,
-        'windows': 351008373669494794,
-        'test': 441010616388419584
-        }
-
 
     channel_IDs = {
         'android': 411645018105970699,
@@ -95,7 +82,6 @@ class AnnounceBotConfig(Config):
 
 
     frequently_asked_questions = {
-
         'suggestions': "Thanks for wanting to improve Discord! When it comes to making suggestions, you have two options: You can head over to <https://feedback.discordapp.com> or join the feedback community over at https://discord.gg/discord-feedback",
         'raids': "If a server you're in is currently being raided, there is nothing that can be done on this server to help. The only people that can aid you are our Trust and Safety team whom you can contact via https://dis.gd/request."
             + "\nFor fastest turn around time, read over this article <https://dis.gd/HowToReport>.",
@@ -120,7 +106,6 @@ class AnnounceBotConfig(Config):
         'support': 'You can reach support at https://dis.gd/contact for all your questions and help with figuring out problems (even in your native language if you prefer).',
         'lazy': 'Lazy guilds are guilds where you can see the offline members in the list. This does ***not*** have a negative impact on performance or loading times, quite the opposite. You can grab one of the desktop roles listed in <#342060723721207810> section 4 which will give you access to the desktop-announcements channel, where you can read more about it.',
         'hunter': 'You can acquire the Bug Hunter role by submitting a bug with the bot and getting it approved. For more in-depth instructions, please read through <#342043548369158156>'
-
     }
 
     event_stats_filename = "eventstats.json" # event stats are saved to this location.
@@ -131,18 +116,6 @@ class AnnounceBotConfig(Config):
     }
 
 class EventsPluginConfig(Config):
-
-    role_IDs = {
-        'android': 234838349800538112,
-        'bug': 197042209038663680,
-        'canary': 351008402052481025,
-        'ios': 234838392464998402,
-        'linux': 278229255169638410,
-        'mac': 351008099978706944,
-        'windows': 351008373669494794,
-        'test': 441010616388419584
-        }
-
     emojis = {
         "yes": ":gearYes:459697272326848520",
         "no": ":gearNo:459697272314265600"
@@ -153,23 +126,6 @@ class EventsPluginConfig(Config):
 
 class ExperiencePluginConfig(Config):
 
-    mongodb_username = "mongodb"
-    mongodb_password = "password"
-    mongodb_host = "localhost"
-    mongodb_port = 27017
-
-    bug_bot_user_id = 240545475118235648
-    dtesters_guild_id = 197038439483310086
-
-    roles = {
-        "admin": 197042322939052032,
-        "mod": 440322144593772545,
-        "employee": 197042389569765376,
-        "hunter": 197042209038663680,
-        "fehlerjager": 268404368435445761,
-        "squasher": 254347601288101888
-    }
-
     channels = {
         "bot_log": 0,
         "prize_log": 0,
@@ -179,8 +135,8 @@ class ExperiencePluginConfig(Config):
     rewards = {
         "approve_deny": 5,
         "canrepro_cantrepro": 3,
+        "attach": 5,
         "submit": 25,
-        "attach": 5
     }
 
     reward_limits = {
@@ -208,7 +164,6 @@ class ExperiencePluginConfig(Config):
                            "Discord profile!"
         }
     ]
-
 
 class GuideConfig(Config):
     guides = {
@@ -244,3 +199,40 @@ class GuideConfig(Config):
             ]
         }
     }
+
+class NotifyPluginConfig(Config):
+    channels = {
+        'bot-log': 455874979146235916,
+        'denied-bugs': 327914056591736834,
+        'bug-approval-queue': 253923313460445184
+    }
+
+class ChatInteractionsConfig(Config):
+    # Love should be easier to come across.
+    hug_cost = 5
+    fight_cost = 10
+
+    hug_msgs = [
+        'just gave you a big big hug!'
+    ]
+
+    fight_msgs = [
+        ", but instead slipped on some jam and fell right into Dabbit, who is not pleased.", 
+        " with a transformer.", 
+        ", but creates a black hole and gets sucked in.", 
+        " with poutine.", 
+        ", but they slipped on a banana peel", 
+        " and in the end, the only victor was the coffin maker.", 
+        ", and what a fight it is!  Whoa mama!", 
+        ", with two thousand blades!", 
+        ", but he fell into a conveniently placed manhole!", 
+        ", but they tripped over a rock and fell in the ocean", 
+        ", but they hurt themselves in confusion", 
+        ". HADOUKEN!", 
+        " with a pillow", 
+        " with a large fish", 
+        ", but they stumbled over their shoelaces", 
+        ", but they missed", 
+        " with a burnt piece of toast", 
+        ", but it wasn't very effective"
+    ]

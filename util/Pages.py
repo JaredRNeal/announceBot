@@ -20,29 +20,30 @@ def unregister(type_handler):
     if type_handler in page_handlers.keys():
         del page_handlers[type_handler]
 
-def create_new(bot, type, event, **kwargs):
-    text, embed, has_pages = page_handlers[type]["init"](event, **kwargs)
-    message = event.msg.reply(text, embed=embed)
+def create_new(bot, type, channel, trigger=None, **kwargs):
+    text, embed, has_pages = page_handlers[type]["init"](channel, trigger, **kwargs)
+    message = trigger.reply(text, embed=embed)
     data = {
         "type": type,
         "page": 0,
-        "trigger": event.msg.id,
-        "sender": event.author.id
+        "trigger": trigger.id if trigger is not None else 0,
+        "sender": trigger.author.id if trigger is not None else 0
     }
     for k, v in kwargs.items():
         data[k] = v
     known_messages[str(message.id)] = data
 
     if has_pages:
-        bot.client.api.channels_messages_reactions_create(event.channel.id, message.id, prev_emoji)
-        bot.client.api.channels_messages_reactions_create(event.channel.id, message.id, next_emoji)
+        bot.client.api.channels_messages_reactions_create(channel.id, message.id, prev_emoji)
+        bot.client.api.channels_messages_reactions_create(channel.id, message.id, next_emoji)
     if len(known_messages.keys()) > 500:
         del known_messages[list(known_messages.keys())[0]]
     save_to_disc()
 
-def update(message, action, user):
-    message_id = str(message.id)
-    if message_id in known_messages.keys():
+def update(bot, channel_id, message_id, action, user):
+    if str(message_id) in known_messages.keys():
+        message = bot.client.state.channels[channel_id].get_message(message_id)
+        message_id = str(message_id)
         type = known_messages[message_id]["type"]
         if type in page_handlers.keys():
             data = known_messages[message_id]

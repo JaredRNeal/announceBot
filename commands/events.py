@@ -236,9 +236,9 @@ class Events(Plugin):
     @Plugin.command("participants", group="event")
     @command_wrapper()
     def event_participants(self, event):
-        Pages.create_new(self.bot, "participants", event)
+        Pages.create_new(self.bot, "participants", event.channel, event.msg)
 
-    def init_participants(self, event):
+    def init_participants(self, channel, trigger):
         pages = self.gen_participants_pages()
         return None, self.gen_participants_embed(pages[0], 1, len(pages)), len(pages) > 1
 
@@ -257,7 +257,7 @@ class Events(Plugin):
             if report["status"] == "Approved":
                 point_count[user] += self.config.boards[report["board"]]["points"]
         for participant_id, name in self.participants.items():
-            info += f"{name} (`{participant_id}`: {point_count[participant_id]})\n"
+            info += f"{name} (`{participant_id}`: {point_count[participant_id] if participant_id in point_count else 0})\n"
         return Pages.paginate(info)
 
     @staticmethod
