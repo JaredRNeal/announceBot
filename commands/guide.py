@@ -45,7 +45,7 @@ class GuidePlugin(Plugin):
         Pages.unregister("guide")
         super(GuidePlugin, self).unload(ctx)
 
-    def generate_page(self, page_number, user_id, guide):
+    def generate_page(self, page_number, guide):
         guide = self.config.guides[guide]
         max_page_number = len(guide["pages"])
         title = "{title} ({page}/{max_pages})".format(title=guide["title"], page=page_number, max_pages=max_page_number)
@@ -59,9 +59,9 @@ class GuidePlugin(Plugin):
             return embed
         page = guide["pages"][page_number - 1]
         if page.get("color") is not None:
-            embed.color = page["color"]
+            embed.color = int(page["color"], 16)
         if page.get("image") is not None:
-            embed.image = page["image"]
+            embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/471128155214577670/504390962496143370/suffer.jpg")
         table_of_contents_field = None
         if "table_of_contents" in page:
             if page["table_of_contents"]:
@@ -87,9 +87,10 @@ class GuidePlugin(Plugin):
         return embed
 
     def initialize_page(self, channel, trigger, **kwargs):
-        return "Guide:", self.generate_page(1, trigger.author.id, kwargs["guide"]), len(self.config.guides[
-                                                                                            kwargs["guide"]
-                                                                                        ]) >= 2
+        guide_message = self.config.welcome_message if kwargs.get("is_join_dm", False) else "Guide:"
+        return guide_message, self.generate_page(1, kwargs["guide"]), len(self.config.guides[
+                                                                            kwargs["guide"]
+                                                                        ]) >= 2
 
     def update_page(self, message, page_num, action, data):
         if data.get("sender") is None:
@@ -109,7 +110,7 @@ class GuidePlugin(Plugin):
             else:
                 new_page_number = page_num
                 new_page_number += 1
-        return "Guide:", self.generate_page(new_page_number, data["sender"], data["guide"]), new_page_number
+        return "Guide:", self.generate_page(new_page_number,  data["guide"]), new_page_number
 
     @Plugin.command("guide", "<guide_name:str>")
     @command_wrapper(perm_lvl=0, allowed_in_dm=True, allowed_on_server=False)
@@ -128,7 +129,7 @@ class GuidePlugin(Plugin):
             guide_list = guide_list + guide
         event.msg.reply(guide_list)
     
-    @Plugin.command("dmguidepercent", "<percent:float>")
+    @Plugin.command("dmchance", "<percent:float>")
     @command_wrapper(perm_lvl=2, allowed_in_dm=True, allowed_on_server=True)
     def set_dm_guide_percentage(self, event, percent):
         percent = percent / 100
@@ -143,10 +144,13 @@ class GuidePlugin(Plugin):
     @Plugin.listen("GuildMemberAdd")
     def guide_send(self, event):
         randnum = random.random()
+        print(str(randnum))
         if randnum <= self.experiments["dm-guide-on-join"]:
             try:
-                message = event.member.user.open_dm().send_message("Welcome to Discord Testers! Feel free to read the guide we are sending you!")
-                Pages.create_new(self.bot, "guide", MockEventObject(message), page=1, guide="guide")
+                channel = event.member.user.open_dm()
+                Pages.create_new(self.bot, "guide", channel, page=1, guide="guide", is_join_dm=True)
             except:
-                log_to_bot_log(self.bot, ":no_entry: {user} did not recieve the guide because their DMs were closed.".format(user=str(event.member.user)))
+                log_to_bot_log(self.bot, ":no_entry_sign: {user} has DMs disabled, so the guide wasn't sent to them.".format(
+                    user=str(event.member)
+                ))
         
