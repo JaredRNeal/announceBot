@@ -141,8 +141,9 @@ class GuidePlugin(Plugin):
             try:
                 channel = event.member.user.open_dm()
                 Pages.create_new(self.bot, "guide", channel, page=1, guide="guide", is_join_dm=True)
-                log_to_bot_log(self.bot, ":approve: Guide was successfully sent to {user}.").format(
+                log_to_bot_log(self.bot, ":approve: Guide was successfully sent to {user}.".format(
                     user=str(event.member)
+                ))
             except:
                 log_to_bot_log(self.bot, ":no_entry_sign: {user} has DMs disabled, so the guide wasn't sent to them.".format(
                     user=str(event.member)
