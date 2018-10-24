@@ -198,7 +198,7 @@ class ExperiencePlugin(Plugin):
 
         valid = False
         for role in member.roles:
-            if role == self.config.roles.get("hunter"):
+            if role == self.config.role_IDs.get("hunter"):
                 valid = True
 
         if not valid:
