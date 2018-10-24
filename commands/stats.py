@@ -5,6 +5,7 @@ from functools import reduce
 from disco.bot import Plugin
 from disco.bot.command import CommandEvent
 from disco.types import Message, Channel
+from disco.types.message import MessageEmbed, MessageEmbedFooter
 from disco.util import snowflake
 
 from commands.config import StatsPluginConfig
@@ -17,6 +18,7 @@ class StatsPlugin(Plugin):
         super().__init__(bot, config)
         self.channel_regex = re.compile('<#([0-9]{17,18})>\\s.*Reported:', re.MULTILINE)
         self.argument_regex = re.compile('{{([A-Za-z_]+):?([A-Za-z0-9,_/]+)?}}', re.MULTILINE)
+        self.summary_message = None
 
     @Plugin.command('reportingChannel', '<chan_id:snowflake> <message_id:snowflake>')
     def reporting_channel(self, event: CommandEvent, chan_id, message_id):
@@ -50,6 +52,12 @@ class StatsPlugin(Plugin):
     def arg_test(self, event: CommandEvent, msg: str):
         event.msg.reply(self.parse_message(msg, self.get_all_bug_reports()))
 
+    @Plugin.command('stats update')
+    def update_stats(self, event: CommandEvent):
+        m = event.msg.reply(":timer: Updating Queue statistics...")
+        self.update_queue_message()
+        m.edit(":white_check_mark: Queue statistics updated!")
+
     def get_reporting_channel(self, msg: Message):
         match = self.channel_regex.findall(msg.content)
         return match[0]
@@ -82,13 +90,40 @@ class StatsPlugin(Plugin):
             arg = match.group(0)
             name = match.group(1).lower()
             args = match.group(2).lower().split(",")
-            self.bot.log.info(f"Parsing {arg} -- Name: {name}, args: {args}")
             resp = self.call_arguments(name, args, reports)
             parsed = parsed.replace(arg, resp)
         return parsed
 
+    @Plugin.schedule(300, True, False)
+    def update_queue_message(self):
+        reports = self.get_all_bug_reports()
+        message = "\n".join(self.config.queue_summary['message'])
+        message = self.parse_message(message, reports)
+        embed = MessageEmbed()
+        embed.title = self.config.queue_summary['title']
+        embed.color = int(self.config.queue_summary['color'].replace('#', ''), 16)
+        embed.description = message
+        embed.set_footer(text="Last updated at")
+        embed.timestamp = datetime.utcnow().isoformat()
+        self.send_or_update_message(embed)
+
+    def send_or_update_message(self, embed: MessageEmbed):
+        chan = self.bot.client.state.guilds[self.config.dtesters_guild_id].channels[self.config.queue_summary['channel']]
+        if self.summary_message is None:
+            # Look in the stats channel for a previous message by us
+            for msg in chan.messages:
+                if msg.author.id != self.state.me.id:
+                    continue
+                self.summary_message = msg
+
+        if self.summary_message is None:
+            chan.send_message(embed=embed)
+        else:
+            # Edit the message with the new content
+            self.summary_message.edit(embed=embed)
+            pass
+
     def call_arguments(self, argument_type, params, reports):
-        self.bot.log.info(f"Executing argument_{argument_type}")
         return getattr(self, f"argument_{argument_type}")(**{'params': params, 'reports': reports})
 
     def argument_oldest_report(self, params, reports: dict):

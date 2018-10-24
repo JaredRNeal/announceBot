@@ -123,6 +123,12 @@ class EventsPluginConfig(Config):
 
     boards = {}
     event_channel = 0
+    queue_summary = {
+        "title": "Summary",
+        "message": [],
+        "channel": 0,
+        "color": '808080'
+    }
 
 class StatsPluginConfig(Config):
     queue_channel = 253923313460445184
