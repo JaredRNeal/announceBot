@@ -1,10 +1,11 @@
 .DS_Store
-*.pyc
-config/
-.vscode/
-*.json
 .idea
+.vscode/*
+config/
+commands/testconfig.py
+*.pyc
+*.json
+*.png
 eventstats.json
 eval.py
-*.png
 config.yaml

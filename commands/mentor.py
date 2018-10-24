@@ -18,6 +18,7 @@ class MentorConfig(AnnounceBotConfig):
     MENTOR_EMOJI = ":dabPingWordless:456143314404769793"
 
 
+
 @Plugin.with_config(MentorConfig)
 class MentorPlugin(Plugin):
     def get_avail_mentors(self):
