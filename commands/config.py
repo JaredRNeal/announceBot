@@ -1,49 +1,8 @@
-from disco.bot import Plugin, Config
-from disco.bot.command import CommandError
+from disco.bot import Config
 
 class AnnounceBotConfig(Config):
-
-    #DTesters role IDs
     """
-    admin_Role_IDs = {
-        'admin': 197042322939052032,
-        'employee': 197042389569765376
-    }
-    role_IDs = {
-        'android': 234838349800538112,
-        'bug': 197042209038663680,
-        'canary': 351008402052481025,
-        'ios': 234838392464998402,
-        'linux': 278229255169638410,
-        'mac': 351008099978706944,
-        'windows': 351008373669494794,
-        'test': 441010616388419584
-        }
-
-    mod_role = {
-        'modinator': 440322144593772545,
-        'admin': 197042322939052032,
-        'employee': 197042389569765376
-
-    }
-
-    channel_IDs = {
-        'android': 411645018105970699,
-        'bug': '421790860057903104',
-        'canary': 411645098946985984,
-        'desktop': 411645098946985984,
-        'ios': 411645199866003471,
-        'linux': 411645098946985984,
-        'mac': 411645098946985984,
-        'mod_Channel': 281283303326089216,
-        'windows': 411645098946985984,
-        'test': 281283303326089216
-        }
-    """
-    #Test Server IDs
-    #role IDs
-
-    admin_Role_IDs = {
+    admin_roles = {
         'employee': 411674069528870912,
         'admin': 416261117845700608
         }
@@ -55,7 +14,7 @@ class AnnounceBotConfig(Config):
         'test': 441011171391176704
         }
 
-    mod_role = {
+    mod_roles = {
         'emplyee': 411674069528870912,
         'admin': 416261117845700608
     }
@@ -65,22 +24,10 @@ class AnnounceBotConfig(Config):
         'android': 413446997253554186,
         'iOS': 413447018816733195,
         'desktop': 413447049040756739,
-        'test': 411674296054710273
+        'test': 411674296054710273,
+        'bot_log': 455847829676752916
         }
 
-class eventChannelConfig(Config):
-    """
-    #relevant channel IDs in DTesters:
-    event_channel_IDs = {
-    'ios': 424032686622113794,
-    'android': 424032786664390656,
-    'desktop': 424032874900094989,
-    'linux': 424032956856926219,
-    'prizes': 406167192543952897,
-    'rules': 406151195632336907,
-    'claimed_fixed': 406165473856585739
-    }
-    """
     #relevant channel IDs in the Test Server:
     event_channel_IDs = {
     'ios': 425682219596644353,
@@ -92,10 +39,49 @@ class eventChannelConfig(Config):
     'claimed_fixed': 425682330494042117
     }
 
-class FAQtopics(Config):
+    channels_to_lockdown = {
+        #test server channel IDs
+        'bug': 448943946534486017,
+        'android': 425682234540818442,
+        'desktop': 425682251817287700,
+        'ios': 425682219596644353,
+        'linux': 425682269609525255
+
+    }
+
+    role_IDs_to_lockdown = {
+        'not_employee': 411674095881814017,
+        'everyone': 411673927698350100
+    }
+    """
+
+    channel_IDs = {
+        'android': 411645018105970699,
+        'bug': '421790860057903104',
+        'canary': 411645098946985984,
+        'desktop': 411645098946985984,
+        'ios': 411645199866003471,
+        'linux': 411645098946985984,
+        'mac': 411645098946985984,
+        'mod_Channel': 281283303326089216,
+        'windows': 411645098946985984,
+        'test': 281283303326089216,
+        'bot_log': 455874979146235916
+        }
+
+    #relevant channel IDs in DTesters:
+    event_channel_IDs = {
+    'ios': 424032686622113794,
+    'android': 424032786664390656,
+    'desktop': 424032874900094989,
+    'linux': 424032956856926219,
+    'prizes': 406167192543952897,
+    'rules': 406151195632336907,
+    'claimed_fixed': 406165473856585739
+    }
+
 
     frequently_asked_questions = {
-
         'suggestions': "Thanks for wanting to improve Discord! When it comes to making suggestions, you have two options: You can head over to <https://feedback.discordapp.com> or join the feedback community over at https://discord.gg/discord-feedback",
         'raids': "If a server you're in is currently being raided, there is nothing that can be done on this server to help. The only people that can aid you are our Trust and Safety team whom you can contact via https://dis.gd/request."
             + "\nFor fastest turn around time, read over this article <https://dis.gd/HowToReport>.",
@@ -120,45 +106,134 @@ class FAQtopics(Config):
         'support': 'You can reach support at https://dis.gd/contact for all your questions and help with figuring out problems (even in your native language if you prefer).',
         'lazy': 'Lazy guilds are guilds where you can see the offline members in the list. This does ***not*** have a negative impact on performance or loading times, quite the opposite. You can grab one of the desktop roles listed in <#342060723721207810> section 4 which will give you access to the desktop-announcements channel, where you can read more about it.',
         'hunter': 'You can acquire the Bug Hunter role by submitting a bug with the bot and getting it approved. For more in-depth instructions, please read through <#342043548369158156>'
-
     }
 
-class LockdownChannels(Config):
+    event_stats_filename = "eventstats.json" # event stats are saved to this location.
 
-    channels_to_lockdown = {
-        #test server channel IDs
-        'bug': 448943946534486017,
-        'android': 425682234540818442,
-        'desktop': 425682251817287700,
-        'ios': 425682219596644353,
-        'linux': 425682269609525255
-
+    emojis = {
+        "red_tick": "312314733816709120",
+        "green_tick": "312314752711786497"
     }
 
-    role_IDs_to_lockdown = {
-
-        'not_employee': 411674095881814017,
-        'everyone': 411673927698350100
-    }
-    """
-    channels_to_lockdown = {
-        #DTesters server channel IDs
-        'bug': 253923313460445184,
-        'android': 232568032394870784,
-        'desktop': 197038744908333066,
-        'linux': 238073742624948225,
-        'ios': 202491590390841344
-
+class EventsPluginConfig(Config):
+    emojis = {
+        "yes": ":gearYes:459697272326848520",
+        "no": ":gearNo:459697272314265600"
     }
 
-    role_IDs_to_lockdown = {
+    boards = {}
+    event_channel = 0
 
-        'bug_hunter': 197042209038663680,
-        'everyone': 197038439483310086
+class ExperiencePluginConfig(Config):
+
+    channels = {
+        "bot_log": 0,
+        "prize_log": 0,
+        "bug_hunter_general_chat": 217764019661045761
     }
-    """
 
+    rewards = {
+        "approve_deny": 5,
+        "canrepro_cantrepro": 3,
+        "attach": 5,
+        "submit": 25,
+    }
 
+    reward_limits = {
+        "approve_deny": 5,
+        "canrepro_cantrepro": 3,
+        "attach": 2,
+        "submit": 200
+    }
 
+    store = [
+        {
+            "title": "Bug Squasher role (for a week)",
+            "cost": 250,
+            "description": "Get the super cool Bug Squasher role because you squash bugs!"
+        },
+        {
+            "title": u"Fehlerjager role",
+            "cost": 500,
+            "description": u"Show off that you're a legendary Bug Hunter with the Fehlerjager role!"
+        },
+        {
+            "title": "Bug Hunter Badge",
+            "cost": 750,
+            "description": "Want to show off to your friends your bug-hunting skills? Get an *exclusive* badge on your "
+                           "Discord profile!"
+        }
+    ]
 
-#hello world
+class GuideConfig(Config):
+    guides = {
+        "guide": {
+            "title": "DTesters Guide",
+            "description": "A quick reference guide for all things Discord Testers.",
+            "pages": [
+                {
+                    "title": "Table of Contents",
+                    "description": "",
+                    "fields": [{
+                        "name": "test field",
+                        "value": "test value"
+                    }],
+                    "table_of_contents": True
+                },
+                {
+                    "title": "Test Page 1",
+                    "description": "TEST",
+                    "fields": [{
+                        "name": "test",
+                        "value": "Testing stuff. *test* test test **test**!"
+                    }]
+                },
+                {
+                    "title": "Test Page 2",
+                    "description": "TEST",
+                    "fields": [{
+                        "name": "test",
+                        "value": "Testing more stuff. *test test* test test **test**! (2)"
+                    }]
+                }
+            ]
+        }
+    }
+    welcome_message = "Welcome to Discord Testers! Read this guide for information on Discord Testers:"
+
+class NotifyPluginConfig(Config):
+    channels = {
+        'bot-log': 455874979146235916,
+        'denied-bugs': 327914056591736834,
+        'bug-approval-queue': 253923313460445184
+    }
+
+class ChatInteractionsConfig(Config):
+    # Love should be easier to come across.
+    hug_cost = 5
+    fight_cost = 10
+
+    hug_msgs = [
+        'just gave you a big big hug!'
+    ]
+
+    fight_msgs = [
+        ", but instead slipped on some jam and fell right into Dabbit, who is not pleased.", 
+        " with a transformer.", 
+        ", but creates a black hole and gets sucked in.", 
+        " with poutine.", 
+        ", but they slipped on a banana peel", 
+        " and in the end, the only victor was the coffin maker.", 
+        ", and what a fight it is!  Whoa mama!", 
+        ", with two thousand blades!", 
+        ", but he fell into a conveniently placed manhole!", 
+        ", but they tripped over a rock and fell in the ocean", 
+        ", but they hurt themselves in confusion", 
+        ". HADOUKEN!", 
+        " with a pillow", 
+        " with a large fish", 
+        ", but they stumbled over their shoelaces", 
+        ", but they missed", 
+        " with a burnt piece of toast", 
+        ", but it wasn't very effective"
+    ]

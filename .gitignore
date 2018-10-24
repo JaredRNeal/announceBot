@@ -1,3 +1,11 @@
 .DS_Store
+.idea
+.vscode/*
+config/
+commands/testconfig.py
 *.pyc
-events.py
+*.json
+*.png
+eventstats.json
+eval.py
+config.yaml
