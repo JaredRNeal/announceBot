@@ -12,6 +12,7 @@ class MentorConfig(AnnounceBotConfig):
     LOG_MESSAGE = "{} used the HelpMe command."
     JOIN_PHRASE = "to the Bug Hunters™!"
     NEW_BH_JOIN = "<@{}> just joined the Bug Hunters! React below if you'd like to mentor them."
+    NEW_BH_CHANNEL = 473944829919887371
     SELF_ID = 413393370770046976
     MENTOR_LOG_MESSAGE = "<@{}> has started mentoring <@{}>!"
     MENTOR_EMOJI = ":dabPingWordless:456143314404769793"
@@ -40,7 +41,7 @@ class MentorPlugin(Plugin):
 
     @Plugin.listen("MessageCreate")
     def on_message_create(self, event):
-        if self.config.JOIN_PHRASE in event.content and event.author.id != self.config.SELF_ID:
+        if self.config.JOIN_PHRASE in event.content and event.channel_id == self.config.NEW_BH_CHANNEL:
             react_message = self.bot.client.api.channels_messages_create(self.config.MENTOR_CHANNEL, self.config.NEW_BH_JOIN.format(event.content[11:29]))
             self.bot.client.api.channels_messages_reactions_create(self.config.MENTOR_CHANNEL, react_message.id, self.config.MENTOR_EMOJI)
 
