@@ -16,7 +16,7 @@ class MentorConfig(AnnounceBotConfig):
     SELF_ID = 413393370770046976
     MENTOR_LOG_MESSAGE = "<@{}> has started mentoring <@{}>!"
     MENTOR_EMOJI = ":dabPingWordless:456143314404769793"
-
+    NO_BH_MENTORS = "<@{}> just joined the Bug Hunters but no one is available to mentor them!"
 
 
 @Plugin.with_config(MentorConfig)
