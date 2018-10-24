@@ -42,9 +42,21 @@ class MentorPlugin(Plugin):
 
     @Plugin.listen("MessageCreate")
     def on_message_create(self, event):
+
+	#if the bot does the thing in the right channel, check what mentors are available.
         if self.config.JOIN_PHRASE in event.content and event.channel_id == self.config.NEW_BH_CHANNEL:
-            react_message = self.bot.client.api.channels_messages_create(self.config.MENTOR_CHANNEL, self.config.NEW_BH_JOIN.format(event.content[10:28]))
-            self.bot.client.api.channels_messages_reactions_create(self.config.MENTOR_CHANNEL, react_message.id, self.config.MENTOR_EMOJI)
+            mentors_available = self.get_avail_mentors()
+        else:
+            return
+	#If there's at least one mentor in the list, ping them.
+        if len(mentors_available) > 0:
+            the_chosen_one = (mentors_available[random.randint(0, len(mentors_available) - 1)])
+        else:
+            self.bot.client.api.channels_messages_create(self.config.MENTOR_CHANNEL, self.config.NO_BH_MENTORS.format(event.content[10:28]))
+            log_to_bot_log(self.bot, self.config.NO_BH_MENTORS.format(event.content[10:28]))
+            return
+        react_message = self.bot.client.api.channels_messages_create(self.config.MENTOR_CHANNEL, self.config.NEW_BH_JOIN.format(event.content[10:28], the_chosen_one))
+        self.bot.client.api.channels_messages_reactions_create(self.config.MENTOR_CHANNEL, react_message.id, self.config.MENTOR_EMOJI)
 
     @Plugin.listen("MessageReactionAdd")
     def on_reaction(self, event):
