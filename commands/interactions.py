@@ -14,7 +14,7 @@ from util.GlobalHandlers import command_wrapper
 class ChatInteractionPlugin(Plugin):
 
     def load(self, ctx):
-        super(ChatInteractionPlugin, self).load(ctx)
+        super().load(ctx)
         self.client = MongoClient(self.config.mongodb_host, self.config.mongodb_port,
                                   username=self.config.mongodb_username,
                                   password=self.config.mongodb_password)
@@ -24,9 +24,9 @@ class ChatInteractionPlugin(Plugin):
         self.purchases = self.database.get_collection("purchases")
  
     def unload(self, ctx):
+        super().unload(ctx)
         self.users.save()
         self.actions.save()
-        super(ChatInteractionPlugin, self).load(ctx)
 
     def get_user(self, id):
         """

@@ -27,8 +27,8 @@ from util.GlobalHandlers import command_wrapper, log_to_bot_log, handle_exceptio
 class Events(Plugin):
 
     def __init__(self, bot, config):
-        super(Events, self).__init__(bot, config)
         #initialize
+        super().__init__(bot, config)
         self.queued = False
         self.saving = False
         self.status = "Scheduled"
@@ -37,13 +37,13 @@ class Events(Plugin):
         self.dupes = dict()
 
     def load(self, ctx):
-        super(Events, self).load(ctx)
+        super().load(ctx)
         self.load_event_stats()
         Pages.register("participants", self.init_participants, self.update_participants)
 
     def unload(self, ctx):
+        super().unload(ctx)
         self.save_event_stats()
-        super(Events, self).unload(ctx)
         Pages.unregister("participants")
 
     @Plugin.command("submit", "[submission:str...]")

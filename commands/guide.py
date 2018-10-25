@@ -24,7 +24,7 @@ from util import Pages
 class GuidePlugin(Plugin):
 
     def load(self, ctx):
-        super(GuidePlugin, self).load(ctx)
+        super().load(ctx)
         Pages.register("guide", self.initialize_page, self.update_page)
         if not os.path.isfile("experiments.json"):
             self.experiments = { "dm-guide-on-join": 25 }
@@ -34,8 +34,8 @@ class GuidePlugin(Plugin):
             self.experiments = json.loads(experiments.readline())
 
     def unload(self, ctx):
+        super().unload(ctx)
         Pages.unregister("guide")
-        super(GuidePlugin, self).unload(ctx)
 
     def generate_page(self, page_number, guide):
         guide = self.config.guides[guide]

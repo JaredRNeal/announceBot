@@ -17,7 +17,7 @@ from util import Pages
 class ExperiencePlugin(Plugin):
 
     def load(self, ctx):
-        super(ExperiencePlugin, self).load(ctx)
+        super().load(ctx)
         self.client = MongoClient(self.config.mongodb_host, self.config.mongodb_port,
                                   username=self.config.mongodb_username,
                                   password=self.config.mongodb_password)
@@ -28,9 +28,9 @@ class ExperiencePlugin(Plugin):
         Pages.register("xp_store", self.initialize_pages, self.update_page)
 
     def unload(self, ctx):
+        super().unload(ctx)
         self.users.save()
         self.actions.save()
-        super(ExperiencePlugin, self).load(ctx)
 
     def initialize_pages(self, channel, trigger):
         page_count = self.generate_page_count()

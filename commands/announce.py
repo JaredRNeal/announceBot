@@ -1,3 +1,6 @@
+import importlib
+import inspect
+
 from disco.api.http import APIException
 from disco.bot import Plugin
 from disco.types.guild import VerificationLevel
@@ -8,11 +11,6 @@ from util.GlobalHandlers import command_wrapper, log_to_bot_log, handle_exceptio
 
 @Plugin.with_config(AnnounceBotConfig)
 class announce(Plugin):
-    def load(self, ctx):
-        super(announce, self).load(ctx)
-
-    def unload(self, ctx):
-        super(announce, self).unload(ctx)
 
     # just wanted a standard ping command
     @Plugin.command('evilping')
