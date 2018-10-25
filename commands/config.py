@@ -210,8 +210,8 @@ class NotifyPluginConfig(Config):
 
 class ChatInteractionsConfig(Config):
     # Love should be easier to come across.
-    hug_cost = 5
-    fight_cost = 10
+    hug_cost = 2
+    fight_cost = 2
 
     hug_msgs = [
         'just gave you a big big hug!'
