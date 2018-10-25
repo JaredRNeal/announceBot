@@ -25,7 +25,7 @@ class MentorConfig(AnnounceBotConfig):
     }
     messages = {
         "no_mentors": "{} requested help with `{}` however there are currently no available mentors online. React below if you'd like to help them",
-        "new_bh_join": "<@{}> just joined the Bug Hunters! React below if you'd like to mentor them.",
+        "new_bh_join": "<@{}> just joined the Bug Hunters! <@{}>, you are being called upon to be their mentor!",
         "log_started_mentoring": "<@{}> has started mentoring <@{}>!",
         "no_bh_mentors": "<@{}> just joined the Bug Hunters but no one is available to mentor them!",
         "helpee_mentor_assigned": "{} has been assigned to help you. Look out for a DM from them shortly",
