@@ -73,7 +73,7 @@ class MentorConfig(AnnounceBotConfig):
 class MentorPlugin(Plugin):
 
     def load(self, ctx):
-        super(MentorPlugin, self).load(ctx)
+        super().load(ctx)
         self.client = MongoClient(self.config.mongodb_host, self.config.mongodb_port,
                                   username=self.config.mongodb_username,
                                   password=self.config.mongodb_password)
@@ -81,9 +81,9 @@ class MentorPlugin(Plugin):
         self.users = self.client.experience.users
 
     def unload(self, ctx):
+        super().unload(ctx)
         self.helpme.save()
         self.users.save()
-        super(MentorPlugin, self).unload(ctx)
 
     def add_xp(self, user_id, amount):
         uid = str(user_id)
