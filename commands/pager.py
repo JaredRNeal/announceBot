@@ -5,11 +5,11 @@ from util import Pages
 
 class Pager(Plugin):
     def load(self, ctx):
-        super(Pager, self).load(ctx)
+        super().load(ctx)
         Pages.load_from_disc()
 
     def unload(self, ctx):
-        super(Pages, self).unload(ctx)
+        super().unload(ctx)
         Pages.save_to_disc()
 
     @Plugin.listen("MessageReactionAdd")

@@ -59,7 +59,7 @@ SCOPE_DATA = {
 class NotifyPlugin(Plugin):
 
     def load(self, ctx):
-        super(NotifyPlugin, self).load(ctx)
+        super().load(ctx)
         self.client = MongoClient(self.config.mongodb_host, self.config.mongodb_port,
                                   username=self.config.mongodb_username,
                                   password=self.config.mongodb_password)
@@ -67,8 +67,8 @@ class NotifyPlugin(Plugin):
         self._compile_exp()
 
     def unload(self, ctx):
+        super().unload(ctx)
         self.reports.save()
-        super(NotifyPlugin, self).unload(ctx)
 
     def _compile_exp(self):
         self.exp = {}
