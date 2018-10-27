@@ -2,6 +2,7 @@ import re
 from datetime import datetime, timedelta
 from functools import reduce
 
+from disco.api.http import APIException
 from disco.bot import Plugin
 from disco.bot.command import CommandEvent
 from disco.types import Message, Channel
@@ -91,8 +92,12 @@ class StatsPlugin(Plugin):
             chan.send_message(embed=embed)
         else:
             # Edit the message with the new content
-            self.summary_message.edit(embed=embed)
-            pass
+            try:
+                self.summary_message.edit(embed=embed)
+            except APIException:
+                # The message got deleted?
+                self.summary_message = None
+                self.send_or_update_message(embed)
 
     def call_arguments(self, argument_type, params, reports):
         attr_name = f"argument_{argument_type}"
