@@ -5,10 +5,11 @@ from functools import reduce
 from disco.bot import Plugin
 from disco.bot.command import CommandEvent
 from disco.types import Message, Channel
-from disco.types.message import MessageEmbed, MessageEmbedFooter
+from disco.types.message import MessageEmbed
 from disco.util import snowflake
 
 from commands.config import StatsPluginConfig
+from util.GlobalHandlers import command_wrapper
 
 
 @Plugin.with_config(StatsPluginConfig)
@@ -20,39 +21,8 @@ class StatsPlugin(Plugin):
         self.argument_regex = re.compile('{{([A-Za-z_]+):?([A-Za-z0-9,_/]+)?}}', re.MULTILINE)
         self.summary_message = None
 
-    @Plugin.command('reportingChannel', '<chan_id:snowflake> <message_id:snowflake>')
-    def reporting_channel(self, event: CommandEvent, chan_id, message_id):
-        chan: Channel = event.guild.channels.get(chan_id)
-        msg = chan.get_message(message_id)
-        if msg is None:
-            event.msg.reply(f"The message with id ${message_id} was not found!")
-            return
-        else:
-            chan = self.get_reporting_channel(msg)
-            t = snowflake.to_datetime(message_id)
-            event.msg.reply(
-                f"The message was reported in {chan} <#{chan}> and was reported on {t.strftime('%Y-%m-%d %H:%m:%S')}")
-
-    @Plugin.command('reports')
-    def reports(self, event: CommandEvent):
-        reports = self.get_all_bug_reports()
-        if reports is not None:
-            body = ""
-            for chan, reports in reports.items():
-                to_add = f"<#{chan}> - **{len(reports)} report" + ("s" if len(reports) > 1 else "") + "**\n"
-                if len(to_add + body) > 2000:
-                    event.msg.reply(body)
-                    body = ""
-                body += to_add
-            event.msg.reply(body)
-        else:
-            event.msg.reply("no reports in the queue?")
-
-    @Plugin.command('argTest', '<msg:str...>')
-    def arg_test(self, event: CommandEvent, msg: str):
-        event.msg.reply(self.parse_message(msg, self.get_all_bug_reports()))
-
     @Plugin.command('stats update')
+    @command_wrapper(perm_lvl=2)
     def update_stats(self, event: CommandEvent):
         m = event.msg.reply(":timer: Updating Queue statistics...")
         self.update_queue_message()
@@ -108,7 +78,8 @@ class StatsPlugin(Plugin):
         self.send_or_update_message(embed)
 
     def send_or_update_message(self, embed: MessageEmbed):
-        chan = self.bot.client.state.guilds[self.config.dtesters_guild_id].channels[self.config.queue_summary['channel']]
+        chan = self.bot.client.state.guilds[self.config.dtesters_guild_id].channels[
+            self.config.queue_summary['channel']]
         if self.summary_message is None:
             # Look in the stats channel for a previous message by us
             for msg in chan.messages:
