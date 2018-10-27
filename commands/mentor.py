@@ -179,7 +179,7 @@ class MentorPlugin(Plugin):
         return {'mentor_id': mentor_id, 'message_id': mentor_msg.id, 'history': history, 'suffix': log_suffix}
 
     @Plugin.command("cancel", group="helpme")
-    @command_wrapper(log=False, perm_lvl=1, allowed_in_dm=True, allowed_on_server=False)
+    @command_wrapper(log=False, perm_lvl=0, allowed_in_dm=True, allowed_on_server=False)
     def cancel_help_request(self, event):
         session = self.helpme.find_one({'$and': [{'helpee_id': event.author.id}, {'active': True}]})
         if session:
@@ -249,7 +249,7 @@ class MentorPlugin(Plugin):
                 event.msg.reply('Unable to find a session with that identifier')
 
     @Plugin.command("helpme", "<content:str...>")
-    @command_wrapper(log=False, perm_lvl=1, allowed_in_dm=True, allowed_on_server=False)
+    @command_wrapper(log=False, perm_lvl=0, allowed_in_dm=True, allowed_on_server=False)
     def on_help_command(self, event, content):
         if not self.helpme.find_one({'$and': [{'helpee_id': event.author.id}, {'active': True}]}):
 
