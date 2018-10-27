@@ -95,7 +95,11 @@ class StatsPlugin(Plugin):
             pass
 
     def call_arguments(self, argument_type, params, reports):
-        return getattr(self, f"argument_{argument_type}")(**{'params': params, 'reports': reports})
+        attr_name = f"argument_{argument_type}"
+        if hasattr(self, attr_name):
+            return getattr(self, attr_name)(**{'params': params, 'reports': reports})
+        else:
+            return f"*Unknown argument {argument_type}*"
 
     def argument_oldest_report(self, params, reports: dict):
         r = reduce(list.__add__, reports.values()) if params[0] == "all" \
