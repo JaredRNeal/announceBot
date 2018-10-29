@@ -147,7 +147,8 @@ class MentorPlugin(Plugin):
             # Found a mentor
             if mentor_user:
                 em = self.build_help_embed(helpee.mention, query, session_id)
-                mentor_msg = self.send_dm(mentor_user.id, embed=em)
+                body_msg = "{}#{} ({}) has requested help and you've been selected to help them! Use the reactions to respond: <@{}>".format(helpee.username, helpee.discriminator, helpee.id, helpee.id)
+                mentor_msg = self.send_dm(mentor_user.id, body_msg, embed=em)
                 if not mentor_msg:
                     # Mentor closed their DMs
                     log_to_bot_log(self.bot, f':shield: {mentor_user} was selected to assist but has closed DMs')
