@@ -34,3 +34,4 @@ bot:
     - commands.notify
     - commands.mentor
     - commands.interactions
+    - commands.stats
