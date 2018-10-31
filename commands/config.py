@@ -246,3 +246,6 @@ class ChatInteractionsConfig(Config):
         " with a burnt piece of toast", 
         ", but it wasn't very effective"
     ]
+
+class GitHubConfig(Config):
+    source_code_location = "https://github.com/JaredRNeal/announceBot"
