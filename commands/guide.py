@@ -5,19 +5,16 @@ I am terrible at naming variables. I spent 2 days attempting to fix
 a bug when I was looking at my uncreative variable naming.
 """
 
-import time
-import math
-import random
-import os
 import json
+import os
+import random
 
 from disco.bot import Plugin
 from disco.types.message import MessageEmbed
 
 from commands.config import GuideConfig
-
-from util.GlobalHandlers import command_wrapper, log_to_bot_log, handle_exception
 from util import Pages
+from util.GlobalHandlers import command_wrapper, log_to_bot_log
 
 
 @Plugin.with_config(GuideConfig)
@@ -27,7 +24,7 @@ class GuidePlugin(Plugin):
         super().load(ctx)
         Pages.register("guide", self.initialize_page, self.update_page)
         if not os.path.isfile("experiments.json"):
-            self.experiments = { "dm-guide-on-join": 25 }
+            self.experiments = {"dm-guide-on-join": 25}
             return
         with open("experiments.json", "r") as experiments:
             # if this errors, dabbit didn't do the config right.
@@ -53,7 +50,8 @@ class GuidePlugin(Plugin):
         if page.get("color") is not None:
             embed.color = int(page["color"], 16)
         if page.get("image") is not None:
-            embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/471128155214577670/504390962496143370/suffer.jpg")
+            embed.set_thumbnail(
+                url="https://cdn.discordapp.com/attachments/471128155214577670/504390962496143370/suffer.jpg")
         table_of_contents_field = None
         if "table_of_contents" in page:
             if page["table_of_contents"]:
@@ -81,8 +79,8 @@ class GuidePlugin(Plugin):
     def initialize_page(self, channel, trigger, **kwargs):
         guide_message = self.config.welcome_message if kwargs.get("is_join_dm", False) else "Guide:"
         return guide_message, self.generate_page(1, kwargs["guide"]), len(self.config.guides[
-                                                                            kwargs["guide"]
-                                                                        ]) >= 2
+                                                                              kwargs["guide"]
+                                                                          ]) >= 2
 
     def update_page(self, message, page_num, action, data):
         if data.get("sender") is None:
@@ -102,7 +100,7 @@ class GuidePlugin(Plugin):
             else:
                 new_page_number = page_num
                 new_page_number += 1
-        return "Guide:", self.generate_page(new_page_number,  data["guide"]), new_page_number
+        return "Guide:", self.generate_page(new_page_number, data["guide"]), new_page_number
 
     @Plugin.command("guide", "<guide_name:str>")
     @command_wrapper(perm_lvl=0, allowed_in_dm=True, allowed_on_server=False)
@@ -120,7 +118,7 @@ class GuidePlugin(Plugin):
             guide = "`+guide {name}` - {description}\n".format(name=k, description=v["description"])
             guide_list = guide_list + guide
         event.msg.reply(guide_list)
-    
+
     @Plugin.command("dmchance", "<percent:float>")
     @command_wrapper(perm_lvl=2, allowed_in_dm=True, allowed_on_server=True)
     def set_dm_guide_percentage(self, event, percent):
@@ -129,9 +127,12 @@ class GuidePlugin(Plugin):
         file = open("experiments.json", "w")
         file.write(json.dumps(self.experiments))
         file.close()
-        event.msg.reply(":ok_hand: set dm guide percentage experimentation thing to `{percent}`".format(percent=percent * 100))
-        log_to_bot_log(self.bot, ":wrench: DM Guide percentage updated to `{percent}` by {user}".format(percent=percent * 100, user=str(event.msg.author)))
-
+        event.msg.reply(
+            ":ok_hand: set dm guide percentage experimentation thing to `{percent}`".format(percent=percent * 100))
+        log_to_bot_log(self.bot,
+                       ":wrench: DM Guide percentage updated to `{percent}` by {user}".format(percent=percent * 100,
+                                                                                              user=str(
+                                                                                                  event.msg.author)))
 
     @Plugin.listen("GuildMemberAdd")
     def guide_send(self, event):
@@ -145,7 +146,7 @@ class GuidePlugin(Plugin):
                     user=str(event.member)
                 ))
             except:
-                log_to_bot_log(self.bot, ":no_entry_sign: {user} has DMs disabled, so the guide wasn't sent to them.".format(
-                    user=str(event.member)
-                ))
-        
+                log_to_bot_log(self.bot,
+                               ":no_entry_sign: {user} has DMs disabled, so the guide wasn't sent to them.".format(
+                                   user=str(event.member)
+                               ))

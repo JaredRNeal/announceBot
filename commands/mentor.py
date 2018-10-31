@@ -1,23 +1,22 @@
-import time
 import random
+import time
 from datetime import datetime
 
-from pymongo import MongoClient
-from bson.objectid import ObjectId
 from bson.errors import InvalidId
-from disco.bot import Plugin
-from disco.util import sanitize
-from disco.types.base import UNSET
-from disco.types.user import Status
+from bson.objectid import ObjectId
 from disco.api.http import APIException
+from disco.bot import Plugin
+from disco.types.base import UNSET
 from disco.types.message import MessageEmbed
+from disco.types.user import Status
+from disco.util import sanitize
+from pymongo import MongoClient
 
 from commands.config import AnnounceBotConfig
 from util.GlobalHandlers import command_wrapper, log_to_bot_log
 
 
 class MentorConfig(AnnounceBotConfig):
-
     channels = {
         "mentor": 471421747669762048,
         "new_bh": 473944829919887371,
@@ -95,9 +94,10 @@ class MentorPlugin(Plugin):
         self.users.update_one({'user_id': uid}, {'$set': {'xp': total}})
         log_to_bot_log(self.bot, f':pencil: Updated point total for {uid} to {total} for completing a HelpMe request')
 
-    def get_mentor(self, exclude=[]):
+    def get_mentor(self, exclude = []):
         guild = self.bot.client.state.guilds.get(self.config.dtesters_guild_id)
-        mentors = [u.user for u in guild.members.values() if self.config.mentor_role_id in u.roles and u.user.id not in exclude and u.user.presence is not UNSET and u.user.presence.status == Status.ONLINE]
+        mentors = [u.user for u in guild.members.values() if
+                   self.config.mentor_role_id in u.roles and u.user.id not in exclude and u.user.presence is not UNSET and u.user.presence.status == Status.ONLINE]
         if mentors:
             # TODO: Could make this round robin?
             return random.choice(mentors)
@@ -114,7 +114,8 @@ class MentorPlugin(Plugin):
         em = MessageEmbed()
         em.title = 'HelpMe Request'
         desc = '\n'.join(self.config.helpme_embed_desc)
-        em.description = desc.format(self.build_emoji('complete'), self.build_emoji('decline'), self.build_emoji('escalate'))
+        em.description = desc.format(self.build_emoji('complete'), self.build_emoji('decline'),
+                                     self.build_emoji('escalate'))
         em.color = '7506394'
         em.set_footer(text=f'ID: {identifier}')
         em.add_field(name='Helpee', value=helpee_mention)
@@ -140,14 +141,15 @@ class MentorPlugin(Plugin):
                 user = None
         return user
 
-    def assign_helpme(self, helpee, query, session_id, history, message=None, excluded=[]):
+    def assign_helpme(self, helpee, query, session_id, history, message = None, excluded = []):
         mentor_id = 0
         while True:
             mentor_user = self.get_mentor(excluded)
             # Found a mentor
             if mentor_user:
                 em = self.build_help_embed(helpee.mention, query, session_id)
-                body_msg = "{}#{} ({}) has requested help and you've been selected to help them! Use the reactions to respond: <@{}>".format(helpee.username, helpee.discriminator, helpee.id, helpee.id)
+                body_msg = "{}#{} ({}) has requested help and you've been selected to help them! Use the reactions to respond: <@{}>".format(
+                    helpee.username, helpee.discriminator, helpee.id, helpee.id)
                 mentor_msg = self.send_dm(mentor_user.id, body_msg, embed=em)
                 if not mentor_msg:
                     # Mentor closed their DMs
@@ -155,7 +157,8 @@ class MentorPlugin(Plugin):
                     history.append((time.time(), 'declined', mentor_user.id))
                     excluded.append(mentor_user.id)
                 else:
-                    for reaction in [self.build_emoji('complete'), self.build_emoji('decline'), self.build_emoji('escalate')]:
+                    for reaction in [self.build_emoji('complete'), self.build_emoji('decline'),
+                                     self.build_emoji('escalate')]:
                         mentor_msg.add_reaction(reaction)
                     helpee_msg = self.config.messages['helpee_mentor_assigned'].format(mentor_user.mention)
                     if message is None:
@@ -172,7 +175,9 @@ class MentorPlugin(Plugin):
                     self.send_dm(helpee.id, self.config.messages['helpee_delay'])
                 else:
                     message.reply(self.config.messages['helpee_delay'])
-                mentor_msg = self.bot.client.api.channels_messages_create(self.config.channels['mentor'], self.config.messages['no_mentors'].format(helpee.mention, query))
+                mentor_msg = self.bot.client.api.channels_messages_create(self.config.channels['mentor'],
+                                                                          self.config.messages['no_mentors'].format(
+                                                                              helpee.mention, query))
                 mentor_msg.add_reaction(self.build_emoji('complete'))
                 history.append((time.time(), 'waiting', 0))
                 log_suffix = 'no mentors available'
@@ -187,7 +192,8 @@ class MentorPlugin(Plugin):
             last_event = session['history'][-1][1]
             if last_event == 'waiting':
                 try:
-                    self.bot.client.api.channels_messages_delete(self.config.channels['mentor'], session['status_message_id'])
+                    self.bot.client.api.channels_messages_delete(self.config.channels['mentor'],
+                                                                 session['status_message_id'])
                 except APIException:
                     pass
             elif last_event == 'assigned':
@@ -283,11 +289,16 @@ class MentorPlugin(Plugin):
             return
         # If there's at least one mentor in the list, ping them.
         if the_chosen_one is None:
-            self.bot.client.api.channels_messages_create(self.config.channels['mentor'], self.config.messages['no_bh_mentors'].format(event.content[10:28]))
+            self.bot.client.api.channels_messages_create(self.config.channels['mentor'],
+                                                         self.config.messages['no_bh_mentors'].format(
+                                                             event.content[10:28]))
             log_to_bot_log(self.bot, self.config.messages['no_bh_mentors'].format(event.content[10:28]))
             return
-        react_message = self.bot.client.api.channels_messages_create(self.config.channels['mentor'], self.config.messages['new_bh_join'].format(event.content[10:28], the_chosen_one.id))
-        self.bot.client.api.channels_messages_reactions_create(self.config.channels['mentor'], react_message.id, self.build_emoji('mentor'))
+        react_message = self.bot.client.api.channels_messages_create(self.config.channels['mentor'],
+                                                                     self.config.messages['new_bh_join'].format(
+                                                                         event.content[10:28], the_chosen_one.id))
+        self.bot.client.api.channels_messages_reactions_create(self.config.channels['mentor'], react_message.id,
+                                                               self.build_emoji('mentor'))
 
     @Plugin.listen("MessageReactionAdd")
     def on_reaction(self, event):
@@ -312,25 +323,36 @@ class MentorPlugin(Plugin):
                     mentor_msg = self.send_dm(event.user_id, embed=em)
                     if not mentor_msg:
                         # Mentor has closed DMs
-                        self.bot.client.api.channels_messages_create(self.config.channels['mentor'], self.config.messages['mentor_claim_failed'].format(mentor_user.mention)).after(5).delete()
+                        self.bot.client.api.channels_messages_create(self.config.channels['mentor'],
+                                                                     self.config.messages['mentor_claim_failed'].format(
+                                                                         mentor_user.mention)).after(5).delete()
                     else:
                         # Delete the message so no other mentors can claim it
                         self.bot.client.api.channels_messages_delete(self.config.channels['mentor'], event.message_id)
                         log_to_bot_log(self.bot, f'{mentor_user} picked up a HelpMe request from {helpee_user}')
 
-                        for reaction in [self.build_emoji('complete'), self.build_emoji('decline'), self.build_emoji('escalate')]:
+                        for reaction in [self.build_emoji('complete'), self.build_emoji('decline'),
+                                         self.build_emoji('escalate')]:
                             mentor_msg.add_reaction(reaction)
 
-                        self.send_dm(session['helpee_id'], self.config.messages['helpee_mentor_assigned'].format(mentor_user.mention))
+                        self.send_dm(session['helpee_id'],
+                                     self.config.messages['helpee_mentor_assigned'].format(mentor_user.mention))
 
                         session['history'].append((time.time(), 'assigned', event.user_id))
-                        self.helpme.update_one({'_id': session['_id']}, {'$set': {'history': session['history'], 'mentor_id': event.user_id, 'status_message_id': mentor_msg.id}})
+                        self.helpme.update_one({'_id': session['_id']}, {
+                            '$set': {'history': session['history'], 'mentor_id': event.user_id,
+                                     'status_message_id': mentor_msg.id}})
 
             else:
-                react_length = len(self.bot.client.api.channels_messages_reactions_get(self.config.channels['mentor'], event.message_id, self.build_emoji('mentor')))
+                react_length = len(self.bot.client.api.channels_messages_reactions_get(self.config.channels['mentor'],
+                                                                                       event.message_id,
+                                                                                       self.build_emoji('mentor')))
                 if react_length < 3:
-                    event_message = self.bot.client.api.channels_messages_get(self.config.channels['mentor'], event.message_id)
-                    log_to_bot_log(self.bot, self.config.messages['log_started_mentoring'].format(event.user_id, event_message.content[2:20]))
+                    event_message = self.bot.client.api.channels_messages_get(self.config.channels['mentor'],
+                                                                              event.message_id)
+                    log_to_bot_log(self.bot, self.config.messages['log_started_mentoring'].format(event.user_id,
+                                                                                                  event_message.content[
+                                                                                                  2:20]))
 
         # If it's a DM
         elif gc is None:
@@ -342,7 +364,8 @@ class MentorPlugin(Plugin):
 
                     helpee_user = self.get_user(session['helpee_id'])
                     mentor_user = self.get_user(session['mentor_id'])
-                    log_to_bot_log(self.bot, self.config.messages['log_helpme_complete'].format(mentor_user, helpee_user))
+                    log_to_bot_log(self.bot,
+                                   self.config.messages['log_helpme_complete'].format(mentor_user, helpee_user))
 
                     # Send DM to helpee with survey link
                     link = self.config.survey_link.format(str(session['_id']))
@@ -354,7 +377,8 @@ class MentorPlugin(Plugin):
                     self.send_dm(session['mentor_id'], self.config.messages['mentor_helpme_complete'])
 
                     session['history'].append((time.time(), 'complete', session['mentor_id']))
-                    self.helpme.update_one({'_id': session['_id']}, {'$set': {'active': False, 'history': session['history']}})
+                    self.helpme.update_one({'_id': session['_id']},
+                                           {'$set': {'active': False, 'history': session['history']}})
 
                 # The mentor declined the request
                 elif event.emoji.id == self.config.emoji['decline']['id']:
@@ -370,9 +394,12 @@ class MentorPlugin(Plugin):
 
                     # Find a new mentor
                     helpee = self.get_user(session['helpee_id'])
-                    assignment = self.assign_helpme(helpee, session['query'], str(session['_id']), session['history'], excluded=excluded)
+                    assignment = self.assign_helpme(helpee, session['query'], str(session['_id']), session['history'],
+                                                    excluded=excluded)
 
-                    self.helpme.update_one({'_id': session['_id']}, {'$set': {'history': assignment['history'], 'mentor_id': assignment['mentor_id'], 'status_message_id': assignment['message_id']}})
+                    self.helpme.update_one({'_id': session['_id']}, {
+                        '$set': {'history': assignment['history'], 'mentor_id': assignment['mentor_id'],
+                                 'status_message_id': assignment['message_id']}})
 
                 # The mentor escalated to the mods
                 elif event.emoji.id == self.config.emoji['escalate']['id']:
@@ -382,8 +409,12 @@ class MentorPlugin(Plugin):
                     # Post details in mod chat
                     mentor_user = self.get_user(session['mentor_id'])
                     helpee_user = self.get_user(session['helpee_id'])
-                    self.bot.client.api.channels_messages_create(self.config.channels['mod'], self.config.messages['mod_helpme_escalated'].format(mentor_user.mention, str(session['_id']), helpee_user.mention, session['query']))
+                    self.bot.client.api.channels_messages_create(self.config.channels['mod'],
+                                                                 self.config.messages['mod_helpme_escalated'].format(
+                                                                     mentor_user.mention, str(session['_id']),
+                                                                     helpee_user.mention, session['query']))
 
                     session['history'].append((time.time(), 'escalated', session['mentor_id']))
-                    self.helpme.update_one({'_id': session['_id']}, {'$set': {'active': False, 'history': session['history']}})
+                    self.helpme.update_one({'_id': session['_id']},
+                                           {'$set': {'active': False, 'history': session['history']}})
                     log_to_bot_log(self.bot, f'{mentor_user} escalated a HelpMe request from {helpee_user}')
