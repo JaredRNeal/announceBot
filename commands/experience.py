@@ -1,16 +1,13 @@
-import time
-import traceback
 import math
+import time
 
-from disco.api.http import APIException
 from disco.bot import Plugin
 from disco.types.message import MessageEmbed
 from pymongo import MongoClient
 
 from commands.config import ExperiencePluginConfig
-
-from util.GlobalHandlers import command_wrapper, log_to_bot_log, handle_exception
 from util import Pages
+from util.GlobalHandlers import command_wrapper, log_to_bot_log, handle_exception
 
 
 @Plugin.with_config(ExperiencePluginConfig)
@@ -138,9 +135,9 @@ class ExperiencePlugin(Plugin):
         """ handles giving user XP for an action they did. """
         actions = []
         for previous_action in self.get_actions(user_id, action):
-                # if action happened less than 24 hours ago, add it.
-                if previous_action.get("time", 0) + 86400.0 >= time.time():
-                    actions.append(previous_action)
+            # if action happened less than 24 hours ago, add it.
+            if previous_action.get("time", 0) + 86400.0 >= time.time():
+                actions.append(previous_action)
 
         if len(actions) >= self.config.reward_limits[action]:
             return
@@ -184,7 +181,8 @@ class ExperiencePlugin(Plugin):
             role = self.config.roles["squasher"]
             if role in member.roles:
                 member.remove_role(role)
-            log_to_bot_log(self.bot, "Removed the bug squasher role from {} as their purchase expired".format(str(member)))
+            log_to_bot_log(self.bot,
+                           "Removed the bug squasher role from {} as their purchase expired".format(str(member)))
             self.set_purchase_expired(purchase["_id"])
 
     @Plugin.command("xp")
@@ -202,7 +200,9 @@ class ExperiencePlugin(Plugin):
                 valid = True
 
         if not valid:
-            event.msg.reply("Sorry, only Bug Hunters are able to use the XP system. If you'd like to become a Bug Hunter, read all of <#342043548369158156>").after(5).delete()
+            event.msg.reply(
+                "Sorry, only Bug Hunters are able to use the XP system. If you'd like to become a Bug Hunter, read all of <#342043548369158156>").after(
+                5).delete()
             return
 
         # find the user's xp
