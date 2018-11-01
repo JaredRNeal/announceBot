@@ -136,7 +136,7 @@ class StatsPluginConfig(Config):
       "__**iOS**__ - :iphone: \n iOS has **{{total_reports:202491590390841344}}** open reports. \n There are **{{stale_reports:202491590390841344,24}}** reports that have had no action within the last 24 hours. \n This is the [Oldest Report]({{oldest_report:202491590390841344}}). \n",
       "__**Desktop**__ - :desktop: \n Desktop has **{{total_reports:197038744908333066}}** open reports. \n There are **{{stale_reports:197038744908333066,24}}** reports that have had no action within the last 24 hours. \n This is the [Oldest Report]({{oldest_report:197038744908333066}}). \n",
       "__**Linux**__ - :penguin: \n Linux has **{{total_reports:238073742624948225}}** open reports. \n There are **{{stale_reports:238073742624948225,24}}** reports that have had no action within the last 24 hours. \n This is the [Oldest Report]({{oldest_report:238073742624948225}}). \n",
-      "\n This is the [Oldest Report]({{oldest_report:all}}) in the queue."
+      "This is the [Oldest Report]({{oldest_report:all}}) in the queue."
     ],        "channel": 506509300127236097,
         "color": '#7289DA'
     }
