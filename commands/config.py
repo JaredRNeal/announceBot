@@ -131,7 +131,7 @@ class StatsPluginConfig(Config):
     queue_summary = {
         "title": "Bug Approval Queue Summary",
         "message": [],
-        "channel": 0,
+        "channel": 506509300127236097,
         "color": '#7289DA'
     }
 
