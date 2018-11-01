@@ -20,7 +20,7 @@ class MentorConfig(AnnounceBotConfig):
     channels = {
         "mentor": 471421747669762048,
         "new_bh": 473944829919887371,
-        "mod": 0
+        "mod": 281283303326089216
     }
     messages = {
         "no_mentors": "{} requested help with `{}` however there are currently no available mentors online. React below if you'd like to help them",
