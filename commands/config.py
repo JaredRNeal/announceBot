@@ -132,10 +132,10 @@ class StatsPluginConfig(Config):
         "title": "Bug Approval Queue Summary",
         "message": [
       "There are **{{total_reports:all}}** reports in the queue right now. \n",
-      "__**Android**__ - <:android:332598085782077451> \n Android has **{{total_reports:232568032394870784}}** open reports. \n There are **{{stale_reports:232568032394870784,24}}** reports that have had no action within the last 24 hours. \n This is the [Oldest Report]({{oldest_report:232568032394870784}}).",
-      "__**iOS**__ - :iphone: \n iOS has **{{total_reports:202491590390841344}}** open reports. \n There are **{{stale_reports:202491590390841344,24}}** reports that have had no action within the last 24 hours. \n This is the [Oldest Report]({{oldest_report:202491590390841344}}).",
-      "__**Desktop**__ - :desktop: \n Desktop has **{{total_reports:197038744908333066}}** open reports. \n There are **{{stale_reports:197038744908333066,24}}** reports that have had no action within the last 24 hours. \n This is the [Oldest Report]({{oldest_report:197038744908333066}}).",
-      "__**Linux**__ - :penguin: \n Linux has **{{total_reports:238073742624948225}}** open reports. \n There are **{{stale_reports:238073742624948225,24}}** reports that have had no action within the last 24 hours. \n This is the [Oldest Report]({{oldest_report:238073742624948225}}).",
+      "__**Android**__ - <:android:332598085782077451> \n Android has **{{total_reports:232568032394870784}}** open reports. \n There are **{{stale_reports:232568032394870784,24}}** reports that have had no action within the last 24 hours. \n This is the [Oldest Report]({{oldest_report:232568032394870784}}). \n",
+      "__**iOS**__ - :iphone: \n iOS has **{{total_reports:202491590390841344}}** open reports. \n There are **{{stale_reports:202491590390841344,24}}** reports that have had no action within the last 24 hours. \n This is the [Oldest Report]({{oldest_report:202491590390841344}}). \n",
+      "__**Desktop**__ - :desktop: \n Desktop has **{{total_reports:197038744908333066}}** open reports. \n There are **{{stale_reports:197038744908333066,24}}** reports that have had no action within the last 24 hours. \n This is the [Oldest Report]({{oldest_report:197038744908333066}}). \n",
+      "__**Linux**__ - :penguin: \n Linux has **{{total_reports:238073742624948225}}** open reports. \n There are **{{stale_reports:238073742624948225,24}}** reports that have had no action within the last 24 hours. \n This is the [Oldest Report]({{oldest_report:238073742624948225}}). \n",
       "\n This is the [Oldest Report]({{oldest_report:all}}) in the queue."
     ],        "channel": 506509300127236097,
         "color": '#7289DA'
