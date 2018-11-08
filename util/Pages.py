@@ -9,18 +9,20 @@ prev_emoji = "⬅"
 next_emoji = "➡"
 
 
-def register(type, init, update, sender_only=False):
+def register(type, init, update, sender_only = False):
     page_handlers[type] = {
         "init": init,
         "update": update,
         "sender_only": sender_only
     }
 
+
 def unregister(type_handler):
     if type_handler in page_handlers.keys():
         del page_handlers[type_handler]
 
-def create_new(bot, type, channel, trigger=None, **kwargs):
+
+def create_new(bot, type, channel, trigger = None, **kwargs):
     text, embed, has_pages = page_handlers[type]["init"](channel, trigger, **kwargs)
     message = channel.send_message(text, embed=embed)
     data = {
@@ -40,6 +42,7 @@ def create_new(bot, type, channel, trigger=None, **kwargs):
         del known_messages[list(known_messages.keys())[0]]
     save_to_disc()
 
+
 def update(bot, channel_id, message_id, action, user):
     if str(message_id) in known_messages.keys():
         message = bot.client.state.channels[channel_id].get_message(message_id)
@@ -56,6 +59,7 @@ def update(bot, channel_id, message_id, action, user):
                 return True
     return False
 
+
 def basic_pages(pages, page_num, action):
     if action == "PREV":
         page_num -= 1
@@ -68,7 +72,8 @@ def basic_pages(pages, page_num, action):
     page = pages[page_num]
     return page, page_num
 
-def paginate(input, max_lines = 20, max_chars=1900):
+
+def paginate(input, max_lines = 20, max_chars = 1900):
     lines = input.splitlines(keepends=True)
     pages = []
     page = ""
@@ -94,8 +99,10 @@ def paginate(input, max_lines = 20, max_chars=1900):
     pages.append(page)
     return pages
 
+
 def save_to_disc():
     Utils.saveToDisk("known_messages", known_messages)
+
 
 def load_from_disc():
     global known_messages

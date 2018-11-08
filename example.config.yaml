@@ -24,7 +24,7 @@ bot:
       mac: 351008099978706944
       windows: 351008373669494794
       test: 441010616388419584
-        
+
   plugins:
     - commands.announce
     - commands.events
@@ -34,3 +34,4 @@ bot:
     - commands.notify
     - commands.mentor
     - commands.interactions
+    - commands.stats
