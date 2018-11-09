@@ -51,7 +51,7 @@ The bot will automatically post in the correct channel based on the role you wan
 
 +tag TOPIC_NAME
 ===============
-
+This feature simply makes a post about a specific topic. Primarily only mods use this feature.
 The topics I currently have are:
 
 suggestions
