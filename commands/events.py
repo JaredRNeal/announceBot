@@ -1,11 +1,11 @@
 # coding=utf-8
 import matplotlib
-#put it in headless mode before importing pyplot
+
+# put it in headless mode before importing pyplot
 matplotlib.use('Agg')
 from matplotlib import pyplot
 import json
 import math
-import calendar
 import os.path
 import time
 import traceback
@@ -20,15 +20,15 @@ from disco.types.channel import MessageIterator
 
 from commands.config import EventsPluginConfig
 from util import TrelloUtils, Pages, Pie
-from util.GlobalHandlers import command_wrapper, log_to_bot_log, handle_exception
+from util.GlobalHandlers import command_wrapper, log_to_bot_log
 
 
 @Plugin.with_config(EventsPluginConfig)
 class Events(Plugin):
 
     def __init__(self, bot, config):
-        super(Events, self).__init__(bot, config)
-        #initialize
+        # initialize
+        super().__init__(bot, config)
         self.queued = False
         self.saving = False
         self.status = "Scheduled"
@@ -37,76 +37,84 @@ class Events(Plugin):
         self.dupes = dict()
 
     def load(self, ctx):
-        super(Events, self).load(ctx)
+        super().load(ctx)
         self.load_event_stats()
         Pages.register("participants", self.init_participants, self.update_participants)
 
     def unload(self, ctx):
+        super().unload(ctx)
         self.save_event_stats()
-        super(Events, self).unload(ctx)
         Pages.unregister("participants")
 
     @Plugin.command("submit", "[submission:str...]")
     @command_wrapper(perm_lvl=1, log=False)
-    def template(self, event, submission=None):
+    def template(self, event, submission = None):
         """Make a new submission"""
         if self.status != "Started":
-            return #no event going on, pretend nothing happened #noleeks
-        if event.channel.id != self.config.event_channel: #ignore users running this in the wrong channel, also prevents non hunters from submitting
+            return  # no event going on, pretend nothing happened #noleeks
+        if event.channel.id != self.config.event_channel:  # ignore users running this in the wrong channel, also prevents non hunters from submitting
             return
 
-        help_message = "<@{}> It seems you're missing parts, the syntax for this command is `+submit <trello link> | <where this ticket should be moved to> | <why it should be moved there and/or new steps>`".format(event.author.id)
+        help_message = "<@{}> It seems you're missing parts, the syntax for this command is `+submit <trello link> | <where this ticket should be moved to> | <why it should be moved there and/or new steps>`".format(
+            event.author.id)
         if submission is None:
-            #no params given, print help info
+            # no params given, print help info
             event.msg.reply(help_message)
             return
 
         parts = submission.split("|")
         if len(parts) < 3:
-            #missing things we need
+            # missing things we need
             event.msg.reply(help_message)
             return
         if len(parts) > 3:
-            #for some reason they used a | in their report, re-assemble it so we don't void things
+            # for some reason they used a | in their report, re-assemble it so we don't void things
             parts[2] = "|".join(parts[2:])
 
         link = parts[0]
         destination = parts[1]
         info = parts[2]
 
-        #fetch the trello info and validate
+        # fetch the trello info and validate
         trello_info = TrelloUtils.getCardInfo(event, link)
         error = None
         if trello_info is False:
-            #wrong type of link, user already informed, we're done here
+            # wrong type of link, user already informed, we're done here
             return
         if trello_info is None:
-            #no info, non existant card or from a private board
-            error = "<@{}> Unable to fetch info about that card, are you sure it exists? Cause I don't feel like playing hide and seek.".format(event.author.id)
+            # no info, non existant card or from a private board
+            error = "<@{}> Unable to fetch info about that card, are you sure it exists? Cause I don't feel like playing hide and seek.".format(
+                event.author.id)
         elif trello_info["idBoard"] not in self.config.boards.keys():
-            #not a discord board
+            # not a discord board
             error = "This card is not from one of the discord bug boards, what do you expect me to do with this?"
         elif trello_info['id'] in self.reported_cards.keys():
-            #already reported
+            # already reported
             report = self.reported_cards[trello_info['id']]
-            #hit by sniper?
+            # hit by sniper?
             timediv = datetime.utcnow() - datetime.utcfromtimestamp(report["report_time"])
             hours, remainder = divmod(int(timediv.total_seconds()), 3600)
             minutes, seconds = divmod(remainder, 60)
-            error = "<@{}> Looks like {} beat you to the punch. Better luck next time {}".format(event.author.id, self.participants[str(report["author_id"])], "SNIPED!" if minutes < 2 else "<:dupebutton:341981924010491904>")
+            error = "<@{}> Looks like {} beat you to the punch. Better luck next time {}".format(event.author.id,
+                                                                                                 self.participants[str(
+                                                                                                     report[
+                                                                                                         "author_id"])],
+                                                                                                 "SNIPED!" if minutes < 2 else "<:dupebutton:341981924010491904>")
         if error is None:
-            #all good so far
+            # all good so far
             board = self.config.boards[trello_info["idBoard"]]
             listname = TrelloUtils.getListInfo(trello_info["idList"])["name"]
             if trello_info["idList"] not in board["lists"]:
-                #this list is not valid for this event
-                error = "<@{}> This card is in the {} list instead of an event list, thanks for the submission but no thanks.".format(event.author.id, listname)
+                # this list is not valid for this event
+                error = "<@{}> This card is in the {} list instead of an event list, thanks for the submission but no thanks.".format(
+                    event.author.id, listname)
             elif trello_info["closed"] is True:
-                #archived card
-                error = "<@{}> _cough cough_ that card has been archived and collected way too much dust for me to do anything with it".format(event.author.id)
+                # archived card
+                error = "<@{}> _cough cough_ that card has been archived and collected way too much dust for me to do anything with it".format(
+                    event.author.id)
 
         if error is not None:
-            #card failed one of the checks, inform user and terminate processing
+            # card failed one of the checks, inform user and terminate processing
             event.msg.reply(error)
             return
         else:
@@ -119,37 +127,39 @@ class Events(Plugin):
 **Submitted by**: {}
 **Detailed info**: {}
 **Trello link**: {}""".format(board["name"], board["emoji"], listname, destination, str(event.author.id), info,
-                                          trello_info["shortUrl"])
-            #sanitze the entire thing, no pinging or breaking codeblocks
+                              trello_info["shortUrl"])
+            # sanitze the entire thing, no pinging or breaking codeblocks
             message = sanitize.S(message, escape_codeblocks=True)
             if len(message) > 2000:
-                #discord only accepts essays up to 2000 characters
-                event.msg.reply("<@{}> Sorry, but that report is too long for me to process, would you mind removing {} characters? Then everything should be fine again.".format(event.author.id, len(message) - 2000))
+                # discord only accepts essays up to 2000 characters
+                event.msg.reply(
+                    "<@{}> Sorry, but that report is too long for me to process, would you mind removing {} characters? Then everything should be fine again.".format(
+                        event.author.id, len(message) - 2000))
                 return
-            #send the submission and clean input
+            # send the submission and clean input
             dmessage = event.msg.reply(message)
             event.msg.delete()
             # add to tracking
             self.reported_cards[trello_info['id']] = dict(
-                author_id= str(event.author.id),
-                board= trello_info["idBoard"],
-                list= trello_info["idList"],
-                message_id= dmessage.id,
-                status= "Submitted",
-                report_time = datetime.utcnow().timestamp()
-        )
+                author_id=str(event.author.id),
+                board=trello_info["idBoard"],
+                list=trello_info["idList"],
+                message_id=dmessage.id,
+                status="Submitted",
+                report_time=datetime.utcnow().timestamp()
+            )
 
         if not str(event.author.id) in self.participants.keys():
-            #this person has not submitted anything yet, special message
+            # this person has not submitted anything yet, special message
             self.participants[str(event.author.id)] = str(event.author)
-            event.msg.reply("<@{}> Achievement get! Successfully submitted your first event entry :tada:".format(event.author.id))
+            event.msg.reply(
+                "<@{}> Achievement get! Successfully submitted your first event entry :tada:".format(event.author.id))
         else:
             event.msg.reply("<@{}> Thanks for your submission!".format(event.author.id))
 
-        log_to_bot_log(self.bot, f":inbox_tray: {event.author} (``{event.author.id}``) has submitted <https://trello.com/c/{trello_info['shortLink']}>")
+        log_to_bot_log(self.bot,
+                       f":inbox_tray: {event.author} (``{event.author.id}``) has submitted <https://trello.com/c/{trello_info['shortLink']}>")
         self.save_event_stats()
-
-
 
     @Plugin.command('start', group="event")
     @command_wrapper(perm_lvl=3)
@@ -165,23 +175,24 @@ class Events(Plugin):
         participants_role = event.guild.roles[int(self.config.participants_role)]
         event_channel = event.guild.channels[int(self.config.event_channel)]
 
-        #determine current overrides and if one exists just flip the read channel bit around
+        # determine current overrides and if one exists just flip the read channel bit around
         perms = event_channel.overwrites
         view_channel = 1024
 
         if participants_role.id in perms.keys():
-            #update existing override
+            # update existing override
             allow = perms[participants_role.id].allow.add(view_channel)
             deny = perms[participants_role.id].deny.sub(view_channel)
-            event_channel.create_overwrite(participants_role, allow = allow, deny=deny)
+            event_channel.create_overwrite(participants_role, allow=allow, deny=deny)
         else:
-            #no override present, make a new one
+            # no override present, make a new one
             event_channel.create_overwrite(participants_role, allow=view_channel, deny=0)
 
         self.status = "Started"
-        event.channel.send_message("<:approve:302137375092375553> Submissions channel unlocked and commands unlocked, here we go")
+        event.channel.send_message(
+            "<:approve:302137375092375553> Submissions channel unlocked and commands unlocked, here we go")
         log_to_bot_log(self.bot, ":unlock: {name} (`{id}`) started the event.".format(name=str(event.msg.author),
-                                                                                 id=event.msg.author.id))
+                                                                                      id=event.msg.author.id))
         self.save_event_stats()
 
     @Plugin.command('winners', group="event")
@@ -201,7 +212,7 @@ class Events(Plugin):
             to_sort.append([number, uid])
 
         count = 0
-        message= ""
+        message = ""
         for points, uid in sorted(to_sort, key=lambda x: x[0], reverse=True)[:10]:
             count = count + 1
             message += "{}: <@{}> ({} points)\n".format(count, uid, points)
@@ -222,16 +233,20 @@ class Events(Plugin):
             event_channel.create_overwrite(participants_role, allow=0, deny=1024)
         event.msg.delete()
         event.channel.send_message("<{}> Event ended, preparing submissions...".format(self.config.emojis["yes"]))
-        log_to_bot_log(self.bot, ":lock: {user} ended event, prepping the submissions".format(user=str(event.msg.author)))
+        log_to_bot_log(self.bot,
+                       ":lock: {user} ended event, prepping the submissions".format(user=str(event.msg.author)))
         self.status = "Ended"
         self.save_event_stats()
 
-        #loop through all submissions and add reactions to it
+        # loop through all submissions and add reactions to it
         for reporter, report in self.reported_cards.items():
             message = event_channel.get_message(report["message_id"])
-            self.bot.client.api.channels_messages_reactions_create(event_channel.id, message.id, self.config.emojis["yes"])
-            self.bot.client.api.channels_messages_reactions_create(event_channel.id, message.id, self.config.emojis["no"])
-        event.msg.reply("<@{}> all {} submissions have been prepped for approval/denial!".format(event.author.id, len(self.reported_cards)))
+            self.bot.client.api.channels_messages_reactions_create(event_channel.id, message.id,
+                                                                   self.config.emojis["yes"])
+            self.bot.client.api.channels_messages_reactions_create(event_channel.id, message.id,
+                                                                   self.config.emojis["no"])
+        event.msg.reply("<@{}> all {} submissions have been prepped for approval/denial!".format(event.author.id, len(
+            self.reported_cards)))
 
     @Plugin.command("participants", group="event")
     @command_wrapper()
@@ -266,19 +281,19 @@ class Events(Plugin):
         embed.title = "Event participants {}/{}".format(num, max)
         embed.description = page
         embed.timestamp = datetime.utcnow().isoformat()
-        embed.color = int('F1C40F',16)
+        embed.color = int('F1C40F', 16)
         return embed
 
     @Plugin.command('pie', "<query:str>", group="event")
     @command_wrapper()
     def event_chart(self, event, query):
-        #convert mentions to id
+        # convert mentions to id
         if query.startswith("<@"):
             query = query[2:-1]
         elif query.startswith("<@!"):
             query = query[3:-1]
 
-        #convert boards
+        # convert boards
         for id, board in self.config.boards.items():
             if query.lower() == board["name"].lower():
                 query = id
@@ -344,10 +359,10 @@ Approved reports: {Approved}
 Denied reports: {Denied}
 Remaining: {Submitted}
                     """.format(total, **i)
-                    #convert id to name for participants
+                    # convert id to name for participants
                     if query in self.participants.keys():
                         query = self.participants[query]
-                    #convert board id to name
+                    # convert board id to name
                     if query in self.config.boards.keys():
                         query = self.config.boards[query]["name"]
                     figure = pyplot.figure()
@@ -359,7 +374,6 @@ Remaining: {Submitted}
                         event.msg.reply(message, attachments=[("pie.png", file, "image/png")])
             else:
                 event.msg.reply("Sorry but i don't seem to have any stats available for that")
-
 
     @Plugin.command("stats", group="event")
     @command_wrapper()
@@ -381,7 +395,6 @@ Remaining: {Submitted}
         figure.clf()
         with open("all.png", "rb") as file:
             event.msg.reply(message, attachments=[("all.png", file, "image/png")])
-
 
     def calc_event_stats(self):
         info = {
@@ -420,7 +433,7 @@ Remaining: {Submitted}
             vs[report["author_id"]] += 1
         info["total"] = total
 
-        #transform lists to use their names rather then IDs
+        # transform lists to use their names rather then IDs
         info["lists"] = dict()
         info["vs"] = vs
         for board_id, content in lists.items():
@@ -436,11 +449,11 @@ Remaining: {Submitted}
     def clear_user(self, event, user, reason):
         """Someone's been so bad we need to remove all their submissions :("""
         if not str(user.id) in self.participants:
-            #that definitely was the wrong user
+            # that definitely was the wrong user
             event.msg.reply("This user has not participated in the event")
             return
         else:
-            #seperate list to remove as we can't alter the list we are iterating over
+            # seperate list to remove as we can't alter the list we are iterating over
             to_remove = []
             for rid, report in self.reported_cards.items():
                 if str(user) == str(report["author_id"]):
@@ -448,13 +461,15 @@ Remaining: {Submitted}
                         channel = event.guild.channels[self.config.event_channel]
                         channel.get_message(report["message_id"]).delete()
                     except APIException:
-                        pass #mod already removed it?
+                        pass  # mod already removed it?
                     to_remove.append(rid)
             for r in to_remove:
                 del self.reported_cards[r]
-            event.channel.send_message("<{}> cleared reports from {}.".format(self.config.emojis["yes"], self.participants[str(user)]))
-            log_to_bot_log(self.bot, ":wastebasket: {mod} cleared all submissions for {user} with reason {reason}".format(
-                mod=str(event.msg.author), user=self.participants[str(user)], reason=reason))
+            event.channel.send_message(
+                "<{}> cleared reports from {}.".format(self.config.emojis["yes"], self.participants[str(user)]))
+            log_to_bot_log(self.bot,
+                           ":wastebasket: {mod} cleared all submissions for {user} with reason {reason}".format(
+                               mod=str(event.msg.author), user=self.participants[str(user)], reason=reason))
             del self.participants[str(user)]
             self.save_event_stats()
 
@@ -483,24 +498,27 @@ Remaining: {Submitted}
 
         trello_info = TrelloUtils.getCardInfo(event, report)
         if trello_info is None:
-            #invalid card
+            # invalid card
             event.msg.reply("I can't even fetch info for that, you sure you reported that one?")
             return
         if not trello_info["id"] in self.reported_cards.keys():
-            #not reported yet
+            # not reported yet
             event.msg.reply("I don't have a report for that card, how do you expect me to edit a non existing thing?")
             return
         report_info = self.reported_cards[trello_info["id"]]
         if report_info["author_id"] != str(event.author.id):
-            #someone else reported
-            event.msg.reply("I think there's been a case of mistaken identity here, this report was made by {} and it looks like you are {}".format(self.participants[str(report_info["author_id"])], str(event.author)))
+            # someone else reported
+            event.msg.reply(
+                "I think there's been a case of mistaken identity here, this report was made by {} and it looks like you are {}".format(
+                    self.participants[str(report_info["author_id"])], str(event.author)))
             return
 
-        #delete message and entry
+        # delete message and entry
         event.msg.channel.get_message(report_info["message_id"]).delete()
         del self.reported_cards[trello_info["id"]]
         event.msg.reply(":warning: Your submission has been nuked <@{}>!".format(event.author.id))
-        log_to_bot_log(self.bot, f":outbox_tray: {event.author} (``{event.author.id}``)  has revoked <https://trello.com/c/{trello_info['shortLink']}>")
+        log_to_bot_log(self.bot,
+                       f":outbox_tray: {event.author} (``{event.author.id}``)  has revoked <https://trello.com/c/{trello_info['shortLink']}>")
         self.save_event_stats()
 
     @Plugin.command("edit", "<details:str...>")
@@ -510,7 +528,9 @@ Remaining: {Submitted}
             return
         parts = details.split("|")
         if len(parts) < 3:
-            event.msg.reply("<@{}> It seems you're missing parts, the syntax for this command is `+edit <trello link> | <section (destination or info)> | <new info>`".format(event.author.id))
+            event.msg.reply(
+                "<@{}> It seems you're missing parts, the syntax for this command is `+edit <trello link> | <section (destination or info)> | <new info>`".format(
+                    event.author.id))
             return
         if len(parts) > 3:
             parts[2] = "|".join(parts[2:])
@@ -539,14 +559,15 @@ Remaining: {Submitted}
             new_message = "\n".join(lines[:2])
             while not lines[2].startswith("**Submitted by**:"):
                 lines.pop(2)
-            new_message += "\n**Destination**: {}\n{}".format(sanitize.S(info, escape_codeblocks=True), "\n".join(lines[2:]))
+            new_message += "\n**Destination**: {}\n{}".format(sanitize.S(info, escape_codeblocks=True),
+                                                              "\n".join(lines[2:]))
         elif section == "info":
             count = 0
             while not lines[count].startswith("**Detailed info**"):
                 count += 1
             new_message = "\n".join(lines[:count])
             new_message += "\n**Detailed info**: {}\n{}".format(sanitize.S(info, escape_codeblocks=True),
-                                                              "\n".join(lines[-1:]))
+                                                                "\n".join(lines[-1:]))
         else:
             event.msg.reply("Unknown section")
             return
@@ -559,7 +580,9 @@ Remaining: {Submitted}
         dmessage.edit(new_message)
 
         event.channel.send_message("<@{}>, your report has been updated!".format(event.author.id))
-        log_to_bot_log(self.bot, ":pencil: {} has updated the {} of their submission for <https://trello.com/c/{}>".format(str(event.author), section.lower(), trello_info["shortLink"]))
+        log_to_bot_log(self.bot,
+                       ":pencil: {} has updated the {} of their submission for <https://trello.com/c/{}>".format(
+                           str(event.author), section.lower(), trello_info["shortLink"]))
 
     @Plugin.command("remove", "<report:str>", group="event")
     @command_wrapper(log=False)
@@ -576,26 +599,28 @@ Remaining: {Submitted}
         event.guild.channels[self.config.event_channel].get_message(report_info["message_id"]).delete()
         del self.reported_cards[trello_info["id"]]
         event.msg.reply(":warning: Submission has been nuked <@{}>!".format(event.author.id))
-        log_to_bot_log(self.bot, ":wastebasket: {} has removed <https://trello.com/c/{}>".format(str(event.author), trello_info['shortLink']))
-
+        log_to_bot_log(self.bot, ":wastebasket: {} has removed <https://trello.com/c/{}>".format(str(event.author),
+                                                                                                 trello_info[
+                                                                                                     'shortLink']))
 
     @Plugin.command("import", "<channel_id:snowflake>", group="event")
     @command_wrapper(perm_lvl=3)
     def import_event(self, event, channel_id):
         if self.status != "Scheduled":
-            event.msg.reply("I have event data loaded, import aborted to prevent data corruption, please remove/rename the current eventstats file and reboot")
+            event.msg.reply(
+                "I have event data loaded, import aborted to prevent data corruption, please remove/rename the current eventstats file and reboot")
             return
         if not channel_id in event.guild.channels.keys():
             event.msg.reply("I cannot find a channel with that ID")
             return
-
 
         # we're importing so no enforced anti duping, collect all for chronological processing
         event.msg.reply("Starting import...")
         channel = event.guild.channels[channel_id]
         messages = []
         message_info = dict()
-        for message in channel.messages_iter(chunk_size=100, direction=MessageIterator.Direction.UP, before=event.msg.id):
+        for message in channel.messages_iter(chunk_size=100, direction=MessageIterator.Direction.UP,
+                                             before=event.msg.id):
             messages.append(message.id)
             message_info[message.id] = {
                 "author_id": str(message.author.id),
@@ -624,7 +649,7 @@ Remaining: {Submitted}
                     state = "Invalid"
                     invalid += 1
                     self.bot.client.api.channels_messages_reactions_create(int(channel_id), m_id, "❓")
-                elif trello_info['id'] in self.reported_cards.keys(): # already reported
+                elif trello_info['id'] in self.reported_cards.keys():  # already reported
                     state = "Dupe"
                     dupes += 1
                     if trello_id not in self.dupes.keys():
@@ -660,11 +685,9 @@ Imported entries: {}
 Dupes encountered: {} ({} tickets)
 Invalid entries skipped: {}
 """.format(len(self.reported_cards.keys()), dupes, len(self.dupes.keys()), invalid))
-        #override event channel from import
+        # override event channel from import
         self.config.event_channel = int(channel_id)
         self.end_event(event)
-
-
 
     @Plugin.command("next")
     @command_wrapper()
@@ -676,7 +699,9 @@ Invalid entries skipped: {}
         count = 0
         for reportid, report in self.reported_cards.items():
             if report["status"] == "Submitted":
-                message += "<https://canary.discordapp.com/channels/{}/{}/{}>\n".format(event.guild.id, self.config.event_channel, report["message_id"])
+                message += "<https://canary.discordapp.com/channels/{}/{}/{}>\n".format(event.guild.id,
+                                                                                        self.config.event_channel,
+                                                                                        report["message_id"])
                 count += 1
             if count >= limit:
                 break
@@ -686,7 +711,7 @@ Invalid entries skipped: {}
 
     @Plugin.listen("MessageReactionAdd")
     def on_reaction(self, event):
-        if event.channel_id!= self.config.event_channel or event.user_id == self.bot.client.state.me.id:
+        if event.channel_id != self.config.event_channel or event.user_id == self.bot.client.state.me.id:
             return
         if ":{}:{}".format(event.emoji.name, event.emoji.id) == self.config.emojis["yes"]:
             self.setReportStatus(event, event.message_id, "Approved")
@@ -696,10 +721,10 @@ Invalid entries skipped: {}
     def setReportStatus(self, event, message_id, status):
         report = self.findReport(message_id)
         if report is not None:
-            report["status"]  = status
+            report["status"] = status
             botlog = self.bot.client.api.channels_get(self.config.bot_log)
             botlog.send_message(":newspaper: {} set the status of {} to {} {}"
-                                .format(
+                .format(
                 str(self.bot.client.api.guilds_members_get(botlog.guild.id, event.user_id)),
                 report["message_id"],
                 status, "<:{}:{}>".format(event.emoji.name, event.emoji.id)))
@@ -712,7 +737,7 @@ Invalid entries skipped: {}
         return None
 
     def save_event_stats(self):
-        #TODO: figure out what's going on but for now this prevents data corruption
+        # TODO: figure out what's going on but for now this prevents data corruption
         if self.saving:
             if not self.queued:
                 self.queued = True
@@ -725,14 +750,15 @@ Invalid entries skipped: {}
         with open("eventstats.json", "w") as f:
             try:
                 save_dict = dict(
-                    reported_cards= self.reported_cards,
-                    status= self.status,
-                    participants= self.participants,
-                    dupes= self.dupes
+                    reported_cards=self.reported_cards,
+                    status=self.status,
+                    participants=self.participants,
+                    dupes=self.dupes
                 )
                 f.write(json.dumps(save_dict, indent=4, skipkeys=True, sort_keys=False, ensure_ascii=False))
             except IOError as ex:
-                print(":rotating_light: <@110813477156720640> save to disc: {file}\nstrerror: {strerror}".format(file='eventstats.json', strerror=ex.strerror))
+                print(":rotating_light: <@110813477156720640> save to disc: {file}\nstrerror: {strerror}".format(
+                    file='eventstats.json', strerror=ex.strerror))
                 traceback.print_exc()
         self.saving = False
 
@@ -743,29 +769,34 @@ Invalid entries skipped: {}
             try:
                 event_stats = f.read()
                 event_stats_parsed = json.loads(event_stats)
-                self.reported_cards = event_stats_parsed.get("reported_cards",dict())
+                self.reported_cards = event_stats_parsed.get("reported_cards", dict())
                 self.status = event_stats_parsed.get("status", "Scheduled")
                 self.participants = event_stats_parsed.get("participants", dict())
                 self.dupes = event_stats_parsed.get("dupes", dict())
             except IOError as ex:
-                print(":rotating_light: <@110813477156720640> load from disc: {file}\nstrerror: {strerror}".format(file='eventstats.json', strerror=ex.strerror))
+                print(":rotating_light: <@110813477156720640> load from disc: {file}\nstrerror: {strerror}".format(
+                    file='eventstats.json', strerror=ex.strerror))
                 traceback.print_exc()
 
     @Plugin.listen('MessageCreate')
     def no_chat_allowed(self, event):
         if not self.status == "Started":
             return
-        #update username cache
+        # update username cache
         if str(event.author.id) in self.participants.keys():
             if str(event.author.id) != self.participants[str(event.author.id)]:
                 self.participants[str(event.author.id)] = str(event.author)
-                #todo, update report or switch them to use id pings
+                # todo, update report or switch them to use id pings
         if event.channel.id != self.config.event_channel:
             return
         if event.author.id != self.bot.client.state.me.id:
-            if not (event.message.content.startswith("+submit") or event.message.content.startswith("+revoke") or  event.message.content.startswith("+edit") or  event.message.content.startswith("+event")):
+            if not (event.message.content.startswith("+submit") or event.message.content.startswith(
+                    "+revoke") or event.message.content.startswith("+edit") or event.message.content.startswith(
+                    "+event")):
                 event.message.delete()
-                event.message.reply("<@{}> This channel is only event related commands (submit/revoke/edit) command, please go to <#420995378582913030> to discuss submissions".format(event.author.id))
+                event.message.reply(
+                    "<@{}> This channel is only event related commands (submit/revoke/edit) command, please go to <#420995378582913030> to discuss submissions".format(
+                        event.author.id))
             else:
                 # make sure incomplete commands get cleaned
                 try:
@@ -773,8 +804,7 @@ Invalid entries skipped: {}
                 except APIException:
                     pass  # already gone, no need to clean
         elif not event.message.content.startswith("**Board**"):
-                try:
-                    event.message.after(11).delete()
-                except APIException:
-                    pass  # already gone, no need to clean
-
+            try:
+                event.message.after(11).delete()
+            except APIException:
+                pass  # already gone, no need to clean

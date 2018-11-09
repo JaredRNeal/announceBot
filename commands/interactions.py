@@ -1,20 +1,20 @@
-#Welcome to the ChatInteractionPlugin!
-#Most of the code here is proudly borrowed from experience.py due to the bots current setup. 
-#If one person got it right, I won't reinvent the wheel.
+# Welcome to the ChatInteractionPlugin!
+# Most of the code here is proudly borrowed from experience.py due to the bots current setup.
+# If one person got it right, I won't reinvent the wheel.
 import random
 
 from disco.bot import Plugin
 from pymongo import MongoClient
 
 from commands.config import ChatInteractionsConfig
-
 from util.GlobalHandlers import command_wrapper
+
 
 @Plugin.with_config(ChatInteractionsConfig)
 class ChatInteractionPlugin(Plugin):
 
     def load(self, ctx):
-        super(ChatInteractionPlugin, self).load(ctx)
+        super().load(ctx)
         self.client = MongoClient(self.config.mongodb_host, self.config.mongodb_port,
                                   username=self.config.mongodb_username,
                                   password=self.config.mongodb_password)
@@ -22,11 +22,11 @@ class ChatInteractionPlugin(Plugin):
         self.users = self.database.get_collection("users")
         self.actions = self.database.get_collection("actions")
         self.purchases = self.database.get_collection("purchases")
- 
+
     def unload(self, ctx):
+        super().unload(ctx)
         self.users.save()
         self.actions.save()
-        super(ChatInteractionPlugin, self).load(ctx)
 
     def get_user(self, id):
         """
@@ -77,7 +77,8 @@ class ChatInteractionPlugin(Plugin):
                 "xp": user["xp"] - self.config.hug_cost
             }
         })
-        event.msg.reply("<@{}>, {} {}".format(member.id, event.msg.author.username, random.choice(self.config.hug_msgs)))
+        event.msg.reply(
+            "<@{}>, {} {}".format(member.id, event.msg.author.username, random.choice(self.config.hug_msgs)))
 
     @Plugin.command("fight", "<user:user>")
     @command_wrapper(perm_lvl=1)
@@ -97,4 +98,5 @@ class ChatInteractionPlugin(Plugin):
                 "xp": user["xp"] - self.config.fight_cost
             }
         })
-        event.msg.reply("{} is fighting <@{}>{}".format(event.msg.author.username, member.id, random.choice(self.config.fight_msgs)))        
+        event.msg.reply("{} is fighting <@{}>{}".format(event.msg.author.username, member.id,
+                                                        random.choice(self.config.fight_msgs)))
