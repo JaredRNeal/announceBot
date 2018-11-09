@@ -39,17 +39,19 @@ class announce(Plugin):
                     event.msg.reply("Unable to find that person")
         else:
             event.msg.reply(":lock: You do not have permission to use this command!")
-            log_to_bot_log(self.bot, ":warning: {} tried to use a command they do not have permission to use.".format(
-                str(event.msg.author)))
+            log_to_bot_log(self.bot, f":warning: {str(event.msg.author)} tried to use a command they do not have permission to use.")
+
+
+
 
     @Plugin.command('announce', '<role_to_ping:str> [announcement_message:str...]')
-    @command_wrapper(perm_lvl=3)
+    @command_wrapper(log=False, perm_lvl=3)
     def Make_an_Announcement(self, event, role_to_ping, announcement_message):
 
         role_Name = role_to_ping.lower()
         # make sure it's a valid role name
         if role_Name not in self.config.role_IDs:
-            event.msg.reply('Sorry, I cannot find the role `' + role_Name + '`')
+            event.msg.reply(f"Sorry, I cannot find the role `{role_Name}`")
             return
 
         # Variables
@@ -244,7 +246,55 @@ class announce(Plugin):
         else:
             event.member.add_role(441739649753546764)
             log_to_bot_log(self.bot, f":thumbsup: {event.author} added the A11y role to themselves.")
-            event.msg.reply(
-                f"<@{event.author.id}> I have added the A11y (Accessibility Role) to you. Use the same command again to remove the role from yourself.").after(
-                5).delete()
+            event.msg.reply(f"<@{event.author.id}> I have added the A11y (Accessibility Role) to you. Use the same command again to remove the role from yourself.").after(5).delete()
             event.msg.delete()
+
+    @Plugin.command('ping', parser=True)
+    @Plugin.add_argument('desired_role_to_ping', help="This is the role that you want to make mentionable.")
+    @command_wrapper(log=True, perm_lvl=3)
+    def make_role_temporarily_pingable(self, event, args):
+        args.desired_role_to_ping = args.desired_role_to_ping.lower()
+        if args.desired_role_to_ping not in self.config.role_IDs.keys():
+            event.msg.reply(f"Sorry but I can't find a role called `{args.desired_role_to_ping}`. Please check the name and try again.")
+            return
+
+        #Variables
+        Role_as_an_int = self.config.role_IDs[args.desired_role_to_ping]
+        Is_Role_Mentionable = event.guild.roles.get(Role_as_an_int).mentionable
+        Role_To_Make_Mentionable = event.guild.roles.get(Role_as_an_int)
+
+        if Is_Role_Mentionable:
+            Role_To_Make_Mentionable.update(mentionable=False)
+            event.msg.reply(f"The `{args.desired_role_to_ping}` role has been successfully set to unmentionable!")
+            log_to_bot_log(self.bot, f":exclamation: `{args.desired_role_to_ping}` was successfully set to unpingable.")
+            return
+        else:
+            Role_To_Make_Mentionable.update(mentionable=True)
+            event.msg.reply(f"The `{args.desired_role_to_ping}` role has been successfully set to mentionable! _PLEASE_ do not forget to use this command again after you've made your announcement to make it unmentionable!")
+            log_to_bot_log(self.bot, f":exclamation: `{args.desired_role_to_ping}` is now pingable!")
+            return
+
+    # This, in theory, will determine if a message has a role ping in it and then make it unpingable.
+    @Plugin.listen('MessageCreate')
+    @command_wrapper(log=True)
+    def make_unmentionable_after_ping(self, event):
+        if event.author.id in self.config.bot_IDs.values():
+            return
+        for Mentioned_Role in self.config.role_IDs.values():
+            # errors if it's an int, so making it a string
+            Mentioned_Role = str(Mentioned_Role)
+            if Mentioned_Role in event.content:
+                # in order to make it unmentionable it has to be an int. So now changing that var back to an int.
+                Mentioned_Role = int(Mentioned_Role)
+                Role_To_Make_Mentionable = event.guild.roles.get(Mentioned_Role)
+                Role_To_Make_Mentionable.update(mentionable=False)
+                log_to_bot_log(self.bot, f":exclamation: A role ping was detected and the role was successfully set to be unmentionable.")
+                return
+        return
+
+
+
+
+
+
+#hello world

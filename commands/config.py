@@ -2,7 +2,7 @@ from disco.bot import Config
 
 
 class AnnounceBotConfig(Config):
-    """
+
     admin_roles = {
         'employee': 411674069528870912,
         'admin': 416261117845700608
@@ -80,6 +80,7 @@ class AnnounceBotConfig(Config):
         'rules': 406151195632336907,
         'claimed_fixed': 406165473856585739
     }
+    """
 
     frequently_asked_questions = {
         'suggestions': "Thanks for wanting to improve Discord! When it comes to making suggestions, you have two options: You can head over to <https://feedback.discordapp.com> or join the feedback community over at https://discord.gg/discord-feedback",
@@ -217,7 +218,7 @@ class GuideConfig(Config):
             ]
         }
     }
-    welcome_message = "Welcome to Discord Testers! Read this guide for information on Discord Testers:"
+    welcome_message = "Welcome to Discord Testers! Read this guide for information on Discord Testers. Click on the reactions to change pages for more information!"
 
 
 class NotifyPluginConfig(Config):
