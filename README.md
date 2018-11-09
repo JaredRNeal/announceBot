@@ -8,7 +8,7 @@ The most basic command the reason that the bot was created initially. The bot wi
 +update {channel ID} {message ID} new message
 =============================================
 
-The bot can edit any of it's previous messages with this command. By nature of how the API works, you need to tell it what channel to look in, and what message to change via IDs. So the command is +edit <channel ID> <message ID> new message. Here are list of the IDs for the announcement channels, for reference.
+The bot can edit any of it's previous messages with this command. By nature of how the API works, you need to tell it what channel to look in, and what message to change via IDs. So the command is +update <channel ID> <message ID> new message. Here are list of the IDs for the announcement channels, for reference.
 
 Global Announcements: 197038477953597440
 Bug Hunter: 421790860057903104
