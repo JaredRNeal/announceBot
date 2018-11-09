@@ -102,11 +102,15 @@ class GuidePlugin(Plugin):
                 new_page_number += 1
         return "Guide:", self.generate_page(new_page_number, data["guide"]), new_page_number
 
-    @Plugin.command("guide", "<guide_name:str>")
+    @Plugin.command("guide", "[guide_name:str]")
     @command_wrapper(perm_lvl=0, allowed_in_dm=True, allowed_on_server=False)
     def guide(self, event, guide_name):
-        if self.config.guides.get(guide_name, "no-guide") == "no-guide":
-            event.msg.reply(":no_entry_sign: couldn't find that guide. use `+guide list` to find guides.")
+        if self.config.guides.get(guide_name, "no-guide") == "no-guide" or guide_name is None:
+            guide_names = []
+            for k, v in self.config.guides.items():
+                guide_names.append(k)
+            guides = ", ".join(str(guide) for guide in guide_names)
+            event.msg.reply(":no_entry_sign: couldn't find that guide. available guides: `{guides}`".format(guides=guides))
             return
         Pages.create_new(self.bot, "guide", event.channel, event.msg, page=1, guide=guide_name)
 
