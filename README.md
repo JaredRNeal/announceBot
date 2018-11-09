@@ -11,9 +11,13 @@ The most basic command the reason that the bot was created initially. The bot wi
 The bot can edit any of it's previous messages with this command. By nature of how the API works, you need to tell it what channel to look in, and what message to change via IDs. So the command is +update <channel ID> <message ID> new message. Here are list of the IDs for the announcement channels, for reference.
 
 Global Announcements: 197038477953597440
+
 Bug Hunter: 421790860057903104
+
 Android:  411645018105970699
+
 Desktop: 411645098946985984
+
 iOS: 411645199866003471
 
 
@@ -28,12 +32,19 @@ Standard ping command
 Can only be used with the desktop roles: Linux, Mac, Canary and Windows. Will only post to #desktop-announcements. Allows for pinging any number of desktop roles and make the same announcement. Due to a bug within disco.py, you cannot use single or double quotes when using this command. Sorry.
 
 Roles that can be pinged using announceBot
+
 android - Android Alpha
+
 bug - Bug Hunter
+
 canary - Canary
+
 ios - iOS TestFlight
+
 linux - Linux
+
 mac - Mac
+
 windows - Windows
 
 The bot will automatically post in the correct channel based on the role you want to ping.
@@ -42,15 +53,25 @@ The bot will automatically post in the correct channel based on the role you wan
 ===============
 
 The topics I currently have are:
+
 suggestions
+
 raids
+
 abuse
+
 install
+
 bug
+
 badge
+
 hypesquad
+
 support
+
 lazy
+
 hunter
 
 Example: +tag badge
@@ -64,10 +85,15 @@ The lockdown command can be used by any mod+ in any channel. It is ONLY to be us
 Note that you cannot use ' or " in the quoted sections due to how disco.py works.
 
 The short name for all of the channels are:
+
 bug
+
 ios
+
 android
+
 desktop
+
 linux
 
 in addition, instead of each channel you can say all instead. For example: +lockdown -c "all" -r "Trello is down" and that will lock all of the above channels.
@@ -83,11 +109,17 @@ The "undo" command for Lockdown. Same idea just use it backwards.
 =============
 
 In the event of a raid ONLY, any mod+ can use +verification LEVEL_NAME CHANGE_REASON.
+
 Note that the level names are:
+
 None
+
 Low
+
 Medium
+
 High
+
 Extreme
 
 The CHANGE_REASON is optional for speed.
