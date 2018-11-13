@@ -276,7 +276,6 @@ class announce(Plugin):
 
     # This, in theory, will determine if a message has a role ping in it and then make it unpingable.
     @Plugin.listen('MessageCreate')
-    @command_wrapper(log=True)
     def make_unmentionable_after_ping(self, event):
         if event.author.id in self.config.bot_IDs.values():
             return

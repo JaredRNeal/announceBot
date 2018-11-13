@@ -100,3 +100,23 @@ class ChatInteractionPlugin(Plugin):
         })
         event.msg.reply("{} is fighting <@{}>{}".format(event.msg.author.username, member.id,
                                                         random.choice(self.config.fight_msgs)))
+
+    @Plugin.command("verify", "<UserID:str...>")
+    def verify_user_in_server(self, event, UserID):
+        if event.channel.id != 471421747669762048:
+            return
+        # I have absolutely no idea why, but if I defined UserID as an "int" in the Plugin.Command, it errors. I have to set it to a string and then an int. /shrug
+        UserID = int(UserID)
+        Guild_Object = self.bot.client.state.guilds[197038439483310086]
+        if UserID in Guild_Object.members.keys():
+            event.msg.reply(f"The user with the ID {UserID} is still in the server! Maybe this helps cache them? <@{UserID}>")
+        else:
+            event.msg.reply(f"I cannot find a user with the ID {UserID}. They may have left the server already.")
+
+
+
+
+
+
+
+#hello world
