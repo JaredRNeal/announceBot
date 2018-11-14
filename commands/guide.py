@@ -106,7 +106,8 @@ class GuidePlugin(Plugin):
     @command_wrapper(perm_lvl=0, allowed_in_dm=True, allowed_on_server=False)
     def guide(self, event, guide_name):
         if self.config.guides.get(guide_name, "no-guide") == "no-guide":
-            event.msg.reply(":no_entry_sign: couldn't find that guide. use `+guide list` to find guides.")
+            event.msg.reply(f":no_entry_sign: I couldn't find that guide. Try picking one from the list instead. You can call up this list at any time using `+guide list`.")
+            self.list_guides(event)
             return
         Pages.create_new(self.bot, "guide", event.channel, event.msg, page=1, guide=guide_name)
 
