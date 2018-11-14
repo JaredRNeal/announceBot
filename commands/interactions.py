@@ -109,7 +109,7 @@ class ChatInteractionPlugin(Plugin):
         UserID = int(UserID)
         Guild_Object = self.bot.client.state.guilds[197038439483310086]
         if UserID in Guild_Object.members.keys():
-            event.msg.reply(f"The user with the ID {UserID} is still in the server! Maybe this helps cache them? <@{UserID}>")
+            event.msg.reply(f"The user with the ID {UserID} is still in the server! Maybe this helps cache them? <@{UserID}>. Their current username is {Guild_Object.members[UserID]}.")
         else:
             event.msg.reply(f"I cannot find a user with the ID {UserID}. They may have left the server already.")
 
