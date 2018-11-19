@@ -1,10 +1,11 @@
+import json
+
 from disco.api.http import APIException
 from disco.bot import Plugin
 from disco.types.guild import VerificationLevel
 
 from commands.config import AnnounceBotConfig
 from util.GlobalHandlers import command_wrapper, log_to_bot_log, handle_exception
-
 
 @Plugin.with_config(AnnounceBotConfig)
 class announce(Plugin):
@@ -150,17 +151,17 @@ class announce(Plugin):
                 Role_To_Make_Unmentionable.update(mentionable=False)
                 log_to_bot_log(self.bot, ":exclamation: " + pingable_role + " was successfully set to unpingable.")
 
-    @Plugin.command('tag', parser=True)
-    @Plugin.add_argument('question_title', help="The title of the topic you want to post about.")
-    @command_wrapper(log=False)
-    def questions_made_easy(self, event, args):
-        # Checks to see if the topic in the list and then replies with the message in annouceBot.py
-        args.question_title = args.question_title.lower()
-        event.msg.delete()
-        if args.question_title in self.config.frequently_asked_questions.keys():
-            event.msg.reply(self.config.frequently_asked_questions[args.question_title])
-            log_to_bot_log(self.bot, ":notebook: " + str(
-                event.msg.author) + " used the tag command for `" + args.question_title + "`.")
+#    @Plugin.command('tag', parser=True)
+#    @Plugin.add_argument('question_title', help="The title of the topic you want to post about.")
+#    @command_wrapper(log=False)
+#    def questions_made_easy(self, event, args):
+#        # Checks to see if the topic in the list and then replies with the message in annouceBot.py
+#        args.question_title = args.question_title.lower()
+#        event.msg.delete()
+#        if args.question_title in self.config.frequently_asked_questions.keys():
+#            event.msg.reply(self.config.frequently_asked_questions[args.question_title])
+#            log_to_bot_log(self.bot, ":notebook: " + str(
+#                event.msg.author) + " used the tag command for `" + args.question_title + "`.")
 
     # Quickly remove the ability for @everyone and Bug Hunters to post in specific channels when some issue is occurring
     @Plugin.command('lockdown', parser=True)
@@ -291,9 +292,39 @@ class announce(Plugin):
                 return
         return
 
+    @Plugin.command('addtag', '<Tag_Name:str> [Tag_Content:str...]')
+    @command_wrapper(perm_lvl=2)
+    def create_new_tag(self, event, Tag_Name, Tag_Content):
+        f = open("tags.txt", "a")
+        Tag_Name = Tag_Name.lower()
+        # Checks to see if the Tag_Name is acceptable.
+        with open("tags.txt") as raw_data:
+            for item in raw_data:
+                if ':' in item:
+                    key,value = item.split(':', 1)
+                    if key == Tag_Name:
+                        event.msg.reply("Sorry! That Tag name is already in use.")
+                        return
+        # if the tag name is acceptable, add it to the text file
+        Tag_Content = Tag_Content.replace("\n", "\\n")
+        f.write(f"\n{Tag_Name}:{Tag_Content}")
+        f.close()
+        event.msg.reply("New Tag has been added!")
 
-
-
+    @Plugin.command("tag", "<Tag_Key:str>")
+    @command_wrapper(perm_lvl=2)
+    def post_tag(self, event, Tag_Key):
+        f = open("tags.txt", "r")
+        Tag_Key = Tag_Key.lower()
+        event.msg.delete()
+        with open("tags.txt") as raw_data:
+            for item in raw_data:
+                if ':' in item:
+                    key,value = item.split(':', 1)
+                    if key == Tag_Key:
+                        event.msg.reply(value.replace("\\n", "\n"))
+                        return
+        event.msg.reply("I'm really sorry but I can't find a tag with that name :( Maybe try adding one with `+addtag` first?").after(3).delete()
 
 
 #hello world
