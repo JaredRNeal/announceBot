@@ -139,3 +139,8 @@ The tag_key is the name of the tag as you'll be calling it later. Make it someth
 Would add the tag "Dabbit" to the .txt. When you use the follow up command +tag {tag_key}, in this case +tag Dabbit, the bot will respond with the text: "He is the best :dabHeart:".
 
 The bot will take links and markdown just fine. It does NOT take new lines as returns. You have to keep everything on a single line and use \n instead of a return when adding the tag_content.
+
++taglist
+=======
+
+Shows the tag_name for all available tags.
