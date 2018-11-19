@@ -327,6 +327,7 @@ class announce(Plugin):
         event.msg.reply("I'm really sorry but I can't find a tag with that name :( Maybe try adding one with `+addtag` first?").after(3).delete()
 
     @Plugin.command("taglist")
+    @command_wrapper(perm_level=2)
     def show_all_available_tags(self, event):
         f = open("tags.txt", 'r')
         message = ""
