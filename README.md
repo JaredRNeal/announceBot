@@ -24,7 +24,7 @@ windows - Windows
 +update {channel ID} {message ID} new message
 =============================================
 
-The bot can edit any of it's previous messages with this command. By nature of how the API works, you need to tell it what channel to look in, and what message to change via IDs. So the command is +update <channel ID> <message ID> new message. Here are list of the IDs for the announcement channels, for reference.
+The bot can edit any of it's previous messages with this command. By nature of how the API works, you need to tell it what channel to look in, and what message to change via IDs. So the command is +update channelID messageID new message. Here are list of the IDs for the announcement channels, for reference.
 
 Global Announcements: 197038477953597440
 
@@ -48,33 +48,6 @@ Standard ping command
 Can only be used with the desktop roles: Linux, Mac, Canary and Windows. Will only post to #desktop-announcements. Allows for pinging any number of desktop roles and make the same announcement. Due to a bug within disco.py, you cannot use single or double quotes when using this command. Sorry.
 
 The bot will automatically post in the correct channel based on the role you want to ping.
-
-+tag TOPIC_NAME
-===============
-This feature simply makes a post about a specific topic. Primarily only mods use this feature.
-The topics I currently have are:
-
-suggestions
-
-raids
-
-abuse
-
-install
-
-bug
-
-badge
-
-hypesquad
-
-support
-
-lazy
-
-hunter
-
-Example: +tag badge
 
 +Lockdown
 =========
@@ -139,3 +112,8 @@ The tag_key is the name of the tag as you'll be calling it later. Make it someth
 Would add the tag "Dabbit" to the .txt. When you use the follow up command +tag {tag_key}, in this case +tag Dabbit, the bot will respond with the text: "He is the best :dabHeart:".
 
 The bot will take links and markdown just fine. It does NOT take new lines as returns. You have to keep everything on a single line and use \n instead of a return when adding the tag_content.
+
++taglist
+=======
+
+Shows the tag_name for all available tags.
