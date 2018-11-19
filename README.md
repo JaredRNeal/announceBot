@@ -49,33 +49,6 @@ Can only be used with the desktop roles: Linux, Mac, Canary and Windows. Will on
 
 The bot will automatically post in the correct channel based on the role you want to ping.
 
-+tag TOPIC_NAME
-===============
-This feature simply makes a post about a specific topic. Primarily only mods use this feature.
-The topics I currently have are:
-
-suggestions
-
-raids
-
-abuse
-
-install
-
-bug
-
-badge
-
-hypesquad
-
-support
-
-lazy
-
-hunter
-
-Example: +tag badge
-
 +Lockdown
 =========
 
