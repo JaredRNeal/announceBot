@@ -5,6 +5,22 @@ These commands can only be used in the #mods channel.
 
 The most basic command the reason that the bot was created initially. The bot will make the announcement for you and ping any role that you want which helps keep you anonymous or just ping the group of people easily. Keep in mind that there MUST be a SPACE after the role name. A return will cause an error. Thanks Disco.
 
+Roles that can be pinged using announceBot
+
+android - Android Alpha
+
+bug - Bug Hunter
+
+canary - Canary
+
+ios - iOS TestFlight
+
+linux - Linux
+
+mac - Mac
+
+windows - Windows
+
 +update {channel ID} {message ID} new message
 =============================================
 
@@ -30,22 +46,6 @@ Standard ping command
 ======================================================================
 
 Can only be used with the desktop roles: Linux, Mac, Canary and Windows. Will only post to #desktop-announcements. Allows for pinging any number of desktop roles and make the same announcement. Due to a bug within disco.py, you cannot use single or double quotes when using this command. Sorry.
-
-Roles that can be pinged using announceBot
-
-android - Android Alpha
-
-bug - Bug Hunter
-
-canary - Canary
-
-ios - iOS TestFlight
-
-linux - Linux
-
-mac - Mac
-
-windows - Windows
 
 The bot will automatically post in the correct channel based on the role you want to ping.
 
@@ -128,3 +128,14 @@ The CHANGE_REASON is optional for speed.
 =====
 
 Unlike a standard ping command, this one makes any role in the server mentionable if you're an employee. It's useful for when you want to make an announcement without using the announce feature the bot has. You can use this same command to make a role unmentionable as well. As a QOL improvement to this feature, when the bot detects that a role has been pinged it'll automatically set it to be unmentionable automatically.
+
++addtag {tag_key} {tag_content}
+=======
+
+The tag_key is the name of the tag as you'll be calling it later. Make it something easy to remember like "hypesquad" or "common_questions" or anything you want. Just one single word. The tag_content is the text that you want displayed to other users. For example:
+
++addtag Dabbit He is the best :dabHeart:
+
+Would add the tag "Dabbit" to the .txt. When you use the follow up command +tag {tag_key}, in this case +tag Dabbit, the bot will respond with the text: "He is the best :dabHeart:".
+
+The bot will take links and markdown just fine. It does NOT take new lines as returns. You have to keep everything on a single line and use \n instead of a return when adding the tag_content.
