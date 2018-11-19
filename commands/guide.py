@@ -8,6 +8,7 @@ a bug when I was looking at my uncreative variable naming.
 import json
 import os
 import random
+import time
 
 from disco.bot import Plugin
 from disco.types.message import MessageEmbed
@@ -138,7 +139,7 @@ class GuidePlugin(Plugin):
     @Plugin.listen("GuildMemberAdd")
     def guide_send(self, event):
         randnum = random.random()
-        print(str(randnum))
+        time.sleep(30)
         if randnum <= self.experiments["dm-guide-on-join"]:
             try:
                 channel = event.member.user.open_dm()

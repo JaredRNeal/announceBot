@@ -326,5 +326,24 @@ class announce(Plugin):
                         return
         event.msg.reply("I'm really sorry but I can't find a tag with that name :( Maybe try adding one with `+addtag` first?").after(3).delete()
 
+    @Plugin.command("taglist")
+    def show_all_available_tags(self, event):
+        f = open("tags.txt", 'r')
+        message = ""
+        with open("tags.txt") as raw_data:
+            for item in raw_data:
+                if ':' in item:
+                    key,value = item.split(':', 1)
+                    message = (message + f"{key}\n")
+        event.msg.reply(f"The following are all of the available tags:\n ```{message}```")
+
+
+
+
+
+
+
+
+
 
 #hello world

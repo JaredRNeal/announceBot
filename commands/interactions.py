@@ -103,7 +103,7 @@ class ChatInteractionPlugin(Plugin):
 
     # This is used for the mentors to check if a user is still in the server and to help cache them if they are.
     @Plugin.command("verify", "<UserID:int>")
-    @command_wrapper(perm_lvl=2)
+    @command_wrapper(perm_lvl=1)
     def verify_user_in_server(self, event, UserID):
         # Only the mentors should be using this so limiting it to this channel.
         if event.channel.id != 471421747669762048:
