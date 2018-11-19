@@ -298,13 +298,11 @@ class announce(Plugin):
         f = open("tags.txt", "a")
         Tag_Name = Tag_Name.lower()
         # Checks to see if the Tag_Name is acceptable.
-        with open("tags.txt") as raw_data:
-            for item in raw_data:
-                if ':' in item:
-                    key,value = item.split(':', 1)
-                    if key == Tag_Name:
-                        event.msg.reply("Sorry! That Tag name is already in use.")
-                        return
+        aDict = self.get_all_tags_as_dict()
+        for Keys in aDict:
+            if Keys == Tag_Name:
+                event.msg.reply("Sorry! That Tag name is already in use.")
+                return
         # if the tag name is acceptable, add it to the text file
         Tag_Content = Tag_Content.replace("\n", "\\n")
         f.write(f"\n{Tag_Name}:{Tag_Content}")
@@ -314,32 +312,33 @@ class announce(Plugin):
     @Plugin.command("tag", "<Tag_Key:str>")
     @command_wrapper(perm_lvl=2)
     def post_tag(self, event, Tag_Key):
-        f = open("tags.txt", "r")
         Tag_Key = Tag_Key.lower()
         event.msg.delete()
-        with open("tags.txt") as raw_data:
-            for item in raw_data:
-                if ':' in item:
-                    key,value = item.split(':', 1)
-                    if key == Tag_Key:
-                        event.msg.reply(value.replace("\\n", "\n"))
-                        return
+        aDict = self.get_all_tags_as_dict()
+        for Keys in aDict:
+            if Keys == Tag_Key:
+                event.msg.reply(aDict[Keys].replace("\\n", "\n"))
+                return
         event.msg.reply("I'm really sorry but I can't find a tag with that name :( Maybe try adding one with `+addtag` first?").after(3).delete()
 
     @Plugin.command("taglist")
+    @command_wrapper(perm_lvl=2)
     def show_all_available_tags(self, event):
-        f = open("tags.txt", 'r')
         message = ""
+        aDict = self.get_all_tags_as_dict()
+        for key in aDict:
+            message = (message + f"{key}\n")
+        event.msg.reply(f"The following are all of the available tags:\n ```{message}```")
+
+
+    def get_all_tags_as_dict(self):
+        tag_dict = {}
         with open("tags.txt") as raw_data:
             for item in raw_data:
                 if ':' in item:
                     key,value = item.split(':', 1)
-                    message = (message + f"{key}\n")
-        event.msg.reply(f"The following are all of the available tags:\n ```{message}```")
-
-
-
-
+                    tag_dict[key] = value
+        return tag_dict
 
 
 
