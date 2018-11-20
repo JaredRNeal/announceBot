@@ -341,6 +341,7 @@ class announce(Plugin):
         return tag_dict
 
     @Plugin.command("removetag", "<Tag_Key:str>")
+    @command_wrapper(perm_lvl=2)
     def remove_tag_from_txt(self, event, Tag_Key):
         aDict = self.get_all_tags_as_dict()
         if Tag_Key in aDict.keys():
@@ -351,11 +352,13 @@ class announce(Plugin):
             return
         # now we need to recreate the txt file and write that to the fileself.
         Tag_File = aDict.items()
-        with open("tags.txt") as file:
+        f = open("tags.txt", "w")
             msg = ""
             for key,value in Tag_File:
-                msg += f"{key}:{value}"
-        event.msg.reply("Function completed successfully!")
+                msg += f"{key}:{value}\n"
+        f.write(msg)
+        f.close()
+        event.msg.reply("Tag removed successfully!")
 
 
 
