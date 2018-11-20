@@ -1,10 +1,10 @@
 import re
 from enum import Flag
 
-from disco.bot import Plugin
-from pymongo import MongoClient
 from disco.api.http import APIException
+from disco.bot import Plugin
 from disco.types.message import MessageEmbed
+from pymongo import MongoClient
 
 from commands.config import NotifyPluginConfig
 from util.GlobalHandlers import command_wrapper, log_to_bot_log, handle_exception
@@ -59,7 +59,7 @@ SCOPE_DATA = {
 class NotifyPlugin(Plugin):
 
     def load(self, ctx):
-        super(NotifyPlugin, self).load(ctx)
+        super().load(ctx)
         self.client = MongoClient(self.config.mongodb_host, self.config.mongodb_port,
                                   username=self.config.mongodb_username,
                                   password=self.config.mongodb_password)
@@ -67,8 +67,8 @@ class NotifyPlugin(Plugin):
         self._compile_exp()
 
     def unload(self, ctx):
+        super().unload(ctx)
         self.reports.save()
-        super(NotifyPlugin, self).unload(ctx)
 
     def _compile_exp(self):
         self.exp = {}
@@ -98,7 +98,8 @@ class NotifyPlugin(Plugin):
                         reports.append({'report_id': report_id, 'subs': {}, 'queue_msg': message.id})
         if len(reports) > 0:
             self.reports.insert_many(reports)
-        log_to_bot_log(self.bot, f':envelope_with_arrow: {event.author} triggered a notify sync. {len(reports)} unseen reports added to the database')
+        log_to_bot_log(self.bot,
+                       f':envelope_with_arrow: {event.author} triggered a notify sync. {len(reports)} unseen reports added to the database')
         event.msg.delete()
 
     @Plugin.command('get', group='notify')
@@ -118,7 +119,7 @@ class NotifyPlugin(Plugin):
 
     @Plugin.command('notify', '<report_id:int> [scopes:str...]')
     @command_wrapper(perm_lvl=0, log=False, allowed_in_dm=True)
-    def update_subscriptions(self, event, report_id, scopes=None):
+    def update_subscriptions(self, event, report_id, scopes = None):
         report = self.reports.find_one({'report_id': report_id})
         if report is not None:
             user_id = str(event.author.id)
@@ -166,7 +167,8 @@ class NotifyPlugin(Plugin):
                 else:
                     scope_str = self._get_scope_str(user_scopes)
                     self.reports.update_one({'report_id': report_id}, {'$set': {f'subs.{user_id}': user_scopes.value}})
-                    log_to_bot_log(self.bot, f':pager: {event.author} registered for `{scope_str}` notifications for #{report_id}')
+                    log_to_bot_log(self.bot,
+                                   f':pager: {event.author} registered for `{scope_str}` notifications for #{report_id}')
             event.msg.reply(f'{event.author.mention} {response}').after(5).delete()
         else:
             event.msg.reply(f"{event.author.mention} I can't find that report ID").after(5).delete()
@@ -225,7 +227,8 @@ class NotifyPlugin(Plugin):
                     elif action == 'denied':
                         report_str = f'report **#{report_id}**'
                     else:
-                        link = self._build_jump_link(event.guild.id, self.config.channels['bug-approval-queue'], report['queue_msg'])
+                        link = self._build_jump_link(event.guild.id, self.config.channels['bug-approval-queue'],
+                                                     report['queue_msg'])
                         report_str = f'report [**#{report_id}**]({link})'
                     em = MessageEmbed()
                     em.title = f'{SCOPE_DATA[action][0]} (#{report_id})'
@@ -244,6 +247,7 @@ class NotifyPlugin(Plugin):
                             else:
                                 uc += 1
                     if uc > 0:
-                        log_to_bot_log(self.bot, f':pager: `{action.upper()}` notification for **#{report_id}** sent to {uc} user(s)')
+                        log_to_bot_log(self.bot,
+                                       f':pager: `{action.upper()}` notification for **#{report_id}** sent to {uc} user(s)')
                 if action in ['approved', 'denied']:
                     self.reports.delete_one({'report_id': report_id})
