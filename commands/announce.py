@@ -328,7 +328,7 @@ class announce(Plugin):
         aDict = self.get_all_tags_as_dict()
         for key in aDict:
             message = (message + f"{key}\n")
-        event.msg.reply(f"The following are all of the available tags:\n ```{message}```")
+        event.msg.reply(f"The following are all of the available tags:\n ```\n{message}```")
 
 
     def get_all_tags_as_dict(self):
@@ -339,6 +339,39 @@ class announce(Plugin):
                     key,value = item.split(':', 1)
                     tag_dict[key] = value
         return tag_dict
+
+    @Plugin.command("removetag", "<Tag_Key:str>")
+    def remove_tag_from_txt(self, event, Tag_Key):
+        aDict = self.get_all_tags_as_dict()
+        if Tag_Key in aDict.keys():
+            aDict.pop(Tag_Key)
+            event.msg.reply("Tag successfully removed from the dict.")
+        else:
+            event.msg.reply("Sorry, I can't find an existing tag with that name.")
+            return
+        # now we need to recreate the txt file and write that to the fileself.
+        Tag_File = aDict.items()
+        with open("tags.txt") as file:
+            msg = ""
+            for key,value in Tag_File:
+                msg += f"{key}:{value}"
+        event.msg.reply("Function completed successfully!")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
