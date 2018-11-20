@@ -116,4 +116,4 @@ The bot will take links and markdown just fine. It does NOT take new lines as re
 +taglist
 =======
 
-Shows the tag_name for all available tags.
+Shows the tag_key for all available tags.
