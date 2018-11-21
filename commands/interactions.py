@@ -74,8 +74,7 @@ class ChatInteractionPlugin(Plugin):
                 "xp": user["xp"] - self.config.bunny_cost
             }
         })
-        #r = requests.get("https://api.bunnies.io/v2/loop/random/?media=gif")
-        r = requests.get("https://discordapp.com/jsjfjsjfkfkfkskdkfog")
+        r = requests.get("https://api.bunnies.io/v2/loop/random/?media=gif")
         if r.status_code == 200:
             embed = MessageEmbed()
             bun_bun = r.json()
