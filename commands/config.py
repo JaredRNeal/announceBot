@@ -164,6 +164,12 @@ class ExperiencePluginConfig(Config):
         "submit": 200
     }
 
+    cooldown_map = {
+        "approve_deny": "Approve/Deny",
+        "canrepro_cantrepro": "Can/Can't Repro",
+        "submit": "Submit"
+    }
+
     store = [
         {
             "title": "Bug Squasher role (for a week)",
