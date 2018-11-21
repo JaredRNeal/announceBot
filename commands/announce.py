@@ -210,6 +210,23 @@ class announce(Plugin):
                         break
         event.msg.reply("Unlock command has successfully completed!")
 
+    @Plugin.command('slowmode', '<channel:channel|snowflake>, <time:int>')
+    @command_wrapper(log=True, perm_lvl=2)
+    def _slowmode(self, event, channel, time):
+        if time > 120:
+            return event.msg.reply("You can only have slowmode up to 120 seconds.")
+        try:
+            if channel != int:
+                self.client.api.channels_modify(channel.id, rate_limit_per_user=time)
+                event.msg.reply(f"Successfully set `{time}` seconds of slowmode in <#{channel.id}>.")
+            else:
+                self.client.api.channels_modify(channel, rate_limit_per_user=time)
+                event.msg.reply(f"Successfully set `{time}` seconds of slowmode in <#{channel}>.")
+        except APIException as e:
+            event.msg.reply(f"Failed to apply slowmode in <#{channel.id}>.")
+            handle_exception(event, self.bot, e)
+
+
     @Plugin.command('verification', '<level:str> [reason:str...]')
     @command_wrapper(log=False)
     def change_verification_level(self, event, level, reason = None):
