@@ -212,6 +212,32 @@ class ExperiencePlugin(Plugin):
         # show xp to user
         event.channel.send_message("<@{id}> you have {xp} XP!".format(id=str(event.msg.author.id), xp=xp))
 
+    @Plugin.command("cooldowns", aliases=["xpcap"])
+    @command_wrapper(perm_lvl=1, allowed_on_server=False, allowed_in_dm=True, log=False)
+    def get_xp_cooldown(self, event):
+        cd_limit = time.time() - 86400
+        em = MessageEmbed()
+        em.title = 'Queue XP actions'
+        em.description = 'Your queue actions gaining XP (past 24 hours):'
+        em.color = '7506394'
+        for action, limit in self.config.reward_limits.items():
+            action_name = self.config.cooldown_map.get(action, None)
+            if action_name is None:
+                continue
+            user_actions = self.actions.find({'user_id': str(event.author.id),
+                                              'type': action,
+                                              'time': {'$gte': cd_limit}}).limit(limit)
+            recent = [x['time'] for x in user_actions]
+            used = len(recent)
+            fv = f'{used}/{limit}'
+            if used >= limit:
+                rem_secs = (min(recent) + 86400) - time.time()
+                hours, rem = divmod(rem_secs, 3600)
+                mins, secs = divmod(rem, 60)
+                fv += f' - Cools down in {int(hours)}h {int(mins)}m {int(secs)}s'
+            em.add_field(name=action_name, value=fv)
+        event.msg.reply(embed=em)
+
     @Plugin.command("givexp", "<user_id:str> <points:int>")
     @command_wrapper(perm_lvl=3)
     def give_xp(self, event, user_id, points):
