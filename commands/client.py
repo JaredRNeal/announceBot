@@ -8,10 +8,6 @@ class TrelloClient(object):
     def __init__(self, key, token):
         self._token = token
         self._key = key
-        self.params = {
-            "key": self._key,
-            "token": self._token
-        }
         self.retry = Retry(
             total=3,
             status_forcelist=[],
@@ -21,17 +17,19 @@ class TrelloClient(object):
         self.session = requests.Session()
         self.session.mount('https://api.trello.com/1/cards/', self.adapter)
 
+    @property
+    def params(self):
+        return dict(key=self._key, token=self._token)
+
     def get_card(self, card):
         params = self.params
         resp = self.session.get('https://api.trello.com/1/cards/{}'.format(card), params=params)
-        print(resp.content)
         return resp.json()
 
     def to_list(self, card, _list):
         params = self.params
         params.update({'idList': _list})
-        resp = self.session.put('https://api.trello.com/1/cards/{}'.format(card), params=params)
-        print(resp.content)
+        self.session.put('https://api.trello.com/1/cards/{}'.format(card), params=params)
 
     def add_member(self, card, _member):
         params = self.params
