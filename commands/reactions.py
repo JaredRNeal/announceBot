@@ -14,6 +14,12 @@ class ReactionConfig(AnnounceBotConfig):
     base = "https://trello.com/c/"
     emojilist = {"1⃣": 1, "2⃣": 2, "3⃣": 3, "4⃣": 4, "5⃣": 5}
     emoji_keys = list(emojilist.keys())
+    bug_channels = {
+        'android': 413446997253554186,
+        'iOS': 413447018816733195,
+        'desktop': 413447049040756739,
+        'store': 502206695611695134
+    }
 
 
 # This just adds reactions after checking whether a message is valid or not
@@ -28,7 +34,7 @@ class ReactionPlugin(BasePlugin):
 
     # checks if we want to look at a bb message (old, could be improved)
     def validatemessage(self, m):
-        return((m.author.id == self.config.bug_bot_user_id and self.config.base in m.content) and m.channel.id in self.config.channel_IDs.values())
+        return((m.author.id == self.config.bug_bot_user_id and self.config.base in m.content) and m.channel.id in self.config.bug_channels.values())
 
     # adds reactions
     def addreact(self, m):
@@ -41,7 +47,7 @@ class ReactionPlugin(BasePlugin):
     # feel free to change 3000 to anything
     @BasePlugin.schedule(3000, True, False)
     def read_reactions(self):
-        for channel in self.config.channel_IDs.values():
+        for channel in self.config.bug_channels.values():
             self.evaluate(channel, 30)
 
     # checks if it's a priority issue
@@ -141,7 +147,7 @@ class ReactionPlugin(BasePlugin):
 
     # checks if reaction is legit or poser
     def is_valid_reaction(self, event):
-        return event.channel_id in self.config.channel_IDs.values() and event.user_id != self.state.me.id
+        return event.channel_id in self.config.bug_channels.values() and event.user_id != self.state.me.id
 
     # listens and adds reactiors to db
     @BasePlugin.listen('MessageReactionAdd')
