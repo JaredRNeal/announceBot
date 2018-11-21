@@ -35,3 +35,5 @@ bot:
     - commands.mentor
     - commands.interactions
     - commands.stats
+    - commands.reactions
+    - commands.trello
