@@ -67,28 +67,21 @@ class ChatInteractionPlugin(Plugin):
         user = self.get_user(event.msg.author.id)
         if user["xp"] < self.config.bunny_cost:
             return event.msg.reply(":no_entry_sign: sadly, you don't have enough XP for a cute bun bun. :(")
-        self.users.update_one({
-            "user_id": str(event.msg.author.id)
-        }, {
-            "$set": {
-                "xp": user["xp"] - self.config.bunny_cost
-            }
-        })
         r = requests.get("https://api.bunnies.io/v2/loop/random/?media=gif")
         if r.status_code == 200:
             embed = MessageEmbed()
             bun_bun = r.json()
             embed.set_image(url=bun_bun['media']['gif'])
             event.msg.reply(embed=embed)
-        else:
-            event.msg.reply(":( Sorry, an unexpected error occurred when trying to display a bunny. Your XP has been refunded.")
             self.users.update_one({
                 "user_id": str(event.msg.author.id)
             }, {
                 "$set": {
-                    "xp": user["xp"] + self.config.bunny_cost
+                    "xp": user["xp"] - self.config.bunny_cost
                 }
             })
+        else:
+            event.msg.reply(":( Sorry, an unexpected error occurred when trying to display a bunny.")
 
     @Plugin.command("hug", "<user:user>")
     @command_wrapper(perm_lvl=1)
