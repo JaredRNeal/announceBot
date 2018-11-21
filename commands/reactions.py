@@ -77,14 +77,12 @@ class ReactionPlugin(BasePlugin):
                 trello_link = card.group(0)[:-2]
                 # prints avg, for testing
                 score = self.aggregate_score(message)
-                print(score)
                 # sends message to eng_channel
                 eng_message = self.bot.client.api.channels_messages_create(self.config.eng_channel, self.config.msg_body.format(trello_link, score))
                 # creates db entry
                 self.add_message(message, eng_message, score)
             elif self.did_value_change(message):
                 score = self.aggregate_score(message)
-                print(score)
                 self.messages.update_one({'testers_id': str(message.id)}, {'$set': {'score': score}})
                 eng_msg = self.messages.find_one({'testers_id': str(message.id)})
                 self.bot.client.api.channels_messages_modify(self.config.eng_channel, eng_msg.get('eng_id'), self.config.msg_body.format(score))
@@ -141,7 +139,6 @@ class ReactionPlugin(BasePlugin):
         m_id = testers_message.id
         eng_id = eng_message.id
         card = re.match(r'https:\/\/trello.com\/c\/.+ -', testers_message.content)
-        print(card.group(0)[-10:-2])
         message = {'testers_id': str(m_id), "eng_id": str(eng_id), 'card': card.group(0)[-10:-2], 'score': score}
         self.messages.insert_one(message)
 
