@@ -15,13 +15,6 @@ class AnnounceBotConfig(Config):
         'test': 441011171391176704
         }
 
-    bot_IDs = {
-      'testbot': 422786385015996439,
-      'rowboat': 232921983317180416,
-      'outboard': 501816123507998730,
-      'evilDabbit': 413393370770046976,
-      'bugbot': 240545475118235648
-      }
 
     mod_roles = {
         'emplyee': 411674069528870912,

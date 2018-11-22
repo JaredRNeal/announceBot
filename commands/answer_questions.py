@@ -38,7 +38,8 @@ class answer_questions(Plugin):
         for key in self.FAQ_dictionary.keys():
             if key in event.content:
                 time.sleep(3)
-                event.reply(self.FAQ_dictionary[key])
+                event.reply(self.FAQ_dictionary[key].replace("\\n", "\n"))
+                log_to_bot_log(self.bot, f":clock1: {event.author} activated the auto response.")
 
     @Plugin.command("addfaq", parser=True)
     @Plugin.add_argument("-f", "--FAQ_Key", help='The phrase you want to trigger the response.')
@@ -54,7 +55,7 @@ class answer_questions(Plugin):
                 return
         # if the faq name is acceptable, add it to the text file
         args.FAQ_Content = args.FAQ_Content.replace("\n", "\\n")
-        f.write(f"{args.FAQ_Key}:{args.FAQ_Content}")
+        f.write(f"\n{args.FAQ_Key}:{args.FAQ_Content}")
         f.close()
         event.msg.reply("New FAQ has been added!")
 
@@ -74,7 +75,7 @@ class answer_questions(Plugin):
         aDict = self.get_questions_as_a_dict()
         for key in aDict:
             message += f"{key}\n"
-        event.msg.reply(f"The following are all of the available tags:\n ```\n{message}```")
+        event.msg.reply(f"The following are all of the available faqs:\n ```\n{message}```")
 
     @Plugin.command("removefaq", "<FAQ_Key:str>")
     @command_wrapper(perm_lvl=2)
@@ -101,7 +102,7 @@ class answer_questions(Plugin):
         aDict = self.get_questions_as_a_dict()
         for key in aDict:
             if key == FAQ_Key:
-                event.msg.reply(aDict[key])
+                event.msg.reply(aDict[key].replace("\\n", "\n"))
                 return
         event.msg.reply(f"Sorry, I can't find an FAQ with the name `{FAQ_Key}`")
 
