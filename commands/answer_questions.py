@@ -43,6 +43,7 @@ class answer_questions(Plugin):
     @Plugin.command("addfaq", parser=True)
     @Plugin.add_argument("-f", "--FAQ_Key", help='The phrase you want to trigger the response.')
     @Plugin.add_argument("-c", "--FAQ_Content", help="The content of the message you want the bot to respond with.")
+    @command_wrapper(perm_lvl=2)
     def add_new_faq(self, event, args):
         f = open("faqs.txt", "a")
         # Checks to see if the FAQ_Key is unique.
@@ -67,7 +68,7 @@ class answer_questions(Plugin):
         return faq_dict
 
     @Plugin.command("faqlist")
-#    @command_wrapper(perm_lvl=2)
+    @command_wrapper(perm_lvl=2)
     def show_all_available_questions(self, event):
         message = ""
         aDict = self.get_questions_as_a_dict()
@@ -76,7 +77,7 @@ class answer_questions(Plugin):
         event.msg.reply(f"The following are all of the available tags:\n ```\n{message}```")
 
     @Plugin.command("removefaq", "<FAQ_Key:str>")
-#    @command_wrapper(perm_lvl=2)
+    @command_wrapper(perm_lvl=2)
     def remove_faq_from_txt(self, event, FAQ_Key):
         aDict = self.get_questions_as_a_dict()
         if FAQ_Key in aDict.keys():
@@ -95,6 +96,7 @@ class answer_questions(Plugin):
         event.msg.reply("FAQ removed successfully!")
 
     @Plugin.command("faq", "<FAQ_Key:str...>")
+    @command_wrapper(perm_lvl=2)
     def force_post_faq_content(self, event, FAQ_Key):
         aDict = self.get_questions_as_a_dict()
         for key in aDict:
