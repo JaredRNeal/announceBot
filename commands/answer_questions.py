@@ -8,14 +8,31 @@ from util.GlobalHandlers import command_wrapper, log_to_bot_log, handle_exceptio
 
 import time
 
+
 class answer_questions(Plugin):
+
+    bot_IDs = {
+      'testbot': 422786385015996439,
+      'rowboat': 232921983317180416,
+      'outboard': 501816123507998730,
+      'evilDabbit': 413393370770046976,
+      'bugbot': 240545475118235648
+      }
+
+    advanced_roles = {
+      'employee': 197042389569765376,
+      'admin': 197042322939052032,
+      'modinator': 440322144593772545,
+      'bug_hunter': 197042209038663680,
+      'test_role': 411674069528870912
+      }
 
     @Plugin.listen("MessageCreate")
     def answer_frequent_questions(self, event):
-        if event.author.id in AnnounceBotConfig.bot_IDs.values():
+        if event.author.id in self.bot_IDs.values():
             return
         for role in event.member.roles:
-            if role in AnnounceBotConfig.admin_roles.values():
+            if role in self.advanced_roles.values():
                 return
         self.FAQ_dictionary = self.get_questions_as_a_dict()
         for key in self.FAQ_dictionary.keys():
