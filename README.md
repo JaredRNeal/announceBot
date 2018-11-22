@@ -117,3 +117,8 @@ The bot will take links and markdown just fine. It does NOT take new lines as re
 =======
 
 Shows the tag_key for all available tags.
+
++removetag {Tag_Key}
+==========
+
+Iterates through the tags.txt file to find the specified key:value pair and remove it.
