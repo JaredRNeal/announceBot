@@ -86,6 +86,10 @@ You can set slowmode between 1-120 seconds.
 Command usage:
 `+slowmode CHNANEL_ID_OR_MENTION AMOUNT_OF_SECONDS`
 
+An example on how you disable slowmode:
+
+`+slowmode #android-client-chat 0`
+
 
 +Verification
 =============
