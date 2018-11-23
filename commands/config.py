@@ -15,6 +15,7 @@ class AnnounceBotConfig(Config):
         'test': 441011171391176704
         }
 
+
     mod_roles = {
         'emplyee': 411674069528870912,
         'admin': 416261117845700608
@@ -82,33 +83,6 @@ class AnnounceBotConfig(Config):
     }
     """
 
-    frequently_asked_questions = {
-        'suggestions': "Thanks for wanting to improve Discord! When it comes to making suggestions, you have two options: You can head over to <https://feedback.discordapp.com> or join the feedback community over at https://discord.gg/discord-feedback",
-        'raids': "If a server you're in is currently being raided, there is nothing that can be done on this server to help. The only people that can aid you are our Trust and Safety team whom you can contact via https://dis.gd/request."
-                 + "\nFor fastest turn around time, read over this article <https://dis.gd/HowToReport>.",
-        'abuse': "You can contact our Trust and Safety team via https://dis.gd/request. For fastest turn around time, read over this article <https://dis.gd/HowToReport>.",
-        'install': "Having some trouble getting Discord to boot? Sorry about that! Usually a quick re-install does the trick. Just follow the instructions here: <https://support.discordapp.com/hc/en-us/articles/209099387--Windows-Installer-Errors>"
-                   + ". If that doesn't work, your best bet is to contact our support team via https://dis.gd/contact",
-        'bug': "Thanks for wanting to report a bug! All of the info you need to report a bug can be found in <#342060723721207810>. The bot syntax can be confusing at first, so make sure to check out the form linked to in that channel.",
-        'badge': "**Oooo... shiny! I want a badge! How do I get this badge?**\n"
-                 + "Right now it's only available for Bug Hunters. In the near future we'll be running BH only events where one of the prizes for outstanding participation (read: top placing) will be the Bug Hunter Badge. It also may be a reward for new <#274590523719811074> as well.\n"
-                 + "\n**So that means that every Bug Hunter will get one?**\n"
-                 + "No. You have to be a Bug Hunter before you can participate in the thing that will let you acquire it. It is not automatically given to everyone with the BH role and never will be."
-                 + "\n\n**So only these 'events'? No other way, like, forever?**\n"
-                 + "The first planned major update for the new version of BugBot will be an extensive XP system, where beneficial actions each grant a certain amount of 'experience points' and if you get enough XP you level up, if you reach certain level milestones you'll earn things like the Badge, as well a t-shirts and a hoodie! Again, this will only be available if you're a Bug Hunter, but anyone can become a Bug Hunter by reporting and getting a bug approved!",
-        'hypesquad': "**What is HypeSquad??** \nIt is one of Discord\'s Community Programs where members show their excitement towards Discord. You can check out the website here: <https://discordapp.com/hypesquad> \n"
-                     + "\n**I got accepted into HypeSquad as an online member! Where is that totally cool and secret server??** \n"
-                     + "Unfortunately, there is no server for Online-only anymore. You will however have your badge and newsletter from the Community Team telling you all of the different kind of things you should be excited about. \n"
-                     + "\n**I haven\'t heard anything from HypeSquad, but I got a newsletter.... what\'s going on?** \n"
-                     + "You were most likely accepted into the program, but something in the backend borked. Just simply send an email to `hypesquad@discordapp.com` to explain the situation to them, and they will make sure that it is taken care of. \n"
-                     + "\n**Is HypeSquad open??** \n"
-                     + "At the moment, it's only open for event coordinator and attendee. You can keep an eye on the website, <https://discordapp.com/hypesquad> to see when they will be back open for online applications. \n"
-                     + "\nAnymore questions? Feel free to contact HypeSquad at `hypesquad@discordapp.com`",
-        'support': 'You can reach support at https://dis.gd/contact for all your questions and help with figuring out problems (even in your native language if you prefer).',
-        'lazy': 'Lazy guilds are guilds where you can see the offline members in the list. This does ***not*** have a negative impact on performance or loading times, quite the opposite. You can grab one of the desktop roles listed in <#342060723721207810> section 4 which will give you access to the desktop-announcements channel, where you can read more about it.',
-        'hunter': 'You can acquire the Bug Hunter role by submitting a bug with the bot and getting it approved. For more in-depth instructions, please read through <#342043548369158156>'
-    }
-
     event_stats_filename = "eventstats.json"  # event stats are saved to this location.
 
     emojis = {
@@ -162,6 +136,12 @@ class ExperiencePluginConfig(Config):
         "canrepro_cantrepro": 3,
         "attach": 2,
         "submit": 200
+    }
+
+    cooldown_map = {
+        "approve_deny": "Approve/Deny",
+        "canrepro_cantrepro": "Can/Can't Repro",
+        "submit": "Submit"
     }
 
     store = [

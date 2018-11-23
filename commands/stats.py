@@ -31,7 +31,10 @@ class StatsPlugin(Plugin):
 
     def get_reporting_channel(self, msg: Message):
         match = self.channel_regex.findall(msg.content)
-        return match[0]
+        if len(match) > 0:
+            return match[0]
+        else:
+            return None
 
     def get_all_bug_reports(self):
         guild = self.bot.client.state.guilds[self.config.dtesters_guild_id]
