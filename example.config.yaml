@@ -36,6 +36,8 @@ bot:
     - commands.mentor
     - commands.interactions
     - commands.stats
+    - commands.reactions
+    - commands.trello
     - commands.reload
     - commands.github
     - commands.answer_questions
