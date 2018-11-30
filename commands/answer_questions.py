@@ -36,7 +36,7 @@ class answer_questions(Plugin):
                 return
         self.FAQ_dictionary = self.get_questions_as_a_dict()
         for key in self.FAQ_dictionary.keys():
-            if key in event.content:
+            if key.lower() in event.content.lower():
                 time.sleep(3)
                 event.reply(self.FAQ_dictionary[key].replace("\\n", "\n"))
                 log_to_bot_log(self.bot, f":clock1: {event.author} activated the auto response.")
@@ -105,6 +105,33 @@ class answer_questions(Plugin):
                 event.msg.reply(aDict[key].replace("\\n", "\n"))
                 return
         event.msg.reply(f"Sorry, I can't find an FAQ with the name `{FAQ_Key}`")
+
+
+    @Plugin.command("editfaq", parser=True)
+    @Plugin.add_argument("-f", "--FAQ_Name", help="The string to active the FAQ.")
+    @Plugin.add_argument("-c", "--FAQ_Content", help="The message you want to show up when triggered.")
+    def edit_existing_faq(self, event, args):
+        aDict = self.get_questions_as_a_dict()
+        for key in aDict:
+            if key.lower() == args.FAQ_Name.lower():
+                aDict.pop(key)
+                aDict[args.FAQ_Name] = args.FAQ_Content
+                FAQ_File = aDict.items()
+                f = open("faqs.txt", "w")
+                msg = ""
+                for key,value in FAQ_File:
+                    msg += f"{key}:{value}\n"
+                f.write(msg)
+                f.close()
+                event.msg.reply("FAQ has been successfully updated! Yay! <3")
+                return
+        event.msg.reply("Sorry, I can't find an FAQ with that name. Try using `+faqlist` to see a full list of all of the available FAQs.")
+
+
+
+
+
+
 
 
 

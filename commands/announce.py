@@ -376,7 +376,23 @@ class announce(Plugin):
         f.close()
         event.msg.reply("Tag removed successfully!")
 
-
+    @Plugin.command("changetag", "<New_Tag_Key:str> [New_Tag_Content:str...]")
+    def edit_existing_tag(self, event, New_Tag_Key, New_Tag_Content):
+        aDict = self.get_all_tags_as_dict()
+        for key in aDict:
+            if key.lower() == New_Tag_Key.lower():
+                aDict.pop(key)
+                aDict[New_Tag_Key] = New_Tag_Content
+                FAQ_File = aDict.items()
+                f = open("tags.txt", "w")
+                msg = ""
+                for key,value in FAQ_File:
+                    msg += f"{key.lower()}:{value}\n"
+                f.write(msg)
+                f.close()
+                event.msg.reply("Tag has been successfully updated! Yay! <3")
+                return
+        event.msg.reply("Sorry, I can't find a Tag with that name. Try using `+taglist` to see a full list of all of the available Tags.")
 
 
 
