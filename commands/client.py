@@ -26,6 +26,12 @@ class TrelloClient(object):
         resp = self.session.get('https://api.trello.com/1/cards/{}'.format(card), params=params)
         return resp.json()
 
+    def get_card_comments(self, card):
+        params = self.params
+        params.update({'actions': 'commentCard'})
+        resp = self.session.get('https://api.trello.com/1/cards/{}'.format(card), params=params)
+        return resp.json()
+
     def to_list(self, card, _list):
         params = self.params
         params.update({'idList': _list})
