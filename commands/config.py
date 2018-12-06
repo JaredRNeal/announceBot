@@ -164,6 +164,8 @@ class ExperiencePluginConfig(Config):
         }
     ]
 
+    reward_points = 5
+
 
 class GuideConfig(Config):
     guides = {

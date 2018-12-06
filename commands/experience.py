@@ -242,6 +242,10 @@ class ExperiencePlugin(Plugin):
     @command_wrapper(perm_lvl=3)
     def give_xp(self, event, user_id, points):
         uid = self.get_id(user_id)
+        if int(uid) in event.guild.members:
+            name = str(event.guild.members[int(uid)])
+        else:
+            name = uid
 
         if uid is None:
             event.msg.reply(":no_entry_sign: invalid snowflake/mention").after(5).delete()
@@ -249,21 +253,37 @@ class ExperiencePlugin(Plugin):
         user = self.get_user(uid)
 
         if user["xp"] + points < 0:
-            xp = 0
-            self.users.update_one({
-                "user_id": str(uid)
-            }, {
-                "$set": {
-                    "xp": xp
-                }
-            })
-            log_to_bot_log(self.bot, ":pencil: {mod} updated point total for {user} to {points}".format(
-                mod=str(event.msg.author),
-                user=str(uid),
-                points=str(xp)
-            ))
-            event.msg.reply("User cannot have below 0 points, so set to 0.").after(5).delete()
+            points = -user["xp"]
+        xp = user["xp"] + points
+        self.users.update_one({
+            "user_id": str(uid)
+        }, {
+            "$set": {
+                "xp": xp
+            }
+        })
+        event.msg.reply(f":ok_hand: {name} point total updated to {xp}").after(5).delete()
+        event.msg.delete()
+        log_to_bot_log(self.bot,f":pencil: {event.msg.author} gave {points} to {name} (``{user_id}``), new xp total: {xp}")
+
+    @Plugin.command("reward", "<user_id:str>")
+    @command_wrapper(perm_lvl=2, log=False)
+    def reward_xp(self, event, user_id):
+        points = self.config.reward_points
+        uid = self.get_id(user_id)
+        if int(uid) in event.guild.members:
+            name = str(event.guild.members[int(uid)])
+        else:
+            name = uid
+        if uid is None:
+            event.msg.reply("🚫 invalid snowflake/mention").after(5).delete()
             event.msg.delete()
+            return
+        user = self.get_user(uid)
+
+        if points < 0:
+            event.msg.reply("🚫 removing xp is not allowed!")
+            log_to_bot_log(self.bot, f"⚠ {event.author} tried to remove xp from {name}")
             return
         xp = user["xp"] + points
         self.users.update_one({
@@ -273,14 +293,8 @@ class ExperiencePlugin(Plugin):
                 "xp": xp
             }
         })
-        event.msg.reply(":ok_hand: {user} point total updated to {points}".format(user=str(uid), points=xp)) \
-            .after(5).delete()
-        event.msg.delete()
-        log_to_bot_log(self.bot, ":pencil: {mod} updated point total for {user} to {points}".format(
-            mod=str(event.msg.author),
-            user=str(uid),
-            points=str(xp)
-        ))
+        event.msg.reply(f":ok_hand: <@{uid}> received some xp for helping out!")
+        log_to_bot_log(self.bot, f":pencil: {event.msg.author} gave {points} to {name} (``{uid}``), new xp total: {xp}")
 
     @Plugin.listen("MessageCreate")
     def message_listener(self, event):
