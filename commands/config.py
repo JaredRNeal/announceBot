@@ -216,6 +216,7 @@ class ChatInteractionsConfig(Config):
     # Love should be easier to come across.
     hug_cost = 2
     fight_cost = 2
+    cat_cost = 4
     bunny_cost = 5
 
     hug_msgs = [

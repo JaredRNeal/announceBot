@@ -83,6 +83,28 @@ class ChatInteractionPlugin(Plugin):
         else:
             event.msg.reply(":( Sorry, an unexpected error occurred when trying to display a bunny.")
 
+    @Plugin.command("cat")
+    @command_wrapper(perm_lvl=1)
+    def cat(self, event):
+        user = self.get_user(event.msg.author.id)
+        if user["xp"] < self.config.cat_cost:
+            return event.msg.reply(":no_entry_sign: sadly, you don't have enough XP to experience an adorable kitty. :(")
+        r = requests.get("http://aws.random.cat/meow")
+        if r.status_code == 200:
+            embed = MessageEmbed()
+            ilovecats = r.json()
+            embed.set_image(url=ilovecats['file'])
+            event.msg.reply(embed=embed)
+            self.users.update_one({
+                "user_id": str(event.msg.author.id)
+            }, {
+                "$set": {
+                    "xp": user["xp"] - self.config.cat_cost
+                }
+            })
+        else:
+            event.msg.reply(":( Sorry, an unexpected error occurred when trying to display a cat.")
+
     @Plugin.command("hug", "<user:user>")
     @command_wrapper(perm_lvl=1)
     def hug(self, event, user):
