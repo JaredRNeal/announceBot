@@ -89,7 +89,7 @@ class ChatInteractionPlugin(Plugin):
         user = self.get_user(event.msg.author.id)
         if user["xp"] < self.config.cat_cost:
             return event.msg.reply(":no_entry_sign: sadly, you don't have enough XP to experience an adorable kitty. :(")
-        r = requests.get("http://aws.random.cat/meow")
+        r = requests.get("https://aws.random.cat/meow")
         if r.status_code == 200:
             embed = MessageEmbed()
             ilovecats = r.json()
