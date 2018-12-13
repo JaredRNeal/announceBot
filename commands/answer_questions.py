@@ -13,7 +13,7 @@ class answer_questions(Plugin):
 
     bot_IDs = {
       'testbot': 422786385015996439,
-      'rowboat': 232921983317180416,
+      'gearboat': 520953716610957312,
       'outboard': 501816123507998730,
       'evilDabbit': 413393370770046976,
       'bugbot': 240545475118235648
