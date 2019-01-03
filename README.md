@@ -135,3 +135,39 @@ Shows the tag_key for all available tags.
 ==========
 
 Iterates through the tags.txt file to find the specified key:value pair and remove it.
+
+
++faqadd -f "{phrase_to_respond_to}" -c "{content}"
+=======
+
+The bot has an auto response feature for commonly asked questions which are referred to as "FAQs". It reads each message and looks for the specific phrase added in the faqs.txt file and then responds with the corresponding value. For example, if someone shows up and says "How do I report a bug in this server?" the bot will respond with a preset message for the phrase `how do i report a bug`. This command will add another phrase to the faqs.txt file. Example usage:
+
++faqadd -f "how do i report a bug" -c "Just read the write up in #report-a-bug for information on how to report a bug!"
+
+Note that due to a bug in the disco.py library you CANNOT use single or double quotes at any point in this or it will fail. Use `\n` for a new line. It will only respond to people lower on the role heirarchy than Bug Hunter.
+
++faq {phrase_to_respond_to}
+==========================
+
+This command is mainly to check the formatting of an already existing FAQ by manually triggering the response. Example usage:
+
++faq how do i report a bug
+
++faqlist
+========
+
+Generates a list of all FAQs phrases currently in the faqs.txt file. Does not show the content of the FAQs. This currently does not support pagination and when the message it returns gets over 2000 character limit it'll just fail.
+
++faqremove {phrase_to_respond_to}
+=================================
+
+As a management feature you can dynamically remove an FAQ from the list. This permanently deletes it with no recovery. Example usage:
+
++faqremove how do i report a bug
+
++faqedit -f "{phrase_to_respond_do}" -c "{new_content}"
+===================
+
+A quality of life feature, allows you to rewrite the content of an FAQ without first removing it. You cannot edit the `phrase_to_respond_to`. Example usage:
+
++faqedit -f "how do i respond to a bug" -c "Just checkout out #report-a-bug!"
