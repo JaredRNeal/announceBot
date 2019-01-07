@@ -137,7 +137,7 @@ Shows the tag_key for all available tags.
 Iterates through the tags.txt file to find the specified key:value pair and remove it.
 
 
-+faqadd -f "{phrase_to_respond_to}" -c "{content}"
++addfaq -f "{phrase_to_respond_to}" -c "{content}"
 =======
 
 The bot has an auto response feature for commonly asked questions which are referred to as "FAQs". It reads each message and looks for the specific phrase added in the faqs.txt file and then responds with the corresponding value. For example, if someone shows up and says "How do I report a bug in this server?" the bot will respond with a preset message for the phrase `how do i report a bug`. This command will add another phrase to the faqs.txt file. Example usage:
