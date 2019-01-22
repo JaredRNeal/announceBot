@@ -158,16 +158,16 @@ This command is mainly to check the formatting of an already existing FAQ by man
 
 Generates a list of all FAQs phrases currently in the faqs.txt file. Does not show the content of the FAQs. This currently does not support pagination and when the message it returns gets over 2000 character limit it'll just fail.
 
-+faqremove {phrase_to_respond_to}
++removefaq {phrase_to_respond_to}
 =================================
 
 As a management feature you can dynamically remove an FAQ from the list. This permanently deletes it with no recovery. Example usage:
 
-+faqremove how do i report a bug
++removefaq how do i report a bug
 
-+faqedit -f "{phrase_to_respond_do}" -c "{new_content}"
++editfaq -f "{phrase_to_respond_do}" -c "{new_content}"
 ===================
 
 A quality of life feature, allows you to rewrite the content of an FAQ without first removing it. You cannot edit the `phrase_to_respond_to`. Example usage:
 
-+faqedit -f "how do i respond to a bug" -c "Just checkout out #report-a-bug!"
++editfaq -f "how do i respond to a bug" -c "Just checkout out #report-a-bug!"
