@@ -77,7 +77,7 @@ class answer_questions(Plugin):
             message += f"{key}\n"
         event.msg.reply(f"The following are all of the available faqs:\n ```\n{message}```")
 
-    @Plugin.command("removefaq", "<FAQ_Key:str>")
+    @Plugin.command("removefaq", "<FAQ_Key:str...>")
     @command_wrapper(perm_lvl=2)
     def remove_faq_from_txt(self, event, FAQ_Key):
         aDict = self.get_questions_as_a_dict()
