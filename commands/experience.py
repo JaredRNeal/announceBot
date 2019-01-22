@@ -97,7 +97,7 @@ class ExperiencePlugin(Plugin):
             insert_result = self.users.insert_one({
                 "user_id": str(id),
                 "xp": 0,
-                "badge_progress": 0
+                "badge-progress": 0
             })
             return self.users.find_one({"_id": insert_result.inserted_id})
 
@@ -106,6 +106,10 @@ class ExperiencePlugin(Plugin):
     def add_xp(self, id, points):
         user = self.get_user(str(id))
         user["xp"] += points
+        if user["badge-progress"] is None:
+            user["badge-progress"] = user["xp"] + points
+        else:
+            user["badge-progress"] += points
         return user
 
     def get_actions(self, user_id, type):
@@ -151,6 +155,13 @@ class ExperiencePlugin(Plugin):
                 "badge-progress": user.get("badge-progress", user.get("xp")) + self.config.rewards[action]
             }
         })
+
+        if user["badge-progress"] >= self.config.badge_requirement:
+            prize_log_channel = self.bot.client.api.channels_get(self.config.channels["prize_log"])
+            prize_log_channel.send_message(":tada: **<@{user_id}>** earned the Bug Hunter Badge!".format(
+                user_id=user_id
+            ))
+
         if has_time_limit:
             self.actions.insert_one({
                 "user_id": str(user_id),
@@ -240,6 +251,7 @@ class ExperiencePlugin(Plugin):
             em.add_field(name=action_name, value=fv)
         event.msg.reply(embed=em)
 
+    """
     @Plugin.command("badgeprogress")
     @command_wrapper(perm_lvl=1, allowed_on_server=False, allowed_in_dm=True, log=False)
     def badge_progress(self, event):
@@ -272,6 +284,7 @@ class ExperiencePlugin(Plugin):
 
         # show xp to user
         event.channel.send_message("<@{id}> you have {xp} XP!".format(id=str(event.msg.author.id), xp=badge_progress))
+    """
     @Plugin.command("givexp", "<user_id:str> <points:int>")
     @command_wrapper(perm_lvl=3)
     def give_xp(self, event, user_id, points):
@@ -293,7 +306,8 @@ class ExperiencePlugin(Plugin):
             "user_id": str(uid)
         }, {
             "$set": {
-                "xp": xp
+                "xp": xp,
+                "badge-progress": user.get("badge-progress", user["xp"]) + points
             }
         })
         event.msg.reply(f":ok_hand: {name} point total updated to {xp}").after(5).delete()
@@ -422,3 +436,25 @@ class ExperiencePlugin(Plugin):
             return
         user = self.get_user(uid)
         event.msg.reply("<@{user}> has {xp} XP.".format(user=str(uid), xp=user["xp"])).after(10).delete()
+
+    @Plugin.command("badge", "<user_id:str>")
+    @command_wrapper()
+    def stats(self, event, user_id):
+        uid = self.get_id(user_id)
+        if uid is None:
+            event.msg.reply(":no_entry_sign: invalid snowflake/mention.").after(5).delete()
+            return
+        user = self.get_user(uid)
+
+        if user is None:
+            event.msg.reply("that user doesn't exist :(")
+            return
+
+        if user.get("badge-progress") is None:
+            event.msg.reply("an unusually rare event occurred and wumpus tried really hard but couldn't "
+                            "obtain this user's badge progress. ask them to perform an xp action.")
+            return
+
+        event.msg.reply("<@{user}> has {xp}/{required}.".format(user=str(uid), xp=user["badge-progress"],
+                                                                required=str(self.config.badge_requirement)))\
+            .after(10).delete()

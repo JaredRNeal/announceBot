@@ -164,6 +164,8 @@ class ExperiencePluginConfig(Config):
         }
     ]
 
+    badge_requirement = 750
+
     reward_points = 5
 
 
