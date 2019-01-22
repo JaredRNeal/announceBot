@@ -96,7 +96,6 @@ class ExperiencePlugin(Plugin):
         if result is None:
             insert_result = self.users.insert_one({
                 "user_id": str(id),
-                "xp": 0
             })
             return self.users.find_one({"_id": insert_result.inserted_id})
 
@@ -146,7 +145,6 @@ class ExperiencePlugin(Plugin):
             "user_id": str(user_id)
         }, {
             "$set": {
-                "xp": user["xp"] + self.config.rewards[action]
             }
         })
         if has_time_limit:
@@ -238,6 +236,15 @@ class ExperiencePlugin(Plugin):
             em.add_field(name=action_name, value=fv)
         event.msg.reply(embed=em)
 
+    @Plugin.command("badgeprogress")
+    @command_wrapper(perm_lvl=1, allowed_on_server=False, allowed_in_dm=True, log=False)
+    def badge_progress(self, event):
+
+        # Check bug hunter
+        dtesters = self.bot.client.api.guilds_get(self.config.dtesters_guild_id)
+        member = dtesters.get_member(event.msg.author)
+        if dtesters is None or member is None:
+            return
     @Plugin.command("givexp", "<user_id:str> <points:int>")
     @command_wrapper(perm_lvl=3)
     def give_xp(self, event, user_id, points):
