@@ -96,6 +96,8 @@ class ExperiencePlugin(Plugin):
         if result is None:
             insert_result = self.users.insert_one({
                 "user_id": str(id),
+                "xp": 0,
+                "badge_progress": 0
             })
             return self.users.find_one({"_id": insert_result.inserted_id})
 
@@ -145,6 +147,8 @@ class ExperiencePlugin(Plugin):
             "user_id": str(user_id)
         }, {
             "$set": {
+                "xp": user["xp"] + self.config.rewards[action],
+                "badge-progress": user.get("badge-progress", user.get("xp")) + self.config.rewards[action]
             }
         })
         if has_time_limit:
@@ -245,6 +249,29 @@ class ExperiencePlugin(Plugin):
         member = dtesters.get_member(event.msg.author)
         if dtesters is None or member is None:
             return
+
+        valid = False
+        for role in member.roles:
+            if role == self.config.role_IDs.get("hunter"):
+                valid = True
+
+        if not valid:
+            event.msg.reply(
+                "Sorry, only Bug Hunters are able to use the XP system. If you'd like to become a Bug Hunter, read all of <#342043548369158156>").after(
+                5).delete()
+            return
+
+        # find the user's badge progress
+        user = self.get_user(event.msg.author.id)
+        badge_progress = user.get("badge-progress")
+
+        # See if the user has badge progress
+        if badge_progress is None:
+            event.channel.send_message("sorry, but wumpus has a terrible memory so can you please get some more xp" \
+                                       "so wumpus can remember your progress towards the badge!")
+
+        # show xp to user
+        event.channel.send_message("<@{id}> you have {xp} XP!".format(id=str(event.msg.author.id), xp=badge_progress))
     @Plugin.command("givexp", "<user_id:str> <points:int>")
     @command_wrapper(perm_lvl=3)
     def give_xp(self, event, user_id, points):
