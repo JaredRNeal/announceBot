@@ -13,7 +13,11 @@ class answer_questions(Plugin):
 
     bot_IDs = {
       'testbot': 422786385015996439,
+<<<<<<< HEAD
       'gearboat': 520953716610957312,
+=======
+      'rowboat': 232921983317180416,
+>>>>>>> 5f62ad863008eee896064838398ae7449364e2f6
       'outboard': 501816123507998730,
       'evilDabbit': 413393370770046976,
       'bugbot': 240545475118235648
@@ -36,7 +40,11 @@ class answer_questions(Plugin):
                 return
         self.FAQ_dictionary = self.get_questions_as_a_dict()
         for key in self.FAQ_dictionary.keys():
+<<<<<<< HEAD
             if key.lower() in event.content.lower():
+=======
+            if key in event.content:
+>>>>>>> 5f62ad863008eee896064838398ae7449364e2f6
                 time.sleep(3)
                 event.reply(self.FAQ_dictionary[key].replace("\\n", "\n"))
                 log_to_bot_log(self.bot, f":clock1: {event.author} activated the auto response.")
@@ -77,7 +85,11 @@ class answer_questions(Plugin):
             message += f"{key}\n"
         event.msg.reply(f"The following are all of the available faqs:\n ```\n{message}```")
 
+<<<<<<< HEAD
     @Plugin.command("removefaq", "<FAQ_Key:str...>")
+=======
+    @Plugin.command("removefaq", "<FAQ_Key:str>")
+>>>>>>> 5f62ad863008eee896064838398ae7449364e2f6
     @command_wrapper(perm_lvl=2)
     def remove_faq_from_txt(self, event, FAQ_Key):
         aDict = self.get_questions_as_a_dict()
@@ -107,6 +119,7 @@ class answer_questions(Plugin):
         event.msg.reply(f"Sorry, I can't find an FAQ with the name `{FAQ_Key}`")
 
 
+<<<<<<< HEAD
     @Plugin.command("editfaq", parser=True)
     @Plugin.add_argument("-f", "--FAQ_Name", help="The string to active the FAQ.")
     @Plugin.add_argument("-c", "--FAQ_Content", help="The message you want to show up when triggered.")
@@ -134,5 +147,7 @@ class answer_questions(Plugin):
 
 
 
+=======
+>>>>>>> 5f62ad863008eee896064838398ae7449364e2f6
 
 #hello world

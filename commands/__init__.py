@@ -1,8 +1,13 @@
 from disco.bot.command import CommandLevels
+<<<<<<< HEAD
 from commands.client import TrelloClient
 from disco.bot import Plugin, Config
 from pymongo import MongoClient
 import time
+=======
+from disco.bot import Plugin
+from pymongo import MongoClient
+>>>>>>> 5f62ad863008eee896064838398ae7449364e2f6
 
 SUPPORTED_SYSTEMS = ['android', 'ios', 'windows', 'linux', 'mac']
 
@@ -11,23 +16,32 @@ def command_level_getter(bot, actor):
     return CommandLevels.TRUSTED
 
 
+<<<<<<< HEAD
 class BaseConfig(Config):
     trello_key = "c3194bfe3a5e7644b996ba48542e0b00"
     trello_token = "6ca84163ff8450f075011feb3a528d7f6d6d9c1a0054da8b8c2908d1971c3650"
 
 
+=======
+# I want to move some other functions here so they're shared across all plugins in later PR
+>>>>>>> 5f62ad863008eee896064838398ae7449364e2f6
 class BasePlugin(Plugin):
     _shallow = True
 
     def __init__(self, bot, config):
         super(BasePlugin, self).__init__(bot, config)
+<<<<<<< HEAD
 
+=======
+        # I'd recommend using a test DB first? to see if works, then run it on prod
+>>>>>>> 5f62ad863008eee896064838398ae7449364e2f6
         self.client = MongoClient(
             self.config.mongodb_host,
             self.config.mongodb_port,
             username=self.config.mongodb_username,
             password=self.config.mongodb_password
         )
+<<<<<<< HEAD
 
         self.trello_client = TrelloClient(
             self.config.trello_key,
@@ -37,6 +51,10 @@ class BasePlugin(Plugin):
         self.users = self.client.experience.users
         self.actions = self.client.experience.actions
         self.messages = self.client.reactions.messages
+=======
+        self.users = self.client.experience.users
+        self.actions = self.client.experience.actions
+>>>>>>> 5f62ad863008eee896064838398ae7449364e2f6
 
     def shared_add_xp(self, user_id, amount):
         uid = str(user_id)
@@ -46,6 +64,7 @@ class BasePlugin(Plugin):
             self.users.insert_one(user)
         total = user['xp'] + amount
         self.users.update_one({'user_id': uid}, {'$set': {'xp': total}})
+<<<<<<< HEAD
 
     def shared_get_actions(self, user_id, type):
         return self.actions.find({"user_id": str(user_id), "type": type})
@@ -94,3 +113,5 @@ class BasePlugin(Plugin):
                 "type": action,
                 "time": time.time()
             })
+=======
+>>>>>>> 5f62ad863008eee896064838398ae7449364e2f6

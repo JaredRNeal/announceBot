@@ -47,8 +47,12 @@ class AnnounceBotConfig(Config):
         'android': 425682234540818442,
         'desktop': 425682251817287700,
         'ios': 425682219596644353,
+<<<<<<< HEAD
         'linux': 425682269609525255,
         'store': 502206695611695134
+=======
+        'linux': 425682269609525255
+>>>>>>> 5f62ad863008eee896064838398ae7449364e2f6
 
     }
 
@@ -164,8 +168,11 @@ class ExperiencePluginConfig(Config):
         }
     ]
 
+<<<<<<< HEAD
     reward_points = 5
 
+=======
+>>>>>>> 5f62ad863008eee896064838398ae7449364e2f6
 
 class GuideConfig(Config):
     guides = {

@@ -376,6 +376,7 @@ class announce(Plugin):
         f.close()
         event.msg.reply("Tag removed successfully!")
 
+<<<<<<< HEAD
     @Plugin.command("changetag", "<New_Tag_Key:str> [New_Tag_Content:str...]")
     def edit_existing_tag(self, event, New_Tag_Key, New_Tag_Content):
         aDict = self.get_all_tags_as_dict()
@@ -393,6 +394,9 @@ class announce(Plugin):
                 event.msg.reply("Tag has been successfully updated! Yay! <3")
                 return
         event.msg.reply("Sorry, I can't find a Tag with that name. Try using `+taglist` to see a full list of all of the available Tags.")
+=======
+
+>>>>>>> 5f62ad863008eee896064838398ae7449364e2f6
 
 
 

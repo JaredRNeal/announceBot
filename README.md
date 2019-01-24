@@ -76,7 +76,11 @@ The "reason" category will be the EXACT message that appears in all of the chann
 +Unlock
 =======
 
+<<<<<<< HEAD
 The "undo" command for Lockdown. Syntax is `+unlock {channel_name}` to unlock one channel, or `+unlock all` to unlock all of them.
+=======
+The "undo" command for Lockdown. Same idea just use it backwards.
+>>>>>>> 5f62ad863008eee896064838398ae7449364e2f6
 
 +slowmode
 ============
@@ -135,6 +139,7 @@ Shows the tag_key for all available tags.
 ==========
 
 Iterates through the tags.txt file to find the specified key:value pair and remove it.
+<<<<<<< HEAD
 
 
 +addfaq -f "{phrase_to_respond_to}" -c "{content}"
@@ -171,3 +176,5 @@ As a management feature you can dynamically remove an FAQ from the list. This pe
 A quality of life feature, allows you to rewrite the content of an FAQ without first removing it. You cannot edit the `phrase_to_respond_to`. Example usage:
 
 +editfaq -f "how do i respond to a bug" -c "Just checkout out #report-a-bug!"
+=======
+>>>>>>> 5f62ad863008eee896064838398ae7449364e2f6
