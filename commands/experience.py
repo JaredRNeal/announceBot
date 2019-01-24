@@ -283,7 +283,7 @@ class ExperiencePlugin(Plugin):
                                        "so wumpus can remember your progress towards the badge!")
 
         # show xp to user
-        event.channel.send_message("<@{id}> you have {xp} XP!".format(id=str(event.msg.author.id), xp=badge_progress))
+        event.channel.send_message("<@{id}> you have {xp} accumulated XP towards your badge!".format(id=str(event.msg.author.id), xp=badge_progress))
     """
     @Plugin.command("givexp", "<user_id:str> <points:int>")
     @command_wrapper(perm_lvl=3)
@@ -338,7 +338,8 @@ class ExperiencePlugin(Plugin):
             "user_id": str(uid)
         }, {
             "$set": {
-                "xp": xp
+                "xp": xp,
+                "badge-progress": points + user["badge-progress"]
             }
         })
         event.msg.reply(f":ok_hand: <@{uid}> received some xp for helping out!")
