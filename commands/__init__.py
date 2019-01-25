@@ -12,8 +12,8 @@ def command_level_getter(bot, actor):
 
 
 class BaseConfig(Config):
-    trello_key = "c3194bfe3a5e7644b996ba48542e0b00"
-    trello_token = "6ca84163ff8450f075011feb3a528d7f6d6d9c1a0054da8b8c2908d1971c3650"
+    trello_key = "KEY"
+    trello_token = "TOKEN"
 
 
 class BasePlugin(Plugin):
