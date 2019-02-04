@@ -233,7 +233,7 @@ class ChatInteractionsConfig(Config):
         " and in the end, the only victor was the coffin maker.",
         ", and what a fight it is!  Whoa mama!",
         ", with two thousand blades!",
-        ", but he fell into a conveniently placed manhole!",
+        ", but they fell into a conveniently placed manhole!",
         ", but they tripped over a rock and fell in the ocean",
         ", but they hurt themselves in confusion",
         ". HADOUKEN!",

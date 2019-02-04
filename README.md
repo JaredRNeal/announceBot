@@ -76,7 +76,7 @@ The "reason" category will be the EXACT message that appears in all of the chann
 +Unlock
 =======
 
-The "undo" command for Lockdown. Same idea just use it backwards.
+The "undo" command for Lockdown. Syntax is `+unlock {channel_name}` to unlock one channel, or `+unlock all` to unlock all of them.
 
 +slowmode
 ============
@@ -165,7 +165,7 @@ As a management feature you can dynamically remove an FAQ from the list. This pe
 
 +removefaq how do i report a bug
 
-+editfaq -f "{phrase_to_respond_do}" -c "{new_content}"
++editfaq -f "{phrase_to_respond_to}" -c "{new_content}"
 ===================
 
 A quality of life feature, allows you to rewrite the content of an FAQ without first removing it. You cannot edit the `phrase_to_respond_to`. Example usage:
