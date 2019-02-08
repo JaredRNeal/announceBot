@@ -1,5 +1,6 @@
 import math
 import time
+import json
 
 from disco.bot import Plugin
 from disco.types.message import MessageEmbed
@@ -136,6 +137,29 @@ class ExperiencePlugin(Plugin):
             # invalid, returning None
             return None
 
+    def get_action_limit(self, user_id, action):
+        """ returns a limit for the action of the user """
+        user = self.bot.client.api.guilds_members_get(self.config.dtesters_guild_id, user_id)
+        if user is None:
+            print("insert good debug message here")
+            return 0
+
+        role_prefix = ""
+
+        if self.config.role_IDs["squasher"] in user.roles and self.config.role_IDs["fehlerjager"] in user.roles:
+            role_prefix = "squasher_fehlerjager"
+        elif self.config.role_IDs["squasher"] in user.roles:
+            role_prefix = "squasher"
+        elif self.config.role_IDs["fehlerjager"] in user.roles:
+            role_prefix = "fehlerjager"
+
+        action_limit_name = action
+
+        if role_prefix != "":
+            action_limit_name = "{prefix}_{action}".format(prefix=role_prefix, action=action)
+
+        return self.config.reward_limits[action_limit_name]
+
     def handle_action(self, user_id, action, has_time_limit):
         """ handles giving user XP for an action they did. """
         actions = []
@@ -144,8 +168,9 @@ class ExperiencePlugin(Plugin):
             if previous_action.get("time", 0) + 86400.0 >= time.time():
                 actions.append(previous_action)
 
-        if len(actions) >= self.config.reward_limits[action]:
+        if len(actions) >= self.get_action_limit(user_id, action):
             return
+
         user = self.get_user(user_id)
         self.users.update_one({
             "user_id": str(user_id)
@@ -233,10 +258,15 @@ class ExperiencePlugin(Plugin):
         em.title = 'Queue XP actions'
         em.description = 'Your queue actions gaining XP (past 24 hours):'
         em.color = '7506394'
-        for action, limit in self.config.reward_limits.items():
+        for action in self.config.reward_limits.keys():
+            role_names = ["squasher", "fehlerjager"]
+            for name in role_names:
+                if action.startswith(name):
+                    continue
             action_name = self.config.cooldown_map.get(action, None)
             if action_name is None:
                 continue
+            limit = self.get_action_limit(event.author.id, action)
             user_actions = self.actions.find({'user_id': str(event.author.id),
                                               'type': action,
                                               'time': {'$gte': cd_limit}}).limit(limit)
@@ -249,6 +279,17 @@ class ExperiencePlugin(Plugin):
                 mins, secs = divmod(rem, 60)
                 fv += f' - Cools down in {int(hours)}h {int(mins)}m {int(secs)}s'
             em.add_field(name=action_name, value=fv)
+        member = self.bot.client.api.guilds_members_get(self.config.dtesters_guild_id, event.author.id)
+        bonuses = []
+        if self.config.role_IDs["squasher"] in member.roles:
+            bonuses.append("Bug Squasher Bonus")
+        if self.config.role_IDs["fehlerjager"] in member.roles:
+            bonuses.append("Fehlerjager Bonus")
+        if len(bonuses) != 0:
+            em.add_field(
+                name="Bonuses" if len(bonuses) != 1 else "Bonus",
+                value=", ".join(bonuses)
+            )
         event.msg.reply(embed=em)
 
     """
@@ -313,6 +354,39 @@ class ExperiencePlugin(Plugin):
         event.msg.reply(f":ok_hand: {name} point total updated to {xp}").after(5).delete()
         event.msg.delete()
         log_to_bot_log(self.bot,f":pencil: {event.msg.author} gave {points} to {name} (``{user_id}``), new xp total: {xp}")
+
+    @Plugin.command("givelifetimexp", "<user_id:str> <points:int>")
+    @command_wrapper(perm_lvl=3)
+    def give_lifetime_xp(self, event, user_id, points):
+        uid = self.get_id(user_id)
+        if int(uid) in event.guild.members:
+            name = str(event.guild.members[int(uid)])
+        else:
+            name = uid
+
+        if uid is None:
+            event.msg.reply(":no_entry_sign: invalid snowflake/mention").after(5).delete()
+            return
+        user = self.get_user(uid)
+
+        if user.get("badge-progress") is None:
+            event.msg.reply(":no_entry_sign: that user doesn't have lifetime XP. Wumpus forgot about them"
+                            " (they need to perform a bot action or gain XP)").after(5).delete()
+            return
+
+        self.users.update_one({
+            "user_id": str(uid)
+        }, {
+            "$set": {
+                "badge-progress": user.get("badge-progress", user["xp"]) + points
+            }
+        })
+
+        badge_progress = user["badge-progress"]
+        event.msg.reply(f":ok_hand: {name} lifetime XP total updated to {badge_progress}.").after(5).delete()
+        event.msg.delete()
+        log_to_bot_log(self.bot,
+                       f":pencil: {event.msg.author} gave {points} lifetime XP to {name} (``{user_id}``), new xp total: {xp}")
 
     @Plugin.command("reward", "<user_id:str>")
     @command_wrapper(perm_lvl=2, log=False)
@@ -459,3 +533,25 @@ class ExperiencePlugin(Plugin):
         event.msg.reply("<@{user}> has {xp}/{required}.".format(user=str(uid), xp=user["badge-progress"],
                                                                 required=str(self.config.badge_requirement)))\
             .after(10).delete()
+
+
+    @Plugin.command("export", "<file_name:str>")
+    @command_wrapper(perm_lvl=3)
+    def export(self, event, file_name):
+        log_to_bot_log(self.bot, ":notepad_spiral: {user} is performing an XP export".format(
+            user=str(event.author)
+        ))
+        msg = event.msg.reply(":gem: computing... (this might take a while)")
+        with open(file_name, "w+") as file:
+            user_dict = self.users.find()
+            newly_formed_user_dict = {}
+            for user in iter(user_dict):
+                newly_formed_user_dict[user["user_id"]] = {
+                    "x": user["xp"],
+                    "p": user.get("badge-progress", user["xp"])
+                }
+            data = json.dumps(newly_formed_user_dict)
+            file.write(data)
+        msg.edit(":ok_hand: complete! saved to `{file_name}`".format(
+            file_name=file_name
+        ))
